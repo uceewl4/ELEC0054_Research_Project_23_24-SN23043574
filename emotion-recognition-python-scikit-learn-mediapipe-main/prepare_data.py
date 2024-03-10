@@ -6,8 +6,8 @@ import numpy as np
 from utils import get_face_landmarks
 
 
-# data_dir = "emotion-recognition-python-scikit-learn-mediapipe-main/data/train"
-data_dir = "Emotion_detection_with_CNN-main/data/train"
+data_dir = "emotion-recognition-python-scikit-learn-mediapipe-main/data/train"
+# data_dir = "Emotion_detection_with_CNN-main/data/train"
 
 output = []
 for emotion_indx, emotion in enumerate(sorted(os.listdir(data_dir))):
