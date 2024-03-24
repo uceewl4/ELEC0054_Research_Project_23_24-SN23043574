@@ -34,11 +34,11 @@ class Baselines:
         if method == "KNN":
             self.model = KNeighborsClassifier()
         elif method == "SVM":
-            self.model = svm.SVC(kernel="poly")
+            self.model = svm.SVC(kernel="rbf")  # poly good for TESS
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
-            self.model = MultinomialNB()
+            self.model = GaussianNB()
         elif method == "RF":
             self.model = RandomForestClassifier(criterion="entropy", verbose=1)
 
@@ -75,8 +75,10 @@ class Baselines:
             if self.method == "RF":
                 params = [
                     {
-                        "n_estimators": [120, 140, 160, 180, 200],
-                        "max_depth": [8, 10, 12, 14, 16],
+                        # "n_estimators": [120, 140, 160, 180, 200],
+                        # "max_depth": [8, 10, 12, 14, 16],
+                        "n_estimators": [120, 140, 160, 180],
+                        "max_depth": [8, 10, 12, 14],
                     }
                 ]
             grid = GridSearchCV(self.model, params, cv=10, scoring="accuracy")

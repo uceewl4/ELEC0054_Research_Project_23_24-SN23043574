@@ -21,9 +21,7 @@ from utils import (
     get_metrics,
     hyperpara_selection,
     visual4cm,
-    visual4auc,
     visual4tree,
-    visual4KMeans,
 )
 
 warnings.filterwarnings("ignore")
@@ -60,8 +58,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--epochs", type=int, default=10, help="epochs of NNs")
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate of NNs")
-    parser.add_argument("--mfcc", type=int, default=40, help="epochs of NNs")
-    parser.add_argument("--mels", type=int, default=128, help="epochs of NNs")
+    parser.add_argument("--n_mfcc", type=int, default=40, help="epochs of NNs")
+    parser.add_argument("--n_mels", type=int, default=128, help="epochs of NNs")
     parser.add_argument(
         "--pre_data",
         type=bool,
@@ -96,7 +94,7 @@ if __name__ == "__main__":
 
     # load data
     print("Start loading data......")
-    if task == "Speech":
+    if task == "speech":
         if method in ["SVM", "DT", "RF", "NB", "KNN"]:
             Xtrain, ytrain, Xtest, ytest, Xval, yval = load_data(
                 task, method, dataset, features, args.n_mfcc, args.n_mels
@@ -176,11 +174,13 @@ if __name__ == "__main__":
     # metrics and visualization
     # hyperparameters selection
     if method in ["KNN", "DT", "RF"]:
-        hyperpara_selection(task, method, features, cc, cv_results_["mean_test_score"])
+        hyperpara_selection(
+            task, method, features, cc, dataset, cv_results_["mean_test_score"]
+        )
 
     # decision tree
     if "DT" in method:
-        (visual4tree(task, method, features, cc, model.model))
+        (visual4tree(task, method, features, cc, dataset, model.model))
 
     # confusion matrix, auc roc curve, metrics calculation
     res = {
@@ -195,6 +195,7 @@ if __name__ == "__main__":
         method,
         features,
         cc,
+        dataset,
         ytrain,
         yval,
         ytest,

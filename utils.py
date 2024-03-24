@@ -92,11 +92,11 @@ def load_RAVDESS(features, n_mfcc, n_mels):
         feature = get_features(file, features, n_mfcc=n_mfcc, n_mels=n_mels)
         x.append(feature)
         y.append(emotion)
-    print(np.array(x).shape)  # 768, 180
-    X_train, ytrain, X_left, yleft = train_test_split(
+    print(np.array(x).shape)  # (864,40), (288,40), (288,40)
+    X_train, X_left, ytrain, yleft = train_test_split(
         np.array(x), y, test_size=0.4, random_state=9
     )  # 3:2
-    X_val, yval, X_test, ytest = train_test_split(
+    X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
     return X_train, ytrain, X_val, yval, X_test, ytest
@@ -106,7 +106,7 @@ def load_TESS(features, n_mfcc, n_mels):
     x, y = [], []
     emotion_map = {
         "angry": 0,
-        "digust": 1,
+        "disgust": 1,
         "fear": 2,
         "happy": 3,
         "neutral": 4,
@@ -124,12 +124,13 @@ def load_TESS(features, n_mfcc, n_mels):
             y.append(emotion)
         if len(y) == 2800:
             break
-    X_train, ytrain, X_left, yleft = train_test_split(
+    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
         np.array(x), y, test_size=0.4, random_state=9
     )  # 3:2
-    X_val, yval, X_test, ytest = train_test_split(
+    X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
+    # (1680, 40), (560, 40), (560, 40), (1680,)
     return X_train, ytrain, X_val, yval, X_test, ytest
 
 
@@ -144,7 +145,7 @@ return {*}: loaded model input
 
 
 def load_data(task, method, dataset, features, n_mfcc=40, n_mels=128):
-    if task == "Speech":
+    if task == "speech":
         if dataset == "RAVDESS":
             X_train, ytrain, X_val, yval, X_test, ytest = load_RAVDESS(
                 features=features, n_mfcc=n_mfcc, n_mels=n_mels
@@ -269,7 +270,7 @@ return {*}: constructed model
 
 
 def load_model(task, method, lr=0.001):
-    if task == "Speech":
+    if task == "speech":
         if method in ["SVM", "DT", "RF", "NB", "KNN"]:
             model = SpeechBase(method)
 
@@ -290,7 +291,17 @@ param {*} test_pred: test prediction
 
 
 def visual4cm(
-    task, method, features, cc, ytrain, yval, ytest, train_pred, val_pred, test_pred
+    task,
+    method,
+    features,
+    cc,
+    dataset,
+    ytrain,
+    yval,
+    ytest,
+    train_pred,
+    val_pred,
+    test_pred,
 ):
     # confusion matrix
     cms = {
@@ -317,7 +328,9 @@ def visual4cm(
 
     if not os.path.exists(f"Outputs/{task}/confusion_matrix/"):
         os.makedirs(f"Outputs/{task}/confusion_matrix/")
-    fig.savefig(f"Outputs/{task}/confusion_matrix/{method}_{features}_{cc}.png")
+    fig.savefig(
+        f"Outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}.png"
+    )
     plt.close()
 
 
@@ -390,7 +403,7 @@ param {*} model: constructed tree model
 """
 
 
-def visual4tree(task, method, features, cc, model):
+def visual4tree(task, method, features, cc, dataset, model):
     plt.figure(figsize=(100, 15))
     class_names = (
         ["pneumonia", "non-pneumonia"]
@@ -402,7 +415,7 @@ def visual4tree(task, method, features, cc, model):
     )
     if not os.path.exists(f"Outputs/{task}/trees/"):
         os.makedirs(f"Outputs/{task}/trees/")
-    plt.savefig(f"Outputs/{task}/trees/{method}_{features}_{cc}.png")
+    plt.savefig(f"Outputs/{task}/trees/{method}_{features}_{cc}_{dataset}.png")
     plt.close()
 
 
@@ -446,7 +459,7 @@ param {*} scores: mean test score for cross validation of different parameter co
 """
 
 
-def hyperpara_selection(task, method, feature, cc, scores):
+def hyperpara_selection(task, method, feature, cc, dataset, scores):
     plt.figure(figsize=(8, 5))
     plt.plot(scores, c="g", marker="D", markersize=5)
     plt.xlabel("Params")
@@ -454,7 +467,9 @@ def hyperpara_selection(task, method, feature, cc, scores):
     plt.title(f"Params for {method}")
     if not os.path.exists(f"Outputs/{task}/hyperpara_selection/"):
         os.makedirs(f"Outputs/{task}/hyperpara_selection/")
-    plt.savefig(f"Outputs/{task}/hyperpara_selection/{method}_{feature}_{cc}.png")
+    plt.savefig(
+        f"Outputs/{task}/hyperpara_selection/{method}_{feature}_{cc}_{dataset}.png"
+    )
     plt.close()
 
 
