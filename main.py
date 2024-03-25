@@ -95,8 +95,12 @@ if __name__ == "__main__":
     # load data
     print("Start loading data......")
     if task == "speech":
-        if method in ["SVM", "DT", "RF", "NB", "KNN"]:
-            Xtrain, ytrain, Xtest, ytest, Xval, yval = load_data(
+        if method in ["SVM", "DT", "RF", "NB", "KNN", "LSTM"]:
+            Xtrain, ytrain, Xtest, ytest, Xval, yval, shape, num_classes = load_data(
+                task, method, dataset, features, args.n_mfcc, args.n_mels
+            )
+        elif method in ["MLP", "RNN"]:
+            train_ds, val_ds, test_ds, shape, num_classes = load_data(
                 task, method, dataset, features, args.n_mfcc, args.n_mels
             )
     # elif method in ["CNN", "MLP", "EnsembleNet"]:
@@ -109,6 +113,22 @@ if __name__ == "__main__":
     print("Start loading model......")
     if method in ["SVM", "DT", "RF", "NB", "KNN"]:
         model = load_model(task, method)
+    elif method == "MLP":
+        model = load_model(
+            task, method, features, cc, shape, num_classes, args.epochs, args.lr
+        )
+    elif method in ["RNN", "LSTM"]:
+        model = load_model(
+            task,
+            method,
+            features,
+            cc,
+            shape,
+            args.bidirectional,
+            num_classes,
+            args.epochs,
+            args.lr,
+        )
     print("Load model successfully.")
 
     """
@@ -121,6 +141,16 @@ if __name__ == "__main__":
         else:
             model.train(Xtrain, ytrain, Xval, yval)
         pred_train, pred_val, pred_test = model.test(Xtrain, ytrain, Xval, yval, Xtest)
+    elif method in ["MLP", "RNN"]:
+        train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
+            model, train_ds, val_ds
+        )
+        test_res, pred_test, ytest = model.test(model, test_ds)
+    elif method == "LSTM":
+        train_res, val_res, train_pred, val_pred, ytrain, yval = model.train(
+            Xtrain, ytrain, Xval, yval
+        )
+        ytest, pred_test = model.test(Xtest, ytest)
 
     # elif method in ["MLP", "CNN"]:
     #     if args.multilabel == False:

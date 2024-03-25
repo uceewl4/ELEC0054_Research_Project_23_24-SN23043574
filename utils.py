@@ -41,6 +41,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
 from models.speech.baselines import Baselines as SpeechBase
+from models.speech.MLP import MLP
+from models.speech.RNN import RNN
+from models.speech.LSTM import LSTM
 
 
 def get_features(filename, features="mfcc", n_mfcc=40, n_mels=128):
@@ -164,6 +167,93 @@ def load_SAVEE(features, n_mfcc, n_mels):
     return X_train, ytrain, X_val, yval, X_test, ytest
 
 
+def load_CREMA(features, n_mfcc, n_mels):
+    x, y = [], []
+    emotion_map = {
+        "ang": 0,  # angry
+        "dis": 1,  # disgust
+        "fea": 2,  # fear
+        "hap": 3,  # happiness
+        "neu": 4,  # neutral
+        "sad": 5,  # sadness
+    }
+    path = "datasets/speech/CREAM-D"
+    for file in os.listdir(path):
+        feature = get_features(
+            os.path.join(path, file), features, n_mfcc=n_mfcc, n_mels=n_mels
+        )
+        label = file.split("_")[2]
+        emotion = emotion_map[label.lower()]
+        x.append(feature)
+        y.append(emotion)
+    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+        np.array(x), y, test_size=0.4, random_state=9
+    )  # 3:2
+    X_val, X_test, yval, ytest = train_test_split(
+        X_left, yleft, test_size=0.5, random_state=9
+    )  # 1:1
+    # (1680, 40), (560, 40), (560, 40), (1680,)
+    return X_train, ytrain, X_val, yval, X_test, ytest
+
+
+def load_EmoDB(features, n_mfcc, n_mels):
+    x, y = [], []
+    emotion_map = {
+        "W": 0,  # angry
+        "L": 1,  # boredom
+        "E": 2,  # disgust
+        "A": 3,  # anxiety/fear
+        "F": 4,  # happiness
+        "T": 5,  # sadness
+    }
+    path = "datasets/speech/EmoDB"
+    for file in os.listdir(path):
+        feature = get_features(
+            os.path.join(path, file), features, n_mfcc=n_mfcc, n_mels=n_mels
+        )
+        label = file.split(".")[0][-2]
+        emotion = emotion_map[label]
+        x.append(feature)
+        y.append(emotion)
+    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+        np.array(x), y, test_size=0.4, random_state=9
+    )  # 3:2
+    X_val, X_test, yval, ytest = train_test_split(
+        X_left, yleft, test_size=0.5, random_state=9
+    )  # 1:1
+    # (1680, 40), (560, 40), (560, 40), (1680,)
+    return X_train, ytrain, X_val, yval, X_test, ytest
+
+
+def load_eNTERFACE(features, n_mfcc, n_mels):
+    x, y = [], []
+    emotion_map = {
+        "an": 0,  # angry
+        "di": 1,  # disgust
+        "fe": 2,  # fear
+        "ha": 3,  # happiness
+        "sa": 4,  # sadness
+        "su": 5,  # surprise
+    }
+    path = "datasets/speech/eNTERFACE"
+    for file in os.listdir(path):
+        feature = get_features(
+            os.path.join(path, file), features, n_mfcc=n_mfcc, n_mels=n_mels
+        )
+        label = file.split(".")[0].split("_")[-2]
+        emotion = emotion_map[label]
+        x.append(feature)
+        y.append(emotion)
+    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+        np.array(x), y, test_size=0.4, random_state=9
+    )  # 3:2
+    X_val, X_test, yval, ytest = train_test_split(
+        X_left, yleft, test_size=0.5, random_state=9
+    )  # 1:1
+    # (1680, 40), (560, 40), (560, 40), (1680,)
+    return X_train, ytrain, X_val, yval, X_test, ytest
+
+
 """
 description: This function is used for loading data from preprocessed dataset into model input.
 param {*} task: task Aor B
@@ -174,7 +264,7 @@ return {*}: loaded model input
 """
 
 
-def load_data(task, method, dataset, features, n_mfcc=40, n_mels=128):
+def load_data(task, method, dataset, features, n_mfcc=40, n_mels=128, batch_size=16):
     if task == "speech":
         if dataset == "RAVDESS":
             X_train, ytrain, X_val, yval, X_test, ytest = load_RAVDESS(
@@ -188,7 +278,34 @@ def load_data(task, method, dataset, features, n_mfcc=40, n_mels=128):
             X_train, ytrain, X_val, yval, X_test, ytest = load_SAVEE(
                 features=features, n_mfcc=n_mfcc, n_mels=n_mels
             )
-        return X_train, ytrain, X_val, yval, X_test, ytest
+        elif dataset == "CREMA-D":
+            X_train, ytrain, X_val, yval, X_test, ytest = load_SAVEE(
+                features=features, n_mfcc=n_mfcc, n_mels=n_mels
+            )
+        elif dataset == "EmoDB":
+            X_train, ytrain, X_val, yval, X_test, ytest = load_SAVEE(
+                features=features, n_mfcc=n_mfcc, n_mels=n_mels
+            )
+        elif dataset == "eINTERFACE":
+            X_train, ytrain, X_val, yval, X_test, ytest = load_SAVEE(
+                features=features, n_mfcc=n_mfcc, n_mels=n_mels
+            )
+
+        shape = np.array(X_train).shape[1]
+        num_classes = len(set(ytrain))
+        if method in ["SVM", "KNN", "DT", "RF", "NB", "LSTM"]:
+            return X_train, ytrain, X_val, yval, X_test, ytest, shape, num_classes
+        elif method in ["MLP", "RNN"]:
+            train_ds = tf.data.Dataset.from_tensor_slices(
+                (X_train, np.array(ytrain).astype(int))
+            ).batch(batch_size)
+            val_ds = tf.data.Dataset.from_tensor_slices(
+                (X_val, np.array(yval).astype(int))
+            ).batch(batch_size)
+            test_ds = tf.data.Dataset.from_tensor_slices(
+                (X_test, np.array(ytest).astype(int))
+            ).batch(batch_size)
+            return train_ds, val_ds, test_ds, shape, num_classes
 
     # file = os.listdir(path)
     # Xtest, ytest, Xtrain, ytrain, Xval, yval = [], [], [], [], [], []
@@ -303,10 +420,37 @@ return {*}: constructed model
 """
 
 
-def load_model(task, method, lr=0.001):
+def load_model(task, method, features, cc, shape, num_classes, epochs=10, lr=0.001):
     if task == "speech":
         if method in ["SVM", "DT", "RF", "NB", "KNN"]:
             model = SpeechBase(method)
+        elif method == "MLP":
+            model = MLP(task, method, features, cc, shape, num_classes, epochs, lr)
+        elif method == "RNN":
+            model = RNN(
+                task,
+                method,
+                features,
+                cc,
+                shape,
+                num_classes,
+                bidirectional=False,
+                epochs=10,
+                lr=0.001,
+            )
+        elif method == "LSTM":
+            model = LSTM(
+                task,
+                method,
+                features,
+                cc,
+                shape,
+                num_classes,
+                bidirectional=False,
+                epochs=10,
+                lr=0.001,
+                batch_size=16,
+            )
 
     return model
 

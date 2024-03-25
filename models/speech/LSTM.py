@@ -104,7 +104,7 @@ class LSTM(Model):
   return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
   """
 
-    def train(self, model, Xtrain, ytrain, Xval, yval):
+    def train(self, Xtrain, ytrain, Xval, yval):
         print("Start training......")
         self.model.compile(
             optimizer=self.optimizer,
@@ -150,7 +150,7 @@ class LSTM(Model):
   return {*}: accuracy and loss result, predicted labels and ground truth of test dataset
   """
 
-    def test(self, model, Xtest, ytest):
+    def test(self, Xtest, ytest):
         print("Start testing......")
         test_pred = []
         test_loss, test_acc = self.model.evaluate(Xtest, ytest, verbose=2)
