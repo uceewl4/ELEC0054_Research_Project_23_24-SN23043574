@@ -40,7 +40,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
-from Speech.models.baselines import Baselines as SpeechBase
+from models.speech.baselines import Baselines as SpeechBase
 
 
 def get_features(filename, features="mfcc", n_mfcc=40, n_mels=128):
@@ -124,6 +124,36 @@ def load_TESS(features, n_mfcc, n_mels):
             y.append(emotion)
         if len(y) == 2800:
             break
+    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+        np.array(x), y, test_size=0.4, random_state=9
+    )  # 3:2
+    X_val, X_test, yval, ytest = train_test_split(
+        X_left, yleft, test_size=0.5, random_state=9
+    )  # 1:1
+    # (1680, 40), (560, 40), (560, 40), (1680,)
+    return X_train, ytrain, X_val, yval, X_test, ytest
+
+
+def load_SAVEE(features, n_mfcc, n_mels):
+    x, y = [], []
+    emotion_map = {
+        "a": 0,  # angry
+        "d": 1,  # digust
+        "f": 2,  # fear
+        "h": 3,  # happiness
+        "n": 4,  # neutral
+        "sa": 5,  # sadness
+        "su": 6,  # surprise
+    }
+    path = "datasets/speech/SAVEE"
+    for file in os.listdir(path):
+        feature = get_features(
+            os.path.join(path, file), features, n_mfcc=n_mfcc, n_mels=n_mels
+        )
+        label = file.split("_")[-1][:-2]
+        emotion = emotion_map[label]
+        x.append(feature)
+        y.append(emotion)
     X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
         np.array(x), y, test_size=0.4, random_state=9
     )  # 3:2
