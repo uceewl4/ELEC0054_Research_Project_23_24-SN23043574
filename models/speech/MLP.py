@@ -18,18 +18,10 @@ import tensorflow as tf
 from tensorflow.keras import Model
 import tqdm
 from tensorboardX import SummaryWriter
-from tensorflow.keras.layers import (
-    Dense,
-    Flatten,
-    Conv2D,
-    Dropout,
-    Input,
-    SimpleRNN,
-    Bidirectional,
-)
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, Dropout, Input
 
 
-class RNN(Model):
+class MLP(Model):
     """
     description: This function includes all initialization of MLP, like layers used for construction,
       loss function object, optimizer, measurement of accuracy and loss.
@@ -40,40 +32,23 @@ class RNN(Model):
     """
 
     def __init__(
-        self,
-        task,
-        method,
-        features,
-        cc,
-        shape,
-        num_classes,
-        bidirectional=False,
-        epochs=10,
-        lr=0.001,
+        self, task, method, features, cc, shape, num_classes, epochs=10, lr=0.001
     ):
-        super(RNN, self).__init__()
+        super(MLP, self).__init__()
         self.num_classes = num_classes
         self.features = features
         self.cc = cc
         self.method = method
         self.task = task
-        self.bidirectional = bidirectional
 
         # network layers definition
-        if self.bidirectional == True:
-            self.r1 = Bidirectional(
-                SimpleRNN(256, return_sequences=False, input_shape=(shape, 1))
-            )
-            self.r2 = Bidirectional(SimpleRNN(256, return_sequences=True))
-        else:
-            self.r1 = SimpleRNN(256, return_sequences=False, input_shape=(shape, 1))
-            self.r2 = SimpleRNN(256, return_sequences=True)
-        self.d1 = Dense(128, activation="relu")
-        self.do1 = Dropout(0.4)
-        self.d2 = Dense(64, activation="relu")
-        self.d3 = Dense(32, activation="relu")
-        self.do2 = Dropout(0.4)
-        self.d4 = Dense(num_classes)
+        self.d1 = Dense(256, activation="relu", input_shape=(shape,))
+        self.d2 = Dense(128, activation="relu")
+        self.do1 = Dropout(0.2)
+        self.d3 = Dense(64, activation="relu")
+        self.d4 = Dense(32, activation="relu")
+        self.do2 = Dropout(0.2)
+        self.d5 = Dense(num_classes)
 
         # objective function: binary cross entropy
         # notice that here the loss is calculated from logits, no need to set activation function for the output layer
@@ -110,8 +85,6 @@ class RNN(Model):
   """
 
     def call(self, x):
-        x = self.r1(x)
-        x = self.r2(x)
         x = self.d1(x)
         x = self.d2(x)
         x = self.do1(x)
@@ -134,10 +107,10 @@ class RNN(Model):
 
     def train(self, model, train_ds, val_ds):
         print("Start training......")
-        if not os.path.exists(f"Outputs/{self.task}/nn_curves/"):
-            os.makedirs(f"Outputs/{self.task}/nn_curves/")
+        if not os.path.exists(f"outputs/{self.task}/nn_curves/"):
+            os.makedirs(f"outputs/{self.task}/nn_curves/")
         writer = SummaryWriter(
-            f"Outputs/{self.task}/nn_curves/{self.method}_{self.features}_{self.cc}_{self.dataset}"
+            f"outputs/{self.task}/nn_curves/{self.method}_{self.features}_{self.cc}_{self.dataset}"
         )
 
         # train

@@ -85,7 +85,7 @@ def load_RAVDESS(features, n_mfcc, n_mels):
         "07": 6,  # 'disgust'
         "08": 7,  # 'surprised'
     }
-    for file in glob.glob("Datasets/speech/RAVDESS/Actor_*/*.wav"):
+    for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
         # print(file)
         file_name = os.path.basename(file)
         emotion = emotion_map[file_name.split("-")[2]]
@@ -113,7 +113,7 @@ def load_TESS(features, n_mfcc, n_mels):
         "ps": 5,
         "sad": 6,
     }
-    for dirname, _, filenames in os.walk("Datasets/speech/TESS"):
+    for dirname, _, filenames in os.walk("datasets/speech/TESS"):
         for filename in filenames:
             feature = get_features(
                 os.path.join(dirname, filename), features, n_mfcc=n_mfcc, n_mels=n_mels
@@ -326,10 +326,10 @@ def visual4cm(
     plt.subplots_adjust(wspace=0.40, hspace=0.1)
     fig.colorbar(disp.im_, ax=axes)
 
-    if not os.path.exists(f"Outputs/{task}/confusion_matrix/"):
-        os.makedirs(f"Outputs/{task}/confusion_matrix/")
+    if not os.path.exists(f"outputs/{task}/confusion_matrix/"):
+        os.makedirs(f"outputs/{task}/confusion_matrix/")
     fig.savefig(
-        f"Outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}.png"
+        f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}.png"
     )
     plt.close()
 
@@ -390,9 +390,9 @@ param {*} test_pred: test prediction
 #     plt.title(f"ROC Curve for {method}", fontsize=10)
 #     plt.legend(loc="lower right", fontsize=5)
 
-#     if not os.path.exists("Outputs/images/roc_curve/"):
-#         os.makedirs("Outputs/images/roc_curve/")
-#     plt.savefig(f"Outputs/images/roc_curve/{method}_task{task}.png")
+#     if not os.path.exists("outputs/images/roc_curve/"):
+#         os.makedirs("outputs/images/roc_curve/")
+#     plt.savefig(f"outputs/images/roc_curve/{method}_task{task}.png")
 #     plt.close()
 
 
@@ -413,9 +413,9 @@ def visual4tree(task, method, features, cc, dataset, model):
     tree.plot_tree(
         model, class_names=class_names, filled=True, rounded=True, fontsize=5
     )
-    if not os.path.exists(f"Outputs/{task}/trees/"):
-        os.makedirs(f"Outputs/{task}/trees/")
-    plt.savefig(f"Outputs/{task}/trees/{method}_{features}_{cc}_{dataset}.png")
+    if not os.path.exists(f"outputs/{task}/trees/"):
+        os.makedirs(f"outputs/{task}/trees/")
+    plt.savefig(f"outputs/{task}/trees/{method}_{features}_{cc}_{dataset}.png")
     plt.close()
 
 
@@ -465,10 +465,10 @@ def hyperpara_selection(task, method, feature, cc, dataset, scores):
     plt.xlabel("Params")
     plt.ylabel("Accuracy")
     plt.title(f"Params for {method}")
-    if not os.path.exists(f"Outputs/{task}/hyperpara_selection/"):
-        os.makedirs(f"Outputs/{task}/hyperpara_selection/")
+    if not os.path.exists(f"outputs/{task}/hyperpara_selection/"):
+        os.makedirs(f"outputs/{task}/hyperpara_selection/")
     plt.savefig(
-        f"Outputs/{task}/hyperpara_selection/{method}_{feature}_{cc}_{dataset}.png"
+        f"outputs/{task}/hyperpara_selection/{method}_{feature}_{cc}_{dataset}.png"
     )
     plt.close()
 
@@ -508,7 +508,7 @@ param {*} data: npz data
 #         ax[index].set_title(mode)
 #     plt.tight_layout()
 
-#     if not os.path.exists("Outputs/images/"):
-#         os.makedirs("Outputs/images/")
-#     fig.savefig(f"Outputs/images/label_distribution_task{task}.png")
+#     if not os.path.exists("outputs/images/"):
+#         os.makedirs("outputs/images/")
+#     fig.savefig(f"outputs/images/label_distribution_task{task}.png")
 #     plt.close()
