@@ -184,6 +184,10 @@ def load_data(task, method, dataset, features, n_mfcc=40, n_mels=128):
             X_train, ytrain, X_val, yval, X_test, ytest = load_TESS(
                 features=features, n_mfcc=n_mfcc, n_mels=n_mels
             )
+        elif dataset == "SAVEE":
+            X_train, ytrain, X_val, yval, X_test, ytest = load_SAVEE(
+                features=features, n_mfcc=n_mfcc, n_mels=n_mels
+            )
         return X_train, ytrain, X_val, yval, X_test, ytest
 
     # file = os.listdir(path)
