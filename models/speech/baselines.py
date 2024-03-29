@@ -13,6 +13,7 @@
 
 # here put the import lib
 import numpy as np
+import time
 from sklearn import svm
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import GridSearchCV
@@ -60,6 +61,7 @@ class Baselines:
 
     def train(self, Xtrain, ytrain, Xval, yval, gridSearch=False):
         print(f"Start training for {self.method}......")
+        start_time_train = time.time()
         self.model.fit(Xtrain, ytrain)
         print(f"Finish training for {self.method}.")
 
@@ -87,7 +89,10 @@ class Baselines:
             print(grid.best_params_)
             self.model = grid.best_estimator_  # best estimator
 
+            end_time_train = time.time()
+            elapsed_time_train = end_time_train - start_time_train
             print(f"Finish tuning(cross-validation) for {self.method}.")
+            print(f"Training and cross-validation time: {elapsed_time_train}s")
             return grid.cv_results_
 
     """
@@ -103,11 +108,16 @@ class Baselines:
 
     def test(self, Xtrain, ytrain, Xval, yval, Xtest):
         print(f"Start testing for {self.method}......")
+        start_time_test = time.time()
+
         self.model.fit(np.concatenate((Xtrain, Xval), axis=0), ytrain + yval)
         pred_test = self.model.predict(Xtest)
         pred_train = self.model.predict(Xtrain)
         pred_val = self.model.predict(Xval)
+        end_time_test = time.time()
 
+        elapsed_time_test = end_time_test - start_time_test
         print(f"Finish testing for {self.method}.")
+        print(f"Testing time: {elapsed_time_test}s")
 
         return pred_train, pred_val, pred_test

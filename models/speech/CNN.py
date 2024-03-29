@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 """
-@File    :   MLP.py
-@Time    :   2024/03/24 21:41:02
+@File    :   CNN.py
+@Time    :   2024/03/28 17:51:52
 @Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
 @Module : ELEC0054: Research Project
 @SN :   23043574
@@ -11,10 +11,12 @@
 
 # here put the import lib
 
+# here put the import lib
+
 
 import os
-import numpy as np
 import time
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
 from keras.models import Sequential
@@ -31,7 +33,7 @@ from tensorflow.keras.layers import (
 )
 
 
-class LSTM(Model):
+class CNN(Model):
     """
     description: This function includes all initialization of MLP, like layers used for construction,
       loss function object, optimizer, measurement of accuracy and loss.
@@ -50,12 +52,13 @@ class LSTM(Model):
         shape,
         num_classes,
         dataset,
+        length,
         bidirectional=False,
         epochs=10,
         lr=0.001,
         batch_size=16,
     ):
-        super(LSTM, self).__init__()
+        super(CNN, self).__init__()
         self.num_classes = num_classes
         self.features = features
         self.cc = cc
@@ -67,20 +70,17 @@ class LSTM(Model):
         # network layers definition
         self.model = Sequential(
             [
-                LSTM(
-                    256, return_sequences=False, input_shape=(shape, 1)
-                ),  # 40 features as 40 timestamp, for each timestamp the input dimension is 1
-                # output vector dimension is 256
-                Dropout(0.2),
+                Conv2D(
+                    16, (3, 3), activation="relu", input_shape=(shape, length, 1)
+                ),  # features, length, channel
+                Conv2D(16, (3, 3), activation="relu"),
+                Flatten(),
                 Dense(128, activation="relu"),
-                Dropout(0.2),
-                Dense(64, activation="relu"),
-                Dropout(0.2),
-                Dense(num_classes, name="outputs"),
+                Dense(num_classes),
             ]
         )
 
-        self.model.build((None, shape, 1))
+        self.model.build((None, shape, length, 1))
         self.model.summary()
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.input, outputs=self.model.get_layer("outputs").output
@@ -159,7 +159,6 @@ class LSTM(Model):
     def test(self, Xtest, ytest):
         print("Start testing......")
         start_time_test = time.time()
-
         test_pred = []
         test_loss, test_acc = self.model.evaluate(Xtest, ytest, verbose=2)
         test_predictions = self.output_layer.predict(x=Xtest)

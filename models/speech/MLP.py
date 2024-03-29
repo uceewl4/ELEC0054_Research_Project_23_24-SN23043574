@@ -13,10 +13,11 @@
 
 
 import os
+import time
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
-import tqdm
+from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, Dropout, Input
 
@@ -32,7 +33,16 @@ class MLP(Model):
     """
 
     def __init__(
-        self, task, method, features, cc, shape, num_classes, epochs=10, lr=0.001
+        self,
+        task,
+        method,
+        features,
+        cc,
+        shape,
+        num_classes,
+        dataset,
+        epochs=10,
+        lr=0.001,
     ):
         super(MLP, self).__init__()
         self.num_classes = num_classes
@@ -40,6 +50,7 @@ class MLP(Model):
         self.cc = cc
         self.method = method
         self.task = task
+        self.dataset = dataset
 
         # network layers definition
         self.d1 = Dense(256, activation="relu", input_shape=(shape,))
@@ -107,6 +118,7 @@ class MLP(Model):
 
     def train(self, model, train_ds, val_ds):
         print("Start training......")
+        start_time_train = time.time()
         if not os.path.exists(f"outputs/{self.task}/nn_curves/"):
             os.makedirs(f"outputs/{self.task}/nn_curves/")
         writer = SummaryWriter(
@@ -199,7 +211,10 @@ class MLP(Model):
             train_pred = np.array(train_pred)
             val_pred = np.array(val_pred)
 
-        print("Finish training.")
+        end_time_train = time.time()
+        elapsed_time_train = end_time_train - start_time_train
+        print(f"Finish training for {self.method}.")
+        print(f"Training time: {elapsed_time_train}s")
         writer.close()
 
         return train_res, val_res, train_pred, val_pred, ytrain, yval
@@ -215,6 +230,8 @@ class MLP(Model):
 
     def test(self, model, test_ds):
         print("Start testing......")
+        start_time_test = time.time()
+
         test_pred = []  # predicted labels
         ytest = []  # ground truth
         self.test_loss.reset_states()
@@ -237,7 +254,11 @@ class MLP(Model):
             "test_loss": np.array(self.test_loss.result()).tolist(),
             "test_acc": round(np.array(self.test_accuracy.result()) * 100, 4),
         }
-        print("Finish testing.")
         test_pred = np.array(test_pred)
+
+        end_time_test = time.time()
+        elapsed_time_test = end_time_test - start_time_test
+        print("Finish testing.")
+        print(f"Testing time: {elapsed_time_test}s")
 
         return test_res, test_pred, ytest

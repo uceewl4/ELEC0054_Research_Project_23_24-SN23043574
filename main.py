@@ -20,6 +20,7 @@ from utils import (
     load_model,
     get_metrics,
     hyperpara_selection,
+    visaul4curves,
     visual4cm,
     visual4tree,
 )
@@ -60,8 +61,20 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate of NNs")
     parser.add_argument("--n_mfcc", type=int, default=40, help="epochs of NNs")
     parser.add_argument("--n_mels", type=int, default=128, help="epochs of NNs")
+    parser.add_argument("--max_length", type=int, default=109, help="epochs of NNs")
     parser.add_argument(
-        "--pre_data",
+        "--reverse", type=bool, default=False, help="play the audio in a reverse way"
+    )
+    parser.add_argument(
+        "--noise", type=bool, default=False, help="play the audio in a reverse way"
+    )
+    parser.add_argument(
+        "--denoise", type=bool, default=False, help="play the audio in a reverse way"
+    )
+    parser.add_argument("--window", nargs="+", type=int, help="An array of integers")
+    # python script.py --integers 1 2 3 4 5
+    parser.add_argument(
+        "--bidirectional",
         type=bool,
         default=False,
         help="whether download and preprocess the dataset",
@@ -72,6 +85,12 @@ if __name__ == "__main__":
         type=str,
         default="single",
         help="single, cross, finetune",
+    )
+    parser.add_argument(
+        "--scaled",
+        type=str,
+        default=None,
+        help="standard, minmax",
     )
     args = parser.parse_args()
     task = args.task
@@ -97,11 +116,47 @@ if __name__ == "__main__":
     if task == "speech":
         if method in ["SVM", "DT", "RF", "NB", "KNN", "LSTM"]:
             Xtrain, ytrain, Xtest, ytest, Xval, yval, shape, num_classes = load_data(
-                task, method, dataset, features, args.n_mfcc, args.n_mels
+                task,
+                method,
+                dataset,
+                features,
+                args.n_mfcc,
+                args.n_mels,
+                scaled=args.scaled,
+                reverse=args.reverse,
+                noise=args.noise,
+                denoise=args.denoise,
+                window=args.window,
             )
         elif method in ["MLP", "RNN"]:
             train_ds, val_ds, test_ds, shape, num_classes = load_data(
-                task, method, dataset, features, args.n_mfcc, args.n_mels
+                task,
+                method,
+                dataset,
+                features,
+                args.n_mfcc,
+                args.n_mels,
+                scaled=args.scaled,
+                batch_size=args.batch_size,
+                reverse=args.reverse,
+                noise=args.noise,
+                denoise=args.denoise,
+                window=args.window,
+            )
+        elif method in ["CNN", "AlexNet"]:
+            Xtrain, ytrain, Xtest, ytest, Xval, yval, shape, num_classes = load_data(
+                task,
+                method,
+                dataset,
+                features,
+                args.n_mfcc,
+                args.n_mels,
+                scaled=args.scaled,
+                max_length=args.max_length,
+                reverse=args.reverse,
+                noise=args.noise,
+                denoise=args.denoise,
+                window=args.window,
             )
     # elif method in ["CNN", "MLP", "EnsembleNet"]:
     #     train_ds, val_ds, test_ds = load_data(
@@ -115,7 +170,15 @@ if __name__ == "__main__":
         model = load_model(task, method)
     elif method == "MLP":
         model = load_model(
-            task, method, features, cc, shape, num_classes, args.epochs, args.lr
+            task,
+            method,
+            features,
+            cc,
+            shape,
+            num_classes,
+            dataset,
+            args.epochs,
+            args.lr,
         )
     elif method in ["RNN", "LSTM"]:
         model = load_model(
@@ -124,10 +187,33 @@ if __name__ == "__main__":
             features,
             cc,
             shape,
-            args.bidirectional,
             num_classes,
-            args.epochs,
-            args.lr,
+            dataset,
+            bidirectional=args.bidirectional,
+            epochs=args.epochs,
+            lr=args.lr,
+        )
+    elif method in ["CNN", "AlexNet"]:
+        model = load_model(
+            task,
+            method,
+            features,
+            cc,
+            shape,
+            num_classes,
+            dataset,
+            length=args.max_length,
+            bidirectional=args.bidirectional,
+            epochs=args.epochs,
+            lr=args.lr,
+        )
+    elif method == "GMM":
+        model = load_model(
+            task,
+            method,
+            features,
+            cc,
+            dataset,
         )
     print("Load model successfully.")
 
@@ -146,60 +232,16 @@ if __name__ == "__main__":
             model, train_ds, val_ds
         )
         test_res, pred_test, ytest = model.test(model, test_ds)
-    elif method == "LSTM":
+    elif method in ["LSTM", "CNN", "AlexNet"]:
         train_res, val_res, train_pred, val_pred, ytrain, yval = model.train(
             Xtrain, ytrain, Xval, yval
         )
         ytest, pred_test = model.test(Xtest, ytest)
-
-    # elif method in ["MLP", "CNN"]:
-    #     if args.multilabel == False:
-    #         train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
-    #             model, train_ds, val_ds, args.epochs
-    #         )
-    #         test_res, pred_test, ytest = model.test(model, test_ds)
-    #     else:  # multilabel
-    #         (
-    #             train_res,
-    #             val_res,
-    #             pred_train,
-    #             pred_train_multilabel,
-    #             pred_val,
-    #             pred_val_multilabel,
-    #             ytrain,
-    #             yval,
-    #         ) = model.train(model, train_ds, val_ds, args.epochs)
-    #         test_res, pred_test, pred_test_multilabel, ytest = model.test(
-    #             model, test_ds
-    #         )
-    #         print(pred_test_multilabel[:5, :])
-
-    # elif method == "EnsembleNet":
-    #     model.train(train_ds, val_ds, args.epochs)
-    #     train_res, val_res, pred_train, pred_val, ytrain, yval = model.weight_selection(
-    #         train_ds, val_ds
-    #     )
-    #     test_res, pred_test, ytest = model.test(test_ds)
-
-    # elif (
-    #     ("VGG16" in method)
-    #     or ("ResNet50" in method)
-    #     or ("DenseNet201" in method)
-    #     or ("MobileNetV2" in method)
-    #     or ("InceptionV3" in method)
-    # ):
-    #     if (
-    #         ("KNN" in method)
-    #         or ("DT" in method)
-    #         or ("RF" in method)
-    #         or ("ABC" in method)
-    #     ):
-    #         cv_results_ = model.train(
-    #             model, Xtrain, ytrain, Xval, yval, Xtest, gridSearch=True
-    #         )
-    #     else:
-    #         model.train(model, Xtrain, ytrain, Xval, yval, Xtest)
-    #     pred_train, pred_val, pred_test = model.test(model, ytrain, yval)
+    elif method == "GMM":
+        pred_train, pred_val, ytrain, yval = model.train(
+            Xtrain, ytrain, Xval, yval, Xtest
+        )
+        pred_test, ytest = model.test(Xtest, ytest)
 
     # metrics and visualization
     # hyperparameters selection
@@ -233,7 +275,5 @@ if __name__ == "__main__":
         pred_val,
         pred_test,
     )
-    # if task == "A":
-    #     visual4auc(
-    #         task, method, ytrain, yval, ytest, pred_train, pred_val, pred_test
-    #     )
+    if method == "LSTM":
+        visaul4curves(task, method, features, cc, dataset, train_res, val_res)

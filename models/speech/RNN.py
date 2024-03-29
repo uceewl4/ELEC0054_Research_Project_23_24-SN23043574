@@ -13,10 +13,11 @@
 
 
 import os
+import time
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
-import tqdm
+from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from tensorflow.keras.layers import (
     Dense,
@@ -47,6 +48,7 @@ class RNN(Model):
         cc,
         shape,
         num_classes,
+        dataset,
         bidirectional=False,
         epochs=10,
         lr=0.001,
@@ -58,6 +60,7 @@ class RNN(Model):
         self.method = method
         self.task = task
         self.bidirectional = bidirectional
+        self.dataset = dataset
 
         # network layers definition
         if self.bidirectional == True:
@@ -66,6 +69,7 @@ class RNN(Model):
             )
             self.r2 = Bidirectional(SimpleRNN(256, return_sequences=True))
         else:
+            # self.r1 = SimpleRNN(256, return_sequences=False, input_shape=(shape, 1))
             self.r1 = SimpleRNN(256, return_sequences=False, input_shape=(shape, 1))
             self.r2 = SimpleRNN(256, return_sequences=True)
         self.d1 = Dense(128, activation="relu")
@@ -110,7 +114,7 @@ class RNN(Model):
   """
 
     def call(self, x):
-        x = self.r1(x)
+        x = self.r1(x)  # (32,256)
         x = self.r2(x)
         x = self.d1(x)
         x = self.d2(x)
@@ -134,6 +138,7 @@ class RNN(Model):
 
     def train(self, model, train_ds, val_ds):
         print("Start training......")
+        start_time_train = time.time()
         if not os.path.exists(f"outputs/{self.task}/nn_curves/"):
             os.makedirs(f"outputs/{self.task}/nn_curves/")
         writer = SummaryWriter(
@@ -149,8 +154,10 @@ class RNN(Model):
             train_progress_bar = tqdm(range(len(train_ds)))
 
             for step, (train_images, train_labels) in enumerate(train_ds):
-                with tf.GradientTape() as tape:
-                    predictions = model(train_images, training=True)  # logits
+                with tf.GradientTape() as tape:  # 32,40
+                    predictions = model(
+                        np.expand_dims(train_images, 2), training=True
+                    )  # logits
                     train_prob = tf.nn.softmax(predictions)  # probabilities
                     train_pred += np.argmax(train_prob, axis=1).tolist()
                     ytrain += np.array(train_labels).tolist()  # ground truth
@@ -226,7 +233,10 @@ class RNN(Model):
             train_pred = np.array(train_pred)
             val_pred = np.array(val_pred)
 
-        print("Finish training.")
+        end_time_train = time.time()
+        elapsed_time_train = end_time_train - start_time_train
+        print(f"Finish training for {self.method}.")
+        print(f"Training time: {elapsed_time_train}s")
         writer.close()
 
         return train_res, val_res, train_pred, val_pred, ytrain, yval
@@ -242,6 +252,8 @@ class RNN(Model):
 
     def test(self, model, test_ds):
         print("Start testing......")
+        start_time_test = time.time()
+
         test_pred = []  # predicted labels
         ytest = []  # ground truth
         self.test_loss.reset_states()
@@ -264,7 +276,11 @@ class RNN(Model):
             "test_loss": np.array(self.test_loss.result()).tolist(),
             "test_acc": round(np.array(self.test_accuracy.result()) * 100, 4),
         }
-        print("Finish testing.")
         test_pred = np.array(test_pred)
+
+        end_time_test = time.time()
+        elapsed_time_test = end_time_test - start_time_test
+        print("Finish testing.")
+        print(f"Testing time: {elapsed_time_test}s")
 
         return test_res, test_pred, ytest

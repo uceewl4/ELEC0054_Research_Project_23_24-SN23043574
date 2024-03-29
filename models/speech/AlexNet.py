@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 """
-@File    :   MLP.py
-@Time    :   2024/03/24 21:41:02
+@File    :   AlexNet.py
+@Time    :   2024/03/28 17:52:00
 @Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
 @Module : ELEC0054: Research Project
 @SN :   23043574
@@ -11,10 +11,12 @@
 
 # here put the import lib
 
+# here put the import lib
+
 
 import os
-import numpy as np
 import time
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
 from keras.models import Sequential
@@ -28,10 +30,11 @@ from tensorflow.keras.layers import (
     Input,
     SimpleRNN,
     Bidirectional,
+    MaxPooling2D,
 )
 
 
-class LSTM(Model):
+class AlexNet(Model):
     """
     description: This function includes all initialization of MLP, like layers used for construction,
       loss function object, optimizer, measurement of accuracy and loss.
@@ -50,12 +53,13 @@ class LSTM(Model):
         shape,
         num_classes,
         dataset,
+        length,
         bidirectional=False,
         epochs=10,
         lr=0.001,
         batch_size=16,
     ):
-        super(LSTM, self).__init__()
+        super(AlexNet, self).__init__()
         self.num_classes = num_classes
         self.features = features
         self.cc = cc
@@ -67,20 +71,31 @@ class LSTM(Model):
         # network layers definition
         self.model = Sequential(
             [
-                LSTM(
-                    256, return_sequences=False, input_shape=(shape, 1)
-                ),  # 40 features as 40 timestamp, for each timestamp the input dimension is 1
-                # output vector dimension is 256
-                Dropout(0.2),
-                Dense(128, activation="relu"),
-                Dropout(0.2),
-                Dense(64, activation="relu"),
-                Dropout(0.2),
-                Dense(num_classes, name="outputs"),
+                Conv2D(
+                    3,
+                    64,
+                    kernel_size=11,
+                    stride=4,
+                    padding=2,
+                    activation="relu",
+                    input_shape=(shape, length, 1),
+                ),
+                MaxPooling2D(kernel_size=3, stride=2),
+                Conv2D(64, 192, kernel_size=5, padding=2, activation="relu"),
+                MaxPooling2D(kernel_size=3, stride=2),
+                Conv2D(192, 384, kernel_size=3, padding=1, activation="relu"),
+                MaxPooling2D(384, 256, kernel_size=3, padding=1, activation="relu"),
+                MaxPooling2D(256, 256, kernel_size=3, padding=1, activation="relu"),
+                MaxPooling2D(kernel_size=3, stride=2),
+                Dropout(0.5),
+                Flatten(),
+                Dense(256, activation="relu"),
+                Dense(128, actiavtion="relu"),
+                Dense(num_classes),
             ]
         )
 
-        self.model.build((None, shape, 1))
+        self.model.build((None, shape, length, 1))
         self.model.summary()
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.input, outputs=self.model.get_layer("outputs").output
@@ -167,8 +182,8 @@ class LSTM(Model):
         test_pred += np.argmax(test_prob, axis=1).tolist()
         test_pred = np.array(test_pred)
         test_pred = np.array(test_pred)
-
         end_time_test = time.time()
+
         elapsed_time_test = end_time_test - start_time_test
         print("Finish testing.")
         print(f"Testing time: {elapsed_time_test}s")
