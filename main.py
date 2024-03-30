@@ -55,7 +55,9 @@ if __name__ == "__main__":
     parser.add_argument("--task", type=str, default="speech", help="task A or B")
     parser.add_argument("--method", type=str, default="SVM", help="model chosen")
     parser.add_argument("--dataset", type=str, default="TESS", help="model chosen")
-    parser.add_argument("--features", type=str, default="mfcc", help="model chosen")
+    parser.add_argument(
+        "--features", type=str, default="mfcc", help="mfcc, chroma, all, mel"
+    )
     parser.add_argument(
         "--batch_size", type=int, default=32, help="batch size of NNs like MLP and CNN"
     )

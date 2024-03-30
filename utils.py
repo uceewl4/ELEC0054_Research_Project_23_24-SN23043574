@@ -149,12 +149,12 @@ def get_features(
 def print_features(data, features, n_mfcc, n_mels):
     if features == "all" or "mfcc":
         # Check chromagram feature values
-        mfcc_features = data[:, :n_mfcc]
+        mfcc_features = np.array(data)[:, :n_mfcc]  # 1440,180
         mfcc_min = np.min(mfcc_features)
         mfcc_max = np.max(mfcc_features)
         # stack all features into a single series so we don't get a mean of means or stdev of stdevs
-        mfcc_mean = mfcc_features.stack().mean()
-        mfcc_stdev = mfcc_features.stack().std()
+        mfcc_mean = mfcc_features.mean()
+        mfcc_stdev = mfcc_features.std()
         print(
             f"{n_mfcc} MFCC features:       \
         min = {mfcc_min:.3f}, \
@@ -165,12 +165,12 @@ def print_features(data, features, n_mfcc, n_mels):
 
     if features == "all" or "chroma":
         # Check chroma feature values
-        chroma_features = data[:, n_mfcc:11]
+        chroma_features = np.array(data)[:, n_mfcc : n_mfcc + 12]
         chroma_min = np.min(chroma_features)
         chroma_max = np.max(chroma_features)
         # stack all features into a single series so we don't get a mean of means or stdev of stdevs
-        chroma_mean = chroma_features.stack().mean()
-        chroma_stdev = chroma_features.stack().std()
+        chroma_mean = chroma_features.mean()
+        chroma_stdev = chroma_features.std()
         print(
             f"\n11 chroma features:             \
         min = {chroma_min:.3f},\
@@ -181,12 +181,12 @@ def print_features(data, features, n_mfcc, n_mels):
 
     if features == "all" or "mel":
         # Check mel spectrogram feature values
-        mel_features = data[:, n_mfcc + 11 :]
+        mel_features = np.array(data)[:, n_mfcc + 12 :]
         mel_min = np.min(mel_features)
         mel_max = np.max(mel_features)
         # stack all features into a single series so we don't get a mean of means or stdev of stdevs
-        mel_mean = mel_features.stack().mean()
-        mel_stdev = mel_features.stack().std()
+        mel_mean = mel_features.mean()
+        mel_stdev = mel_features.std()
         print(
             f"\n{n_mels} Mel Spectrogram features: \
         min = {mel_min:.3f}, \
@@ -223,20 +223,20 @@ def get_reverse(
     sample,
     window,
 ):
-    sample_index = random.sample([i for i in range(x.shape[0])], sample)
+    sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
     for i in sample_index:
         sound = AudioSegment.from_file(path[i], format="wav")
         reversed_sound = sound.reverse()
         name = path[i].split(".")[0].split("/")[-1]
-        if not os.path.exists(f"datasets/{dataset}_reverse/"):
-            os.makedirs(f"datasets/{dataset}_reverse/")
+        if not os.path.exists(f"datasets/speech/{dataset}_reverse/"):
+            os.makedirs(f"datasets/speech/{dataset}_reverse/")
         reversed_sound.export(
-            f"datasets/{dataset}_reverse/{name}_reverse.wav", format="wav"
+            f"datasets/speech/{dataset}_reverse/{name}_reverse.wav", format="wav"
         )
         feature, X = get_features(
             dataset,
             method,
-            f"datasets/{dataset}_reverse/{name}_reverse.wav",
+            f"datasets/speech/{dataset}_reverse/{name}_reverse.wav",
             features,
             n_mfcc=n_mfcc,
             n_mels=n_mels,
@@ -265,7 +265,7 @@ def get_noise(
     sample,
     window,
 ):
-    sample_index = random.sample([i for i in range(x.shape[0])], sample)
+    sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
     for i in sample_index:
         with soundfile.SoundFile(path[i]) as sound_file:
             X = sound_file.read(dtype="float32")
@@ -274,14 +274,16 @@ def get_noise(
         random_values = np.random.rand(len(X))
         X = X + 2e-2 * random_values
         name = path[i].split(".")[0].split("/")[-1]
-        if not os.path.exists(f"datasets/{dataset}_noise/"):
-            os.makedirs(f"datasets/{dataset}_noise/")
-        soundfile.write(f"datasets/{dataset}_noise/{name}_noise.wav", X, sample_rate)
+        if not os.path.exists(f"datasets/speech/{dataset}_noise/"):
+            os.makedirs(f"datasets/speech/{dataset}_noise/")
+        soundfile.write(
+            f"datasets/speech/{dataset}_noise/{name}_noise.wav", X, sample_rate
+        )
 
         feature, X = get_features(
             dataset,
             method,
-            f"datasets/{dataset}_noise/{name}_noise.wav",
+            f"datasets/speech/{dataset}_noise/{name}_noise.wav",
             features,
             n_mfcc=n_mfcc,
             n_mels=n_mels,
@@ -300,38 +302,42 @@ def get_denoise(
     y,
     audio,
     lengths,
-    path,
+    emotion_map,
     dataset,
     method,
     features,
     n_mfcc,
     n_mels,
     max_length,
-    sample,
     window,
 ):
-    sample_index = random.sample([i for i in range(x.shape[0])], sample)
-    for i in sample_index:
-        audio = AudioSegment.from_file(path[i], format="wav")
-        samples = np.array(audio.get_array_of_samples())
-        reduced_noise = nr.reduce_noise(samples, sr=audio.frame_rate)
+    # sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
+    # for i in sample_index:
+    for i in os.listdir(f"datasets/speech/{dataset}_noise/"):
+        # audio = AudioSegment.from_file(path[i], format="wav")
+        au = AudioSegment.from_file(
+            os.path.join(f"datasets/speech/{dataset}_noise/", i), format="wav"
+        )
+        samples = np.array(au.get_array_of_samples())
+        reduced_noise = nr.reduce_noise(samples, sr=au.frame_rate)
         reduced_audio = AudioSegment(
             reduced_noise.tobytes(),
-            frame_rate=audio.frame_rate,
-            sample_width=audio.sample_width,
-            channels=audio.channels,
+            frame_rate=au.frame_rate,
+            sample_width=au.sample_width,
+            channels=au.channels,
         )
-        name = path[i].split(".")[0].split("/")[-1]
-        if not os.path.exists(f"datasets/{dataset}_denoise/"):
-            os.makedirs(f"datasets/{dataset}_denoise/")
+        # name = path[i].split(".")[0].split("/")[-1]
+        name = i.split(".")[0].split("_")[0]
+        if not os.path.exists(f"datasets/speech/{dataset}_denoise/"):
+            os.makedirs(f"datasets/speech/{dataset}_denoise/")
         reduced_audio.export(
-            f"datasets/{dataset}_denoise/{name}_denoise.wav", format="wav"
+            f"datasets/speech/{dataset}_denoise/{name}_denoise.wav", format="wav"
         )
 
         feature, X = get_features(
             dataset,
             method,
-            f"datasets/{dataset}_noise/{name}_denoise.wav",
+            f"datasets/speech/{dataset}_denoise/{name}_denoise.wav",
             features,
             n_mfcc=n_mfcc,
             n_mels=n_mels,
@@ -339,7 +345,8 @@ def get_denoise(
             window=window,
         )
         x.append(feature)
-        y.append(y[i])
+        emotion = emotion_map[name.split("-")[2]]
+        y.append(emotion)
         audio.append(X)
         lengths.append(len(X))
     return x, y, audio, lengths
@@ -452,14 +459,13 @@ def load_RAVDESS(
             y,
             audio,
             lengths,
-            path,
+            emotion_map,
             "RAVDESS",
             method,
             features,
             n_mfcc,
             n_mels,
             max_length,
-            300,
             window,
         )
 
@@ -585,14 +591,13 @@ def load_TESS(
             y,
             audio,
             lengths,
-            path,
+            emotion_map,
             "TESS",
             method,
             features,
             n_mfcc,
             n_mels,
             max_length,
-            300,
             window,
         )
 
@@ -724,14 +729,13 @@ def load_SAVEE(
             y,
             audio,
             lengths,
-            path,
+            emotion_map,
             "SAVEE",
             method,
             features,
             n_mfcc,
             n_mels,
             max_length,
-            300,
             window,
         )
 
@@ -863,14 +867,13 @@ def load_CREMA(
             y,
             audio,
             lengths,
-            path,
+            emotion_map,
             "CREMA",
             method,
             features,
             n_mfcc,
             n_mels,
             max_length,
-            300,
             window,
         )
 
@@ -1003,14 +1006,13 @@ def load_EmoDB(
                 y,
                 audio,
                 lengths,
-                path,
+                emotion_map,
                 "EmoDB",
                 method,
                 features,
                 n_mfcc,
                 n_mels,
                 max_length,
-                300,
                 window,
             ),
         )
@@ -1145,14 +1147,13 @@ def load_eNTERFACE(
             y,
             audio,
             lengths,
-            path,
+            emotion_map,
             "eNTERFACE",
             method,
             features,
             n_mfcc,
             n_mels,
             max_length,
-            300,
             window,
         )
 
