@@ -13,6 +13,7 @@
 
 # here put the import lib
 from pydub import AudioSegment
+from transformers import AutoFeatureExtractor
 import noisereduce as nr
 import os
 import cv2
@@ -56,6 +57,8 @@ import numpy as np
 from scipy.io import wavfile
 import soundfile
 import librosa
+
+from models.speech.wave2vec import Wave2Vec
 
 
 def get_padding(data, max_length):
@@ -123,7 +126,7 @@ def get_features(
             result = np.hstack((result, chroma))
             result = np.hstack((result, mel))
     sound_file.close()
-    return result
+    return result, X
 
 
 def print_features(data, features, n_mfcc, n_mels):
@@ -189,7 +192,19 @@ def transform_feature(x, features, n_mfcc, n_mels, scaled):
 
 
 def get_reverse(
-    x, y, path, dataset, method, features, n_mfcc, n_mels, max_length, sample, window
+    x,
+    y,
+    audio,
+    lengths,
+    path,
+    dataset,
+    method,
+    features,
+    n_mfcc,
+    n_mels,
+    max_length,
+    sample,
+    window,
 ):
     sample_index = random.sample([i for i in range(x.shape[0])], sample)
     for i in sample_index:
@@ -201,7 +216,7 @@ def get_reverse(
         reversed_sound.export(
             f"datasets/{dataset}_reverse/{name}_reverse.wav", format="wav"
         )
-        feature = get_features(
+        feature, X = get_features(
             method,
             f"datasets/{dataset}_reverse/{name}_reverse.wav",
             features,
@@ -212,11 +227,25 @@ def get_reverse(
         )
         x.append(feature)
         y.append(y[i])
-    return x, y
+        audio.append(X)
+        lengths.append(len(X))
+    return x, y, audio, lengths
 
 
 def get_noise(
-    x, y, path, dataset, method, features, n_mfcc, n_mels, max_length, sample, window
+    x,
+    y,
+    audio,
+    lengths,
+    path,
+    dataset,
+    method,
+    features,
+    n_mfcc,
+    n_mels,
+    max_length,
+    sample,
+    window,
 ):
     sample_index = random.sample([i for i in range(x.shape[0])], sample)
     for i in sample_index:
@@ -231,7 +260,7 @@ def get_noise(
             os.makedirs(f"datasets/{dataset}_noise/")
         soundfile.write(f"datasets/{dataset}_noise/{name}_noise.wav", X, sample_rate)
 
-        feature = get_features(
+        feature, X = get_features(
             method,
             f"datasets/{dataset}_noise/{name}_noise.wav",
             features,
@@ -242,11 +271,25 @@ def get_noise(
         )
         x.append(feature)
         y.append(y[i])
-    return x, y
+        audio.append(X)
+        lengths.append(len(X))
+    return x, y, audio, lengths
 
 
 def get_denoise(
-    x, y, path, dataset, method, features, n_mfcc, n_mels, max_length, sample, window
+    x,
+    y,
+    audio,
+    lengths,
+    path,
+    dataset,
+    method,
+    features,
+    n_mfcc,
+    n_mels,
+    max_length,
+    sample,
+    window,
 ):
     sample_index = random.sample([i for i in range(x.shape[0])], sample)
     for i in sample_index:
@@ -266,7 +309,7 @@ def get_denoise(
             f"datasets/{dataset}_denoise/{name}_denoise.wav", format="wav"
         )
 
-        feature = get_features(
+        feature, X = get_features(
             method,
             f"datasets/{dataset}_noise/{name}_denoise.wav",
             features,
@@ -277,7 +320,9 @@ def get_denoise(
         )
         x.append(feature)
         y.append(y[i])
-    return x, y
+        audio.append(X)
+        lengths.append(len(X))
+    return x, y, audio, lengths
 
 
 def load_RAVDESS(
@@ -292,7 +337,7 @@ def load_RAVDESS(
     denoise,
     window=None,
 ):
-    x, y, category, path = [], [], [], []
+    x, y, category, path, audio, lengths = [], [], [], [], [], []
     emotion_map = {
         "01": 0,  # 'neutral'
         "02": 1,  # 'calm'
@@ -318,7 +363,7 @@ def load_RAVDESS(
         # print(file)
         file_name = os.path.basename(file)
         emotion = emotion_map[file_name.split("-")[2]]
-        feature = get_features(
+        feature, X = get_features(
             method,
             file,
             features,
@@ -331,6 +376,8 @@ def load_RAVDESS(
         y.append(emotion)
         path.append(file)
         category.append(category_map[file_name.split("-")[2]])
+        audio.append(X)
+        lengths.append(len(X))
         if (
             category_map[file_name.split("-")[2]] not in list(set(category))
             or len(category) == 0
@@ -340,13 +387,16 @@ def load_RAVDESS(
     visual4label("speech", "RAVDESS", category)
     print(np.array(x).shape)  # (864,40), (288,40), (288,40)
 
-    if scaled != None:
-        x = transform_feature(x, features, n_mfcc, n_mels, scaled)
+    if method != "wave2vec":
+        if scaled != None:
+            x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
     if reverse == True:
-        x, y = get_reverse(
+        x, y, audio, lengths = get_reverse(
             x,
             y,
+            audio,
+            lengths,
             path,
             "RAVDESS",
             method,
@@ -359,9 +409,11 @@ def load_RAVDESS(
         )
 
     if noise == True:
-        x, y = get_noise(
+        x, y, audio, lengths = get_noise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "RAVDESS",
             method,
@@ -374,9 +426,11 @@ def load_RAVDESS(
         )
 
     if denoise == True:
-        x, y = get_denoise(
+        x, y, audio, lengths = get_denoise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "RAVDESS",
             method,
@@ -388,13 +442,32 @@ def load_RAVDESS(
             window,
         )
 
-    X_train, X_left, ytrain, yleft = train_test_split(
-        np.array(x), y, test_size=0.4, random_state=9
-    )  # 3:2
+    length = None if method != "wave2vec" else max(lengths)
+
+    if method != "wave2vec":
+        X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            np.array(x), y, test_size=0.4, random_state=9
+        )  # 3:2
+    else:
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            "facebook/wav2vec2-base", return_attention_mask=True
+        )
+        X = feature_extractor(
+            X,
+            sampling_rate=feature_extractor.sampling_rate,
+            max_length=length,
+            truncation=True,
+            padding=True,
+        )
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X), y, test_size=0.4, random_state=9
+        )  # 3:2
+
     X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
-    return X_train, ytrain, X_val, yval, X_test, ytest
+    # (1680, 40), (560, 40), (560, 40), (1680,)
+    return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
 def load_TESS(
@@ -409,7 +482,7 @@ def load_TESS(
     denoise,
     window=None,
 ):
-    x, y, category, path = [], [], [], []
+    x, y, category, path, audio, lengths = [], [], [], [], [], []
     emotion_map = {
         "angry": 0,
         "disgust": 1,
@@ -421,7 +494,7 @@ def load_TESS(
     }
     for dirname, _, filenames in os.walk("datasets/speech/TESS"):
         for filename in filenames:
-            feature = get_features(
+            feature, X = get_features(
                 method,
                 os.path.join(dirname, filename),
                 features,
@@ -436,6 +509,8 @@ def load_TESS(
             y.append(emotion)
             path.append(os.path.join(dirname, filename))
             category.append(label.lower())
+            audio.append(X)
+            lengths.append(len(X))
             if label.lower() not in list(set(category)) or len(category) == 0:
                 visual4feature(os.path.join(dirname, filename), "TESS", label.lower())
 
@@ -444,13 +519,16 @@ def load_TESS(
 
     visual4label("speech", "TESS", category)
 
-    if scaled != None:
-        x = transform_feature(x, features, n_mfcc, n_mels, scaled)
+    if method != "wave2vec":
+        if scaled != None:
+            x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
     if reverse == True:
-        x, y = get_reverse(
+        x, y, audio, lengths = get_reverse(
             x,
             y,
+            audio,
+            lengths,
             path,
             "TESS",
             method,
@@ -463,9 +541,11 @@ def load_TESS(
         )
 
     if noise == True:
-        x, y = get_noise(
+        x, y, audio, lengths = get_noise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "TESS",
             method,
@@ -478,9 +558,11 @@ def load_TESS(
         )
 
     if denoise == True:
-        x, y = get_denoise(
+        x, y, audio, lengths = get_denoise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "TESS",
             method,
@@ -492,14 +574,32 @@ def load_TESS(
             window,
         )
 
-    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
-        np.array(x), y, test_size=0.4, random_state=9
-    )  # 3:2
+    length = None if method != "wave2vec" else max(lengths)
+
+    if method != "wave2vec":
+        X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            np.array(x), y, test_size=0.4, random_state=9
+        )  # 3:2
+    else:
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            "facebook/wav2vec2-base", return_attention_mask=True
+        )
+        X = feature_extractor(
+            X,
+            sampling_rate=feature_extractor.sampling_rate,
+            max_length=length,
+            truncation=True,
+            padding=True,
+        )
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X), y, test_size=0.4, random_state=9
+        )  # 3:2
+
     X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
     # (1680, 40), (560, 40), (560, 40), (1680,)
-    return X_train, ytrain, X_val, yval, X_test, ytest
+    return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
 def load_SAVEE(
@@ -514,7 +614,7 @@ def load_SAVEE(
     denoise,
     window=None,
 ):
-    x, y, category, paths = [], [], [], []
+    x, y, category, paths, audio, lengths = [], [], [], [], [], []
     emotion_map = {
         "a": 0,  # angry
         "d": 1,  # digust
@@ -535,7 +635,7 @@ def load_SAVEE(
     }
     path = "datasets/speech/SAVEE"
     for file in os.listdir(path):
-        feature = get_features(
+        feature, X = get_features(
             method,
             os.path.join(path, file),
             features,
@@ -544,24 +644,29 @@ def load_SAVEE(
             max_length=max_length,
             window=window,
         )
-        label = file.split("_")[-1][:-2]
+        label = file.split(".")[0].split("_")[-1][:-2]
         emotion = emotion_map[label]
         x.append(feature)
         y.append(emotion)
         paths.append(os.path.join(path, file))
         category.append(category_map[label])
+        audio.append(X)
+        lengths.append(len(X))
         if category_map[label] not in list(set(category)) or len(category) == 0:
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
 
     visual4label("speech", "SAVEE", category)
 
-    if scaled != None:
-        x = transform_feature(x, features, n_mfcc, n_mels, scaled)
+    if method != "wave2vec":
+        if scaled != None:
+            x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
     if reverse == True:
-        x, y = get_reverse(
+        x, y, audio, lengths = get_reverse(
             x,
             y,
+            audio,
+            lengths,
             paths,
             "SAVEE",
             method,
@@ -574,9 +679,11 @@ def load_SAVEE(
         )  # sample need to evaluate
 
     if noise == True:
-        x, y = get_noise(
+        x, y, audio, lengths = get_noise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "SAVEE",
             method,
@@ -589,9 +696,11 @@ def load_SAVEE(
         )
 
     if denoise == True:
-        x, y = get_denoise(
+        x, y, audio, lengths = get_denoise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "SAVEE",
             method,
@@ -603,14 +712,32 @@ def load_SAVEE(
             window,
         )
 
-    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
-        np.array(x), y, test_size=0.4, random_state=9
-    )  # 3:2
+    length = None if method != "wave2vec" else max(lengths)
+
+    if method != "wave2vec":
+        X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            np.array(x), y, test_size=0.4, random_state=9
+        )  # 3:2
+    else:
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            "facebook/wav2vec2-base", return_attention_mask=True
+        )
+        X = feature_extractor(
+            X,
+            sampling_rate=feature_extractor.sampling_rate,
+            max_length=length,
+            truncation=True,
+            padding=True,
+        )
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X), y, test_size=0.4, random_state=9
+        )  # 3:2
+
     X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
     # (1680, 40), (560, 40), (560, 40), (1680,)
-    return X_train, ytrain, X_val, yval, X_test, ytest
+    return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
 def load_CREMA(
@@ -625,7 +752,7 @@ def load_CREMA(
     denoise,
     window=None,
 ):
-    x, y, category, paths = [], [], [], []
+    x, y, category, paths, audio, lengths = [], [], [], [], [], []
     emotion_map = {
         "ang": 0,  # angry
         "dis": 1,  # disgust
@@ -642,9 +769,9 @@ def load_CREMA(
         "neu": "neutral",
         "sad": "sadness",
     }
-    path = "datasets/speech/CREAM-D"
+    path = "datasets/speech/CREMA-D"
     for file in os.listdir(path):
-        feature = get_features(
+        feature, X = get_features(
             method,
             os.path.join(path, file),
             features,
@@ -659,6 +786,8 @@ def load_CREMA(
         y.append(emotion)
         paths.append(os.path.join(path, file))
         category.append(category_map[label.lower()])
+        audio.append(X)
+        lengths.append(len(X))
         if category_map[label.lower()] not in list(set(category)) or len(category) == 0:
             visual4feature(
                 os.path.join(path, file), "SAVEE", category_map[label.lower()]
@@ -666,13 +795,16 @@ def load_CREMA(
 
     visual4label("speech", "CREMA", category)
 
-    if scaled != None:
-        x = transform_feature(x, features, n_mfcc, n_mels, scaled)
+    if method != "wave2vec":
+        if scaled != None:
+            x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
     if reverse == True:
-        x, y = get_reverse(
+        x, y, audio, lengths = get_reverse(
             x,
             y,
+            audio,
+            lengths,
             paths,
             "CREMA",
             method,
@@ -685,9 +817,11 @@ def load_CREMA(
         )  # sample need to evaluate
 
     if noise == True:
-        x, y = get_noise(
+        x, y, audio, lengths = get_noise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "CREMA",
             method,
@@ -700,9 +834,11 @@ def load_CREMA(
         )
 
     if denoise == True:
-        x, y = get_denoise(
+        x, y, audio, lengths = get_denoise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "CREMA",
             method,
@@ -714,14 +850,32 @@ def load_CREMA(
             window,
         )
 
-    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
-        np.array(x), y, test_size=0.4, random_state=9
-    )  # 3:2
+    length = None if method != "wave2vec" else max(lengths)
+
+    if method != "wave2vec":
+        X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            np.array(x), y, test_size=0.4, random_state=9
+        )  # 3:2
+    else:
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            "facebook/wav2vec2-base", return_attention_mask=True
+        )
+        X = feature_extractor(
+            X,
+            sampling_rate=feature_extractor.sampling_rate,
+            max_length=length,
+            truncation=True,
+            padding=True,
+        )
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X), y, test_size=0.4, random_state=9
+        )  # 3:2
+
     X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
     # (1680, 40), (560, 40), (560, 40), (1680,)
-    return X_train, ytrain, X_val, yval, X_test, ytest
+    return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
 def load_EmoDB(
@@ -736,7 +890,7 @@ def load_EmoDB(
     denoise,
     window=None,
 ):
-    x, y, category, paths = [], [], [], []
+    x, y, category, paths, audio, lengths = [], [], [], [], [], []
     emotion_map = {
         "W": 0,  # angry
         "L": 1,  # boredom
@@ -755,7 +909,7 @@ def load_EmoDB(
     }
     path = "datasets/speech/EmoDB"
     for file in os.listdir(path):
-        feature = get_features(
+        feature, X = get_features(
             method,
             os.path.join(path, file),
             features,
@@ -770,17 +924,23 @@ def load_EmoDB(
         y.append(emotion)
         paths.append(os.path.join(path, file))
         category.append(category_map[label])
+        audio.append(X)
+        lengths.append(len(X))
         if category_map[label] not in list(set(category)) or len(category) == 0:
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
 
     visual4label("speech", "EmoDB", category)
-    if scaled != None:
-        x = transform_feature(x, features, n_mfcc, n_mels, scaled)
+
+    if method != "wave2vec":
+        if scaled != None:
+            x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
     if reverse == True:
-        x, y = get_reverse(
+        x, y, audio, lengths = get_reverse(
             x,
             y,
+            audio,
+            lengths,
             paths,
             "EmoDB",
             method,
@@ -793,9 +953,11 @@ def load_EmoDB(
         )  # sample need to evaluate
 
     if noise == True:
-        x, y = get_noise(
+        x, y, audio, lengths = get_noise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "EmoDB",
             method,
@@ -808,10 +970,12 @@ def load_EmoDB(
         )
 
     if denoise == True:
-        x, y = (
+        x, y, audio, lengths = (
             get_denoise(
                 x,
                 y,
+                audio,
+                lengths,
                 path,
                 "EmoDB",
                 method,
@@ -824,14 +988,32 @@ def load_EmoDB(
             ),
         )
 
-    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
-        np.array(x), y, test_size=0.4, random_state=9
-    )  # 3:2
+    length = None if method != "wave2vec" else max(lengths)
+
+    if method != "wave2vec":
+        X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            np.array(x), y, test_size=0.4, random_state=9
+        )  # 3:2
+    else:
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            "facebook/wav2vec2-base", return_attention_mask=True
+        )
+        X = feature_extractor(
+            X,
+            sampling_rate=feature_extractor.sampling_rate,
+            max_length=length,
+            truncation=True,
+            padding=True,
+        )
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X), y, test_size=0.4, random_state=9
+        )  # 3:2
+
     X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
     # (1680, 40), (560, 40), (560, 40), (1680,)
-    return X_train, ytrain, X_val, yval, X_test, ytest
+    return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
 def load_eNTERFACE(
@@ -846,7 +1028,7 @@ def load_eNTERFACE(
     denoise,
     window=None,
 ):
-    x, y, category, paths = [], [], [], []
+    x, y, category, paths, audio, lengths = [], [], [], [], [], []
     emotion_map = {
         "an": 0,  # angry
         "di": 1,  # disgust
@@ -866,7 +1048,7 @@ def load_eNTERFACE(
     }
     path = "datasets/speech/eNTERFACE"
     for file in os.listdir(path):
-        feature = get_features(
+        feature, X = get_features(
             method,
             os.path.join(path, file),
             features,
@@ -881,18 +1063,23 @@ def load_eNTERFACE(
         y.append(emotion)
         paths.append(os.path.join(path, file))
         category.append(category_map[label])
+        audio.append(X)
+        lengths.append(len(X))
         if category_map[label] not in list(set(category)) or len(category) == 0:
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
 
     visual4label("speech", "eNTERFACE05", category)
 
-    if scaled != None:
-        x = transform_feature(x, features, n_mfcc, n_mels, scaled)
+    if method != "wave2vec":
+        if scaled != None:
+            x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
     if reverse == True:
-        x, y = get_reverse(
+        x, y, audio, lengths = get_reverse(
             x,
             y,
+            audio,
+            lengths,
             paths,
             "eNTERFACE",
             method,
@@ -905,9 +1092,11 @@ def load_eNTERFACE(
         )  # sample need to evaluate
 
     if noise == True:
-        x, y = get_noise(
+        x, y, audio, lengths = get_noise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "eNTERFACE",
             method,
@@ -920,9 +1109,11 @@ def load_eNTERFACE(
         )
 
     if denoise == True:
-        x, y = get_denoise(
+        x, y, audio, lengths = get_denoise(
             x,
             y,
+            audio,
+            lengths,
             path,
             "eNTERFACE",
             method,
@@ -934,14 +1125,33 @@ def load_eNTERFACE(
             window,
         )
 
-    X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
-        np.array(x), y, test_size=0.4, random_state=9
-    )  # 3:2
+    length = None if method != "wave2vec" else max(lengths)
+
+    if method != "wave2vec":
+        X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            np.array(x), y, test_size=0.4, random_state=9
+        )  # 3:2
+    else:
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            "facebook/wav2vec2-base", return_attention_mask=True
+        )
+        X = feature_extractor(
+            X,
+            sampling_rate=feature_extractor.sampling_rate,
+            max_length=length,
+            truncation=True,
+            padding=True,
+        )
+
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X), y, test_size=0.4, random_state=9
+        )  # 3:2
+
     X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
     # (1680, 40), (560, 40), (560, 40), (1680,)
-    return X_train, ytrain, X_val, yval, X_test, ytest
+    return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
 """
@@ -971,7 +1181,7 @@ def load_data(
 ):
     if task == "speech":
         if dataset == "RAVDESS":
-            X_train, ytrain, X_val, yval, X_test, ytest = load_RAVDESS(
+            X_train, ytrain, X_val, yval, X_test, ytest, length = load_RAVDESS(
                 method,
                 features=features,
                 n_mfcc=n_mfcc,
@@ -984,7 +1194,7 @@ def load_data(
                 window=window,
             )
         elif dataset == "TESS":
-            X_train, ytrain, X_val, yval, X_test, ytest = load_TESS(
+            X_train, ytrain, X_val, yval, X_test, ytest, length = load_TESS(
                 method,
                 features=features,
                 n_mfcc=n_mfcc,
@@ -997,7 +1207,7 @@ def load_data(
                 window=window,
             )
         elif dataset == "SAVEE":
-            X_train, ytrain, X_val, yval, X_test, ytest = load_SAVEE(
+            X_train, ytrain, X_val, yval, X_test, ytest, length = load_SAVEE(
                 method,
                 features=features,
                 n_mfcc=n_mfcc,
@@ -1010,7 +1220,7 @@ def load_data(
                 window=window,
             )
         elif dataset == "CREMA-D":
-            X_train, ytrain, X_val, yval, X_test, ytest = load_CREMA(
+            X_train, ytrain, X_val, yval, X_test, ytest, length = load_CREMA(
                 method,
                 features=features,
                 n_mfcc=n_mfcc,
@@ -1023,7 +1233,7 @@ def load_data(
                 window=window,
             )
         elif dataset == "EmoDB":
-            X_train, ytrain, X_val, yval, X_test, ytest = load_EmoDB(
+            X_train, ytrain, X_val, yval, X_test, ytest, length = load_EmoDB(
                 method,
                 features=features,
                 n_mfcc=n_mfcc,
@@ -1036,7 +1246,7 @@ def load_data(
                 window=window,
             )
         elif dataset == "eINTERFACE":
-            X_train, ytrain, X_val, yval, X_test, ytest = load_eNTERFACE(
+            X_train, ytrain, X_val, yval, X_test, ytest, length = load_eNTERFACE(
                 method,
                 features=features,
                 n_mfcc=n_mfcc,
@@ -1064,6 +1274,8 @@ def load_data(
                 (X_test, np.array(ytest).astype(int))
             ).batch(batch_size)
             return train_ds, val_ds, test_ds, shape, num_classes
+        elif method == "wave2vec":
+            return X_train, ytrain, X_val, yval, X_test, ytest, num_classes, length
 
     # file = os.listdir(path)
     # Xtest, ytest, Xtrain, ytrain, Xval, yval = [], [], [], [], [], []
@@ -1181,11 +1393,11 @@ return {*}: constructed model
 def load_model(
     task,
     method,
-    features,
-    cc,
-    shape,
-    num_classes,
-    dataset,
+    features="mfcc",
+    cc="single",
+    shape=None,
+    num_classes=None,
+    dataset="RAVDESS",
     max_length=109,
     bidirectional=False,
     epochs=10,
@@ -1263,6 +1475,19 @@ def load_model(
                 features,
                 cc,
                 dataset,
+            )
+        elif method == "wave2vec":
+            model = Wave2Vec(
+                task,
+                method,
+                features,
+                cc,
+                num_classes,
+                dataset,
+                max_length,
+                epochs=10,
+                lr=0.001,
+                batch_size=16,
             )
 
     return model

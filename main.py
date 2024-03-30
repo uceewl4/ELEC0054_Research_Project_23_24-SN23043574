@@ -158,6 +158,21 @@ if __name__ == "__main__":
                 denoise=args.denoise,
                 window=args.window,
             )
+        elif method == "wave2vec":
+            Xtrain, ytrain, Xtest, ytest, Xval, yval, num_classes, length = load_data(
+                task,
+                method,
+                dataset,
+                features,
+                args.n_mfcc,
+                args.n_mels,
+                scaled=args.scaled,
+                max_length=args.max_length,
+                reverse=args.reverse,
+                noise=args.noise,
+                denoise=args.denoise,
+                window=args.window,
+            )
     # elif method in ["CNN", "MLP", "EnsembleNet"]:
     #     train_ds, val_ds, test_ds = load_data(
     #         task, pre_path, method, batch_size=args.batch_size
@@ -215,6 +230,19 @@ if __name__ == "__main__":
             cc,
             dataset,
         )
+    elif method == "wave2vec":
+        model = load_model(
+            task,
+            method,
+            features,
+            cc,
+            num_classes,
+            dataset,
+            length,
+            epochs=args.epochs,
+            lr=args.lr,
+            batch_size=args.batch_size,
+        )
     print("Load model successfully.")
 
     """
@@ -232,7 +260,7 @@ if __name__ == "__main__":
             model, train_ds, val_ds
         )
         test_res, pred_test, ytest = model.test(model, test_ds)
-    elif method in ["LSTM", "CNN", "AlexNet"]:
+    elif method in ["LSTM", "CNN", "AlexNet", "wave2vec"]:
         train_res, val_res, train_pred, val_pred, ytrain, yval = model.train(
             Xtrain, ytrain, Xval, yval
         )
