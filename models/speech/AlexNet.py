@@ -54,7 +54,6 @@ class AlexNet(Model):
         num_classes,
         dataset,
         length,
-        bidirectional=False,
         epochs=10,
         lr=0.001,
         batch_size=16,
@@ -65,37 +64,33 @@ class AlexNet(Model):
         self.cc = cc
         self.method = method
         self.task = task
-        self.bidirectional = bidirectional
         self.batch_size = batch_size
         self.dataset = dataset
         # network layers definition
         self.model = Sequential(
             [
                 Conv2D(
-                    3,
                     64,
-                    kernel_size=11,
-                    stride=4,
-                    padding=2,
+                    (3, 3),
                     activation="relu",
-                    input_shape=(shape, length, 1),
-                ),
-                MaxPooling2D(kernel_size=3, stride=2),
-                Conv2D(64, 192, kernel_size=5, padding=2, activation="relu"),
-                MaxPooling2D(kernel_size=3, stride=2),
-                Conv2D(192, 384, kernel_size=3, padding=1, activation="relu"),
-                MaxPooling2D(384, 256, kernel_size=3, padding=1, activation="relu"),
-                MaxPooling2D(256, 256, kernel_size=3, padding=1, activation="relu"),
-                MaxPooling2D(kernel_size=3, stride=2),
+                    input_shape=(shape, length, 1),  # 40, 160,1
+                ),  # features, length, channel
+                MaxPooling2D(pool_size=(3, 3), strides=(2, 2)),
+                Conv2D(192, kernel_size=3, padding="valid", activation="relu"),
+                MaxPooling2D(pool_size=(3, 3), strides=(2, 2)),
+                Conv2D(384, kernel_size=3, padding="same", activation="relu"),
+                Conv2D(256, kernel_size=3, padding="same", activation="relu"),
+                Conv2D(256, kernel_size=3, padding="same", activation="relu"),
+                MaxPooling2D(pool_size=(3, 3), strides=(2, 2)),
                 Dropout(0.5),
                 Flatten(),
                 Dense(256, activation="relu"),
-                Dense(128, actiavtion="relu"),
-                Dense(num_classes),
+                Dense(128, activation="relu"),
+                Dense(num_classes, name="outputs"),
             ]
         )
 
-        self.model.build((None, shape, length, 1))
+        self.model.build((shape, length, 1))
         self.model.summary()
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.input, outputs=self.model.get_layer("outputs").output
@@ -132,10 +127,10 @@ class AlexNet(Model):
         )
         history = self.model.fit(
             Xtrain,
-            ytrain,
+            np.array(ytrain),
             batch_size=self.batch_size,
             epochs=self.epoch,
-            validation_data=(Xval, yval),
+            validation_data=(Xval, np.array(yval)),
         )
 
         # get predictions
@@ -177,7 +172,7 @@ class AlexNet(Model):
         start_time_test = time.time()
 
         test_pred = []
-        test_loss, test_acc = self.model.evaluate(Xtest, ytest, verbose=2)
+        test_loss, test_acc = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
         test_predictions = self.output_layer.predict(x=Xtest)
         test_prob = tf.nn.softmax(test_predictions)  # probabilities
         test_pred += np.argmax(test_prob, axis=1).tolist()

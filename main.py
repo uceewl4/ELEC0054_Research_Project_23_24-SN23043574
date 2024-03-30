@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate of NNs")
     parser.add_argument("--n_mfcc", type=int, default=40, help="epochs of NNs")
     parser.add_argument("--n_mels", type=int, default=128, help="epochs of NNs")
-    parser.add_argument("--max_length", type=int, default=109, help="epochs of NNs")
+    parser.add_argument("--max_length", type=int, default=160, help="epochs of NNs")
     parser.add_argument(
         "--reverse", type=bool, default=False, help="play the audio in a reverse way"
     )
@@ -219,7 +219,7 @@ if __name__ == "__main__":
             shape,
             num_classes,
             dataset,
-            length=args.max_length,
+            max_length=args.max_length,
             bidirectional=args.bidirectional,
             epochs=args.epochs,
             lr=args.lr,

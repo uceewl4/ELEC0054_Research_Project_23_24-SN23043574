@@ -53,7 +53,6 @@ class CNN(Model):
         num_classes,
         dataset,
         length,
-        bidirectional=False,
         epochs=10,
         lr=0.001,
         batch_size=16,
@@ -64,23 +63,25 @@ class CNN(Model):
         self.cc = cc
         self.method = method
         self.task = task
-        self.bidirectional = bidirectional
         self.batch_size = batch_size
         self.dataset = dataset
         # network layers definition
         self.model = Sequential(
             [
                 Conv2D(
-                    16, (3, 3), activation="relu", input_shape=(shape, length, 1)
+                    16,
+                    (3, 3),
+                    activation="relu",
+                    input_shape=(shape, length, 1),  # 40, 160,1
                 ),  # features, length, channel
                 Conv2D(16, (3, 3), activation="relu"),
                 Flatten(),
                 Dense(128, activation="relu"),
-                Dense(num_classes),
+                Dense(num_classes, name="outputs"),
             ]
         )
 
-        self.model.build((None, shape, length, 1))
+        self.model.build((shape, length, 1))
         self.model.summary()
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.input, outputs=self.model.get_layer("outputs").output
@@ -117,10 +118,10 @@ class CNN(Model):
         )
         history = self.model.fit(
             Xtrain,
-            ytrain,
+            np.array(ytrain),
             batch_size=self.batch_size,
             epochs=self.epoch,
-            validation_data=(Xval, yval),
+            validation_data=(Xval, np.array(yval)),
         )
 
         # get predictions
@@ -161,7 +162,7 @@ class CNN(Model):
         print("Start testing......")
         start_time_test = time.time()
         test_pred = []
-        test_loss, test_acc = self.model.evaluate(Xtest, ytest, verbose=2)
+        test_loss, test_acc = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
         test_predictions = self.output_layer.predict(x=Xtest)
         test_prob = tf.nn.softmax(test_predictions)  # probabilities
         test_pred += np.argmax(test_prob, axis=1).tolist()

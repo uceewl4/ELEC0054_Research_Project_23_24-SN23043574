@@ -6,6 +6,7 @@
     "configurations": [
 
 
+
     
         {
             "name": "Python 调试程序: 当前文件",
@@ -14,7 +15,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--method","GMM",
+                "--method","AlexNet",
                 "--task","speech",
                 "--dataset","RAVDESS",
                 "--epochs","1"

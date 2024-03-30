@@ -93,14 +93,17 @@ def get_features(
         result = np.array([])
 
         if method in ["CNN", "AlexNet"]:
-            mfccs = librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=n_mfcc)
+            mfccs = librosa.feature.mfcc(
+                y=X, sr=sample_rate, n_mfcc=n_mfcc
+            )  # 40,122 length=122
+            print(mfccs.shape[1])
             mfccs = get_padding(mfccs, max_length)
             stft = np.abs(librosa.stft(X))  # spectrum
             chroma = librosa.feature.chroma_stft(S=stft, sr=sample_rate)
             chroma = get_padding(chroma, max_length)
             mel = librosa.feature.melspectrogram(
                 y=X, sr=sample_rate, n_mels=n_mels, fmax=8000
-            )
+            )  # 12,109
             mel = get_padding(mel, max_length)
 
         else:
@@ -118,16 +121,27 @@ def get_features(
                 axis=0,
             )  # 128,121715
 
-        if features == "mfcc":
-            result = np.hstack((result, mfccs))
-        elif features == "chroma":
-            result = np.hstack((result, chroma))
-        elif features == "mel":
-            result = np.hstack((result, mel))
-        elif features == "all":
-            result = np.hstack((result, mfccs))
-            result = np.hstack((result, chroma))
-            result = np.hstack((result, mel))
+        if method in ["CNN", "AlexNet"]:
+            if features == "mfcc":
+                result = mfccs
+            elif features == "chroma":
+                result = chroma
+            elif features == "mel":
+                result = mel
+            elif features == "all":
+                result = np.vstack((mfccs, chroma))
+                result = np.vstack((result, mel))
+        else:
+            if features == "mfcc":
+                result = np.hstack((result, mfccs))
+            elif features == "chroma":
+                result = np.hstack((result, chroma))
+            elif features == "mel":
+                result = np.hstack((result, mel))
+            elif features == "all":
+                result = np.hstack((result, mfccs))
+                result = np.hstack((result, chroma))
+                result = np.hstack((result, mel))
     sound_file.close()
     return result, X
 
@@ -1465,7 +1479,6 @@ def load_model(
                 num_classes,
                 dataset,
                 length=max_length,
-                bidirectional=bidirectional,
                 epochs=epochs,
                 lr=lr,
                 batch_size=batch_size,
@@ -1480,7 +1493,6 @@ def load_model(
                 num_classes,
                 dataset,
                 length=max_length,
-                bidirectional=bidirectional,
                 epochs=epochs,
                 lr=lr,
                 batch_size=batch_size,
