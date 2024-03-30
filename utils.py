@@ -898,6 +898,7 @@ def load_EmoDB(
         "A": 3,  # anxiety/fear
         "F": 4,  # happiness
         "T": 5,  # sadness
+        "N": 6,
     }
     category_map = {
         "W": "angry",
@@ -906,6 +907,7 @@ def load_EmoDB(
         "A": "anxiety/fear",
         "F": "happiness",
         "T": "sadness",
+        "N": "neutral",
     }
     path = "datasets/speech/EmoDB"
     for file in os.listdir(path):
