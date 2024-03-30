@@ -84,7 +84,6 @@ class Wave2Vec(Model):
         self.cc = cc
         self.method = method
         self.task = task
-        self.bidirectional = bidirectional
         self.batch_size = batch_size
         self.dataset = dataset
         self.input = Input(shape=(max_length,), dtype="float32")
@@ -120,6 +119,7 @@ class Wave2Vec(Model):
     def train(self, Xtrain, ytrain, Xval, yval):
         print("Start training......")
         start_time_train = time.time()
+        train_pred, val_pred = [], []
         self.model.compile(
             optimizer=self.optimizer,
             loss=self.loss_object,

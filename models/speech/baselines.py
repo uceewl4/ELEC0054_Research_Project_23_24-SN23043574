@@ -93,7 +93,13 @@ class Baselines:
             elapsed_time_train = end_time_train - start_time_train
             print(f"Finish tuning(cross-validation) for {self.method}.")
             print(f"Training and cross-validation time: {elapsed_time_train}s")
+
             return grid.cv_results_
+        else:
+            end_time_train = time.time()
+            elapsed_time_train = end_time_train - start_time_train
+            print(f"Finish tuning(cross-validation) for {self.method}.")
+            print(f"Training and cross-validation time: {elapsed_time_train}s")
 
     """
     description: This function is used for the entire process of testing.

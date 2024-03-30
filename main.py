@@ -10,7 +10,9 @@
 """
 
 # here put the import lib
+import warnings
 
+warnings.filterwarnings("ignore")
 import os
 import argparse
 import warnings
@@ -114,7 +116,7 @@ if __name__ == "__main__":
     # load data
     print("Start loading data......")
     if task == "speech":
-        if method in ["SVM", "DT", "RF", "NB", "KNN", "LSTM"]:
+        if method in ["SVM", "DT", "RF", "NB", "KNN", "LSTM", "GMM"]:
             Xtrain, ytrain, Xtest, ytest, Xval, yval, shape, num_classes = load_data(
                 task,
                 method,
@@ -223,13 +225,7 @@ if __name__ == "__main__":
             lr=args.lr,
         )
     elif method == "GMM":
-        model = load_model(
-            task,
-            method,
-            features,
-            cc,
-            dataset,
-        )
+        model = load_model(task, method, features, cc, dataset, num_classes=num_classes)
     elif method == "wave2vec":
         model = load_model(
             task,
@@ -261,14 +257,12 @@ if __name__ == "__main__":
         )
         test_res, pred_test, ytest = model.test(model, test_ds)
     elif method in ["LSTM", "CNN", "AlexNet", "wave2vec"]:
-        train_res, val_res, train_pred, val_pred, ytrain, yval = model.train(
+        train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
             Xtrain, ytrain, Xval, yval
         )
         ytest, pred_test = model.test(Xtest, ytest)
     elif method == "GMM":
-        pred_train, pred_val, ytrain, yval = model.train(
-            Xtrain, ytrain, Xval, yval, Xtest
-        )
+        pred_train, pred_val, ytrain, yval = model.train(Xtrain, ytrain, Xval, yval)
         pred_test, ytest = model.test(Xtest, ytest)
 
     # metrics and visualization
@@ -283,25 +277,28 @@ if __name__ == "__main__":
         (visual4tree(task, method, features, cc, dataset, model.model))
 
     # confusion matrix, auc roc curve, metrics calculation
-    res = {
-        "train_res": get_metrics(task, ytrain, pred_train),
-        "val_res": get_metrics(task, yval, pred_val),
-        "test_res": get_metrics(task, ytest, pred_test),
-    }
-    for i in res.items():
-        print(i)
-    visual4cm(
-        task,
-        method,
-        features,
-        cc,
-        dataset,
-        ytrain,
-        yval,
-        ytest,
-        pred_train,
-        pred_val,
-        pred_test,
-    )
+    if method != "GMM":
+        res = {
+            "train_res": get_metrics(task, ytrain, pred_train),
+            "val_res": get_metrics(task, yval, pred_val),
+            "test_res": get_metrics(task, ytest, pred_test),
+        }
+        for i in res.items():
+            print(i)
+        visual4cm(
+            task,
+            method,
+            features,
+            cc,
+            dataset,
+            ytrain,
+            yval,
+            ytest,
+            pred_train,
+            pred_val,
+            pred_test,
+        )
     if method == "LSTM":
-        visaul4curves(task, method, features, cc, dataset, train_res, val_res)
+        visaul4curves(
+            task, method, features, cc, dataset, train_res, val_res, args.epochs
+        )

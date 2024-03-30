@@ -11,7 +11,9 @@
 
 # here put the import lib
 
+import warnings
 
+warnings.filterwarnings("ignore")
 import os
 import time
 import numpy as np
@@ -67,11 +69,13 @@ class RNN(Model):
             self.r1 = Bidirectional(
                 SimpleRNN(256, return_sequences=False, input_shape=(shape, 1))
             )
-            self.r2 = Bidirectional(SimpleRNN(256, return_sequences=True))
+            self.r2 = Bidirectional(SimpleRNN(256, return_sequences=False))
         else:
             # self.r1 = SimpleRNN(256, return_sequences=False, input_shape=(shape, 1))
-            self.r1 = SimpleRNN(256, return_sequences=False, input_shape=(shape, 1))
-            self.r2 = SimpleRNN(256, return_sequences=True)
+            self.r1 = SimpleRNN(
+                256, return_sequences=False, input_shape=(shape, 1)
+            )  # 40
+            self.r2 = SimpleRNN(256, return_sequences=False)
         self.d1 = Dense(128, activation="relu")
         self.do1 = Dropout(0.4)
         self.d2 = Dense(64, activation="relu")
@@ -115,15 +119,14 @@ class RNN(Model):
 
     def call(self, x):
         x = self.r1(x)  # (32,256)
-        x = self.r2(x)
+        x = np.expand_dims(x, axis=2)  # 32,256,1
+        x = self.r2(x)  # 32, 256
         x = self.d1(x)
-        x = self.d2(x)
         x = self.do1(x)
+        x = self.d2(x)
         x = self.d3(x)
-        x = self.d4(x)
         x = self.do2(x)
-
-        return self.d5(x)
+        return self.d4(x)  # (32,8) RAVDESS
 
     """
   description: This function is used for the entire process of training. 
@@ -158,15 +161,20 @@ class RNN(Model):
                     predictions = model(
                         np.expand_dims(train_images, 2), training=True
                     )  # logits
-                    train_prob = tf.nn.softmax(predictions)  # probabilities
+                    train_prob = tf.nn.softmax(predictions)  # probabilities  # 32,8
                     train_pred += np.argmax(train_prob, axis=1).tolist()
                     ytrain += np.array(train_labels).tolist()  # ground truth
                     loss = self.loss_object(train_labels, predictions)
 
                 # backward propagation
                 gradients = tape.gradient(loss, model.trainable_variables)
+                # self.optimizer.apply_gradients(
+                #     zip(gradients, model.trainable_variables)
+                # )
                 self.optimizer.apply_gradients(
-                    zip(gradients, model.trainable_variables)
+                    (grad, var)
+                    for (grad, var) in zip(gradients, model.trainable_variables)
+                    if grad is not None
                 )
                 train_progress_bar.update(1)
 
@@ -174,7 +182,7 @@ class RNN(Model):
                 self.train_accuracy(train_labels, predictions)
 
                 # validation
-                if step % 50 == 0:
+                if step % 5 == 0:
                     val_pred = []
                     yval = []
                     self.val_loss.reset_states()
@@ -183,7 +191,9 @@ class RNN(Model):
 
                     for val_images, val_labels in val_ds:
                         with tf.GradientTape() as tape:
-                            predictions = model(val_images, training=True)
+                            predictions = model(
+                                np.expand_dims(val_images, axis=2), training=True
+                            )
                             val_prob = tf.nn.sigmoid(predictions)
                             val_pred += np.argmax(val_prob, axis=1).tolist()
                             yval += np.array(val_labels).tolist()
@@ -194,8 +204,13 @@ class RNN(Model):
 
                         # backward propagation
                         gradients = tape.gradient(val_loss, model.trainable_variables)
+                        # self.optimizer.apply_gradients(
+                        #     zip(gradients, model.trainable_variables)
+                        # )
                         self.optimizer.apply_gradients(
-                            zip(gradients, model.trainable_variables)
+                            (grad, var)
+                            for (grad, var) in zip(gradients, model.trainable_variables)
+                            if grad is not None
                         )
                         val_progress_bar.update(1)
 
@@ -261,7 +276,9 @@ class RNN(Model):
         test_progress_bar = tqdm(range(len(test_ds)))
 
         for test_images, test_labels in test_ds:
-            predictions = model(test_images, training=False)  # logits
+            predictions = model(
+                np.expand_dims(test_images, axis=2), training=False
+            )  # logits
             test_prob = tf.nn.sigmoid(predictions)  # probability
             test_pred += np.argmax(test_prob, axis=1).tolist()
             ytest += np.array(test_labels).tolist()  # ground truth

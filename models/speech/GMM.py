@@ -25,7 +25,7 @@ class GMM:
     param {*} method: used for specifying the baseline model of experiment
     """
 
-    def __init__(self, task, method, features, cc, dataset, n_components=18):
+    def __init__(self, task, method, features, cc, dataset, n_components=None):
         self.features = features
         self.cc = cc
         self.method = method
@@ -55,7 +55,7 @@ class GMM:
     def train(self, Xtrain, ytrain, Xval, yval):
         print(f"Start training for {self.method}......")
         start_time_train = time.time()
-        self.model.fit(Xtrain)
+        self.model.fit(Xtrain)  # (864,40)
         if not os.path.exists(f"outputs/{self.task}/models/"):
             os.makedirs(f"outputs/{self.task}/models/")
         pickle.dump(
@@ -66,11 +66,13 @@ class GMM:
             ),
         )
 
-        train_score = np.array(self.model.score(Xtrain))
-        pred_train = np.argmax(train_score)
+        # train_score = np.array(self.model.score(Xtrain))
+        # pred_train = np.argmax(train_score)
+        pred_train = self.model.predict(Xtrain)
+        pred_val = self.model.predict(Xval)
 
-        val_score = np.array(self.model.score(Xval))
-        pred_val = np.argmax(val_score)
+        # val_score = np.array(self.model.score(Xval))
+        # pred_val = np.argmax(val_score)
 
         end_time_train = time.time()
         elapsed_time_train = end_time_train - start_time_train
@@ -94,8 +96,9 @@ class GMM:
         print(f"Start testing for {self.method}......")
         start_time_test = time.time()
         # model = pickle.load(open(filename,'rb'))
-        test_score = np.array(self.model.score(Xtest))
-        pred_test = np.argmax(test_score)
+        # test_score = np.array(self.model.score(Xtest))
+        # pred_test = np.argmax(test_score)
+        pred_test = self.model.predict(Xtest)
 
         end_time_test = time.time()
         elapsed_time_test = end_time_test - start_time_test

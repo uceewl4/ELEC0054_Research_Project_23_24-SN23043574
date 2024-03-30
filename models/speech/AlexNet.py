@@ -124,6 +124,7 @@ class AlexNet(Model):
     def train(self, Xtrain, ytrain, Xval, yval):
         print("Start training......")
         start_time_train = time.time()
+        train_pred, val_pred = [], []
         self.model.compile(
             optimizer=self.optimizer,
             loss=self.loss_object,

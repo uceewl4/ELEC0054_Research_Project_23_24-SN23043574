@@ -67,7 +67,7 @@ class LSTM(Model):
         # network layers definition
         self.model = Sequential(
             [
-                LSTM(
+                tf.keras.layers.LSTM(
                     256, return_sequences=False, input_shape=(shape, 1)
                 ),  # 40 features as 40 timestamp, for each timestamp the input dimension is 1
                 # output vector dimension is 256
@@ -108,6 +108,7 @@ class LSTM(Model):
 
     def train(self, Xtrain, ytrain, Xval, yval):
         print("Start training......")
+        train_pred, val_pred = [], []
         start_time_train = time.time()
         self.model.compile(
             optimizer=self.optimizer,
@@ -116,10 +117,10 @@ class LSTM(Model):
         )
         history = self.model.fit(
             Xtrain,
-            ytrain,
+            np.array(ytrain),
             batch_size=self.batch_size,
             epochs=self.epoch,
-            validation_data=(Xval, yval),
+            validation_data=(Xval, np.array(yval)),
         )
 
         # get predictions
@@ -161,7 +162,7 @@ class LSTM(Model):
         start_time_test = time.time()
 
         test_pred = []
-        test_loss, test_acc = self.model.evaluate(Xtest, ytest, verbose=2)
+        test_loss, test_acc = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
         test_predictions = self.output_layer.predict(x=Xtest)
         test_prob = tf.nn.softmax(test_predictions)  # probabilities
         test_pred += np.argmax(test_prob, axis=1).tolist()

@@ -72,6 +72,7 @@ def get_padding(data, max_length):
 
 
 def get_features(
+    dataset,
     method,
     filename,
     features="mfcc",
@@ -81,7 +82,9 @@ def get_features(
     window=None,
 ):
     with soundfile.SoundFile(filename) as sound_file:
-        X = sound_file.read(dtype="float32")
+        X = sound_file.read(dtype="float32")  # 121715,2    # 62462  # 58124
+        if dataset == "eNTERFACE":
+            X = X[:, 1]
         sample_rate = sound_file.samplerate
 
         if window != None:
@@ -103,17 +106,17 @@ def get_features(
         else:
             mfccs = np.mean(
                 librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=n_mfcc).T, axis=0
-            )
+            )  # (40,121715)  # 40
             stft = np.abs(librosa.stft(X))  # spectrum
             chroma = np.mean(
                 librosa.feature.chroma_stft(S=stft, sr=sample_rate).T, axis=0
-            )
+            )  # 12, 121715
             mel = np.mean(
                 librosa.feature.melspectrogram(
                     y=X, sr=sample_rate, n_mels=n_mels, fmax=8000
                 ).T,
                 axis=0,
-            )
+            )  # 128,121715
 
         if features == "mfcc":
             result = np.hstack((result, mfccs))
@@ -217,6 +220,7 @@ def get_reverse(
             f"datasets/{dataset}_reverse/{name}_reverse.wav", format="wav"
         )
         feature, X = get_features(
+            dataset,
             method,
             f"datasets/{dataset}_reverse/{name}_reverse.wav",
             features,
@@ -261,6 +265,7 @@ def get_noise(
         soundfile.write(f"datasets/{dataset}_noise/{name}_noise.wav", X, sample_rate)
 
         feature, X = get_features(
+            dataset,
             method,
             f"datasets/{dataset}_noise/{name}_noise.wav",
             features,
@@ -310,6 +315,7 @@ def get_denoise(
         )
 
         feature, X = get_features(
+            dataset,
             method,
             f"datasets/{dataset}_noise/{name}_denoise.wav",
             features,
@@ -364,6 +370,7 @@ def load_RAVDESS(
         file_name = os.path.basename(file)
         emotion = emotion_map[file_name.split("-")[2]]
         feature, X = get_features(
+            "RAVDESS",
             method,
             file,
             features,
@@ -495,6 +502,7 @@ def load_TESS(
     for dirname, _, filenames in os.walk("datasets/speech/TESS"):
         for filename in filenames:
             feature, X = get_features(
+                "TESS",
                 method,
                 os.path.join(dirname, filename),
                 features,
@@ -636,6 +644,7 @@ def load_SAVEE(
     path = "datasets/speech/SAVEE"
     for file in os.listdir(path):
         feature, X = get_features(
+            "SAVEE",
             method,
             os.path.join(path, file),
             features,
@@ -772,6 +781,7 @@ def load_CREMA(
     path = "datasets/speech/CREMA-D"
     for file in os.listdir(path):
         feature, X = get_features(
+            "CREMA",
             method,
             os.path.join(path, file),
             features,
@@ -786,7 +796,7 @@ def load_CREMA(
         y.append(emotion)
         paths.append(os.path.join(path, file))
         category.append(category_map[label.lower()])
-        audio.append(X)
+        audio.append(X)  # list of array
         lengths.append(len(X))
         if category_map[label.lower()] not in list(set(category)) or len(category) == 0:
             visual4feature(
@@ -874,7 +884,7 @@ def load_CREMA(
     X_val, X_test, yval, ytest = train_test_split(
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
-    # (1680, 40), (560, 40), (560, 40), (1680,)
+    # (4465, 40), (1488, 40), (1489, 40), (1680,)
     return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
@@ -912,6 +922,7 @@ def load_EmoDB(
     path = "datasets/speech/EmoDB"
     for file in os.listdir(path):
         feature, X = get_features(
+            "EmoDB",
             method,
             os.path.join(path, file),
             features,
@@ -1048,9 +1059,10 @@ def load_eNTERFACE(
         "sa": "sadness",
         "su": "surprise",
     }
-    path = "datasets/speech/eNTERFACE"
+    path = "datasets/speech/eNTERFACE05"
     for file in os.listdir(path):
         feature, X = get_features(
+            "eNTERFACE",
             method,
             os.path.join(path, file),
             features,
@@ -1059,7 +1071,10 @@ def load_eNTERFACE(
             max_length=max_length,
             window=window,
         )
-        label = file.split(".")[0].split("_")[-2]
+        if file[1] == "_":
+            label = file.split(".")[0].split("_")[-2]
+        else:
+            label = file.split(".")[0].split("_")[1]
         emotion = emotion_map[label]
         x.append(feature)
         y.append(emotion)
@@ -1247,7 +1262,7 @@ def load_data(
                 denoise=denoise,
                 window=window,
             )
-        elif dataset == "eINTERFACE":
+        elif dataset == "eNTERFACE":
             X_train, ytrain, X_val, yval, X_test, ytest, length = load_eNTERFACE(
                 method,
                 features=features,
@@ -1471,13 +1486,7 @@ def load_model(
                 batch_size=batch_size,
             )
         elif method == "GMM":
-            model = GMM(
-                task,
-                method,
-                features,
-                cc,
-                dataset,
-            )
+            model = GMM(task, method, features, cc, dataset, num_classes)
         elif method == "wave2vec":
             model = Wave2Vec(
                 task,
