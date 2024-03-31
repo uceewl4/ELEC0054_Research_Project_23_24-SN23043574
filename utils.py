@@ -88,7 +88,9 @@ def get_features(
         sample_rate = sound_file.samplerate
 
         if window != None:
-            X = X[int(window[0] * sample_rate) : int(window[1] * sample_rate)]
+            X = X[
+                int(window[0] * sample_rate) : int(window[1] * sample_rate)
+            ]  # 0,3 48000  # RAVDESS 59793
 
         result = np.array([])
 
