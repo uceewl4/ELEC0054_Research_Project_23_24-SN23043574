@@ -6,6 +6,8 @@
     "configurations": [
 
     
+
+    
         {
             "name": "Python 调试程序: 当前文件",
             "type": "debugpy",
@@ -13,10 +15,11 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--method","SVM",
+                "--method","wav2vec",
                 "--task","speech",
                 "--dataset","RAVDESS",
-                "--window","0","3"
+                "--epochs","1"
+                // "--window","0","3"
 
             ]
         }

@@ -129,8 +129,8 @@ class MLP(Model):
         for epoch in range(self.epochs):
             train_pred = []  # label prediction
             ytrain = []  # ground truth
-            self.train_loss.reset_states()
-            self.train_accuracy.reset_states()
+            self.train_loss.reset_state()
+            self.train_accuracy.reset_state()
             train_progress_bar = tqdm(range(len(train_ds)))
 
             for step, (train_images, train_labels) in enumerate(train_ds):
@@ -155,8 +155,8 @@ class MLP(Model):
                 if step % 50 == 0:
                     val_pred = []
                     yval = []
-                    self.val_loss.reset_states()
-                    self.val_accuracy.reset_states()
+                    self.val_loss.reset_state()
+                    self.val_accuracy.reset_state()
                     val_progress_bar = tqdm(range(len(val_ds)))
 
                     for val_images, val_labels in val_ds:
@@ -234,8 +234,8 @@ class MLP(Model):
 
         test_pred = []  # predicted labels
         ytest = []  # ground truth
-        self.test_loss.reset_states()
-        self.test_accuracy.reset_states()
+        self.test_loss.reset_state()
+        self.test_accuracy.reset_state()
         test_progress_bar = tqdm(range(len(test_ds)))
 
         for test_images, test_labels in test_ds:

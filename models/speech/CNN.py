@@ -68,6 +68,7 @@ class CNN(Model):
         # network layers definition
         self.model = Sequential(
             [
+                # Input(shape=(shape, length, 1)),
                 Conv2D(
                     16,
                     (3, 3),
@@ -81,10 +82,14 @@ class CNN(Model):
             ]
         )
 
-        self.model.build((shape, length, 1))
+        self.model.build((None, shape, length, 1))  # change
         self.model.summary()
+        # self.output_layer = tf.keras.models.Model(
+        #     inputs=self.model.input, outputs=self.model.get_layer("outputs").output
+        # )
         self.output_layer = tf.keras.models.Model(
-            inputs=self.model.input, outputs=self.model.get_layer("outputs").output
+            inputs=self.model.layers[0].input,
+            outputs=self.model.get_layer("outputs").output,
         )
 
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(

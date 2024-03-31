@@ -13,10 +13,10 @@
 
 # here put the import lib
 from pydub import AudioSegment
+
 from transformers import AutoFeatureExtractor
 import noisereduce as nr
 import os
-import cv2
 import random
 import numpy as np
 from matplotlib.colors import Normalize
@@ -58,7 +58,7 @@ from scipy.io import wavfile
 import soundfile
 import librosa
 
-from models.speech.wave2vec import Wave2Vec
+from models.speech.wav2vec import Wav2Vec
 
 
 def get_padding(data, max_length):
@@ -417,7 +417,7 @@ def load_RAVDESS(
     visual4label("speech", "RAVDESS", category)
     print(np.array(x).shape)  # (864,40), (288,40), (288,40)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         if scaled != None:
             x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
@@ -471,9 +471,9 @@ def load_RAVDESS(
             window,
         )
 
-    length = None if method != "wave2vec" else max(lengths)
+    length = None if method != "wav2vec" else max(lengths)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
             np.array(x), y, test_size=0.4, random_state=9
         )  # 3:2
@@ -482,14 +482,14 @@ def load_RAVDESS(
             "facebook/wav2vec2-base", return_attention_mask=True
         )
         X = feature_extractor(
-            X,
+            audio,
             sampling_rate=feature_extractor.sampling_rate,
             max_length=length,
             truncation=True,
             padding=True,
         )
-        X_train, X_left, ytrain, yleft = train_test_split(
-            np.array(X), y, test_size=0.4, random_state=9
+        X_train, X_left, ytrain, yleft = train_test_split(  # 54988
+            np.array(X["input_values"]), y, test_size=0.4, random_state=9
         )  # 3:2
 
     X_val, X_test, yval, ytest = train_test_split(
@@ -497,6 +497,7 @@ def load_RAVDESS(
     )  # 1:1
     # (1680, 40), (560, 40), (560, 40), (1680,)
     return X_train, ytrain, X_val, yval, X_test, ytest, length
+    # 864, 84351; 864
 
 
 def load_TESS(
@@ -549,7 +550,7 @@ def load_TESS(
 
     visual4label("speech", "TESS", category)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         if scaled != None:
             x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
@@ -603,9 +604,9 @@ def load_TESS(
             window,
         )
 
-    length = None if method != "wave2vec" else max(lengths)
+    length = None if method != "wav2vec" else max(lengths)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
             np.array(x), y, test_size=0.4, random_state=9
         )  # 3:2
@@ -614,14 +615,14 @@ def load_TESS(
             "facebook/wav2vec2-base", return_attention_mask=True
         )
         X = feature_extractor(
-            X,
+            audio,
             sampling_rate=feature_extractor.sampling_rate,
             max_length=length,
             truncation=True,
             padding=True,
-        )
+        )  # (1440, 84351)
         X_train, X_left, ytrain, yleft = train_test_split(
-            np.array(X), y, test_size=0.4, random_state=9
+            np.array(X["input_values"]), y, test_size=0.4, random_state=9
         )  # 3:2
 
     X_val, X_test, yval, ytest = train_test_split(
@@ -687,7 +688,7 @@ def load_SAVEE(
 
     visual4label("speech", "SAVEE", category)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         if scaled != None:
             x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
@@ -741,9 +742,9 @@ def load_SAVEE(
             window,
         )
 
-    length = None if method != "wave2vec" else max(lengths)
+    length = None if method != "wav2vec" else max(lengths)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
             np.array(x), y, test_size=0.4, random_state=9
         )  # 3:2
@@ -752,14 +753,14 @@ def load_SAVEE(
             "facebook/wav2vec2-base", return_attention_mask=True
         )
         X = feature_extractor(
-            X,
+            audio,
             sampling_rate=feature_extractor.sampling_rate,
             max_length=length,
             truncation=True,
             padding=True,
         )
         X_train, X_left, ytrain, yleft = train_test_split(
-            np.array(X), y, test_size=0.4, random_state=9
+            np.array(X["input_values"]), y, test_size=0.4, random_state=9
         )  # 3:2
 
     X_val, X_test, yval, ytest = train_test_split(
@@ -825,7 +826,7 @@ def load_CREMA(
 
     visual4label("speech", "CREMA", category)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         if scaled != None:
             x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
@@ -879,9 +880,9 @@ def load_CREMA(
             window,
         )
 
-    length = None if method != "wave2vec" else max(lengths)
+    length = None if method != "wav2vec" else max(lengths)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
             np.array(x), y, test_size=0.4, random_state=9
         )  # 3:2
@@ -890,14 +891,14 @@ def load_CREMA(
             "facebook/wav2vec2-base", return_attention_mask=True
         )
         X = feature_extractor(
-            X,
+            audio,
             sampling_rate=feature_extractor.sampling_rate,
             max_length=length,
             truncation=True,
             padding=True,
         )
         X_train, X_left, ytrain, yleft = train_test_split(
-            np.array(X), y, test_size=0.4, random_state=9
+            np.array(X["input_values"]), y, test_size=0.4, random_state=9
         )  # 3:2
 
     X_val, X_test, yval, ytest = train_test_split(
@@ -963,7 +964,7 @@ def load_EmoDB(
 
     visual4label("speech", "EmoDB", category)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         if scaled != None:
             x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
@@ -1019,9 +1020,9 @@ def load_EmoDB(
             ),
         )
 
-    length = None if method != "wave2vec" else max(lengths)
+    length = None if method != "wav2vec" else max(lengths)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
             np.array(x), y, test_size=0.4, random_state=9
         )  # 3:2
@@ -1030,14 +1031,14 @@ def load_EmoDB(
             "facebook/wav2vec2-base", return_attention_mask=True
         )
         X = feature_extractor(
-            X,
+            audio,
             sampling_rate=feature_extractor.sampling_rate,
             max_length=length,
             truncation=True,
             padding=True,
         )
         X_train, X_left, ytrain, yleft = train_test_split(
-            np.array(X), y, test_size=0.4, random_state=9
+            np.array(X["input_values"]), y, test_size=0.4, random_state=9
         )  # 3:2
 
     X_val, X_test, yval, ytest = train_test_split(
@@ -1105,7 +1106,7 @@ def load_eNTERFACE(
 
     visual4label("speech", "eNTERFACE05", category)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         if scaled != None:
             x = transform_feature(x, features, n_mfcc, n_mels, scaled)
 
@@ -1159,9 +1160,9 @@ def load_eNTERFACE(
             window,
         )
 
-    length = None if method != "wave2vec" else max(lengths)
+    length = None if method != "wav2vec" else max(lengths)
 
-    if method != "wave2vec":
+    if method != "wav2vec":
         X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
             np.array(x), y, test_size=0.4, random_state=9
         )  # 3:2
@@ -1170,7 +1171,7 @@ def load_eNTERFACE(
             "facebook/wav2vec2-base", return_attention_mask=True
         )
         X = feature_extractor(
-            X,
+            audio,
             sampling_rate=feature_extractor.sampling_rate,
             max_length=length,
             truncation=True,
@@ -1297,7 +1298,7 @@ def load_data(
         num_classes = len(set(ytrain))
         if method in ["SVM", "KNN", "DT", "RF", "NB", "LSTM", "CNN", "AlexNet", "GMM"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, shape, num_classes
-        elif method in ["MLP", "RNN"]:
+        elif method in ["MLP", "RNN", "wav2vec"]:
             train_ds = tf.data.Dataset.from_tensor_slices(
                 (X_train, np.array(ytrain).astype(int))
             ).batch(batch_size)
@@ -1307,9 +1308,10 @@ def load_data(
             test_ds = tf.data.Dataset.from_tensor_slices(
                 (X_test, np.array(ytest).astype(int))
             ).batch(batch_size)
-            return train_ds, val_ds, test_ds, shape, num_classes
-        elif method == "wave2vec":
-            return X_train, ytrain, X_val, yval, X_test, ytest, num_classes, length
+            if method == "wav2vec":
+                return train_ds, val_ds, test_ds, num_classes, length
+            else:
+                return train_ds, val_ds, test_ds, shape, num_classes
 
     # file = os.listdir(path)
     # Xtest, ytest, Xtrain, ytrain, Xval, yval = [], [], [], [], [], []
@@ -1502,8 +1504,8 @@ def load_model(
             )
         elif method == "GMM":
             model = GMM(task, method, features, cc, dataset, num_classes)
-        elif method == "wave2vec":
-            model = Wave2Vec(
+        elif method == "wav2vec":
+            model = Wav2Vec(
                 task,
                 method,
                 features,
@@ -1511,9 +1513,9 @@ def load_model(
                 num_classes,
                 dataset,
                 max_length,
-                epochs=10,
-                lr=0.001,
-                batch_size=16,
+                epochs=epochs,
+                lr=lr,
+                batch_size=batch_size,
             )
 
     return model

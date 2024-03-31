@@ -37,7 +37,7 @@ warnings.filterwarnings("ignore")
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # export CUDA_VISIBLE_DEVICES=1  # used for setting specific GPU in terminal
 if tf.config.list_physical_devices("GPU"):
-    print("Use GPU of UCL server: london.ee.ucl.ac.uk")
+    print("Use GPU of UCL server: turin.ee.ucl.ac.uk")
     physical_devices = tf.config.list_physical_devices("GPU")
     print(physical_devices)
     for device in physical_devices:
@@ -65,7 +65,8 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate of NNs")
     parser.add_argument("--n_mfcc", type=int, default=40, help="epochs of NNs")
     parser.add_argument("--n_mels", type=int, default=128, help="epochs of NNs")
-    parser.add_argument("--max_length", type=int, default=160, help="epochs of NNs")
+    parser.add_argument("--max_length", type=int, default=150, help="epochs of NNs")
+    # RAVDESS 150
     parser.add_argument(
         "--reverse", type=bool, default=False, help="play the audio in a reverse way"
     )
@@ -162,8 +163,8 @@ if __name__ == "__main__":
                 denoise=args.denoise,
                 window=args.window,
             )
-        elif method == "wave2vec":
-            Xtrain, ytrain, Xtest, ytest, Xval, yval, num_classes, length = load_data(
+        elif method == "wav2vec":
+            train_ds, val_ds, test_ds, num_classes, length = load_data(
                 task,
                 method,
                 dataset,
@@ -228,15 +229,16 @@ if __name__ == "__main__":
         )
     elif method == "GMM":
         model = load_model(task, method, features, cc, dataset, num_classes=num_classes)
-    elif method == "wave2vec":
+    elif method == "wav2vec":
         model = load_model(
             task,
             method,
             features,
             cc,
-            num_classes,
-            dataset,
-            length,
+            shape=None,
+            num_classes=num_classes,
+            dataset=dataset,
+            max_length=length,
             epochs=args.epochs,
             lr=args.lr,
             batch_size=args.batch_size,
@@ -253,12 +255,12 @@ if __name__ == "__main__":
         else:
             model.train(Xtrain, ytrain, Xval, yval)
         pred_train, pred_val, pred_test = model.test(Xtrain, ytrain, Xval, yval, Xtest)
-    elif method in ["MLP", "RNN"]:
+    elif method in ["MLP", "RNN", "wav2vec"]:
         train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
             model, train_ds, val_ds
         )
         test_res, pred_test, ytest = model.test(model, test_ds)
-    elif method in ["LSTM", "CNN", "AlexNet", "wave2vec"]:
+    elif method in ["LSTM", "CNN", "AlexNet"]:
         train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
             Xtrain, ytrain, Xval, yval
         )

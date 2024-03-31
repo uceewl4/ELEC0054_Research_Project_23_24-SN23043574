@@ -90,10 +90,11 @@ class AlexNet(Model):
             ]
         )
 
-        self.model.build((shape, length, 1))
+        self.model.build((None, shape, length, 1))
         self.model.summary()
         self.output_layer = tf.keras.models.Model(
-            inputs=self.model.input, outputs=self.model.get_layer("outputs").output
+            inputs=self.model.layers[0].input,
+            outputs=self.model.get_layer("outputs").output,
         )
 
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
