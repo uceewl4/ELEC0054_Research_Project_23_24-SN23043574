@@ -197,8 +197,8 @@ if __name__ == "__main__":
             shape,
             num_classes,
             dataset,
-            args.epochs,
-            args.lr,
+            epochs=args.epochs,
+            lr=args.lr,
         )
     elif method in ["RNN", "LSTM"]:
         model = load_model(
@@ -264,6 +264,8 @@ if __name__ == "__main__":
         train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
             Xtrain, ytrain, Xval, yval
         )
+        print(train_res)
+        print(val_res)
         ytest, pred_test = model.test(Xtest, ytest)
     elif method == "GMM":
         pred_train, pred_val, ytrain, yval = model.train(Xtrain, ytrain, Xval, yval)
@@ -302,7 +304,7 @@ if __name__ == "__main__":
             pred_val,
             pred_test,
         )
-    if method == "LSTM":
+    if method in ["LSTM", "CNN", "AlexNet"]:
         visaul4curves(
             task, method, features, cc, dataset, train_res, val_res, args.epochs
         )

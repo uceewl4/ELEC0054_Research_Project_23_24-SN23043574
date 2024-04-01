@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
     
 
     
@@ -15,7 +16,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--method","wav2vec",
+                "--method","LSTM",
                 "--task","speech",
                 "--dataset","RAVDESS",
                 "--epochs","1"

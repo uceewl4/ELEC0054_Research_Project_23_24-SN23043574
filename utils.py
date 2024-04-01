@@ -1761,6 +1761,7 @@ param {*} data: npz data
 def visaul4curves(task, method, feature, cc, dataset, train_res, val_res, epochs):
     acc = train_res["train_acc"]
     val_acc = val_res["val_acc"]
+    epochs = list(range(epochs))
 
     plt.figure(figsize=(10, 8))
     plt.plot(epochs, acc, label="train accuracy")

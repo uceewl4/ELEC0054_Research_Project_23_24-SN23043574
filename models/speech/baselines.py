@@ -19,7 +19,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
+from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB, CategoricalNB
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 
 
@@ -35,11 +35,13 @@ class Baselines:
         if method == "KNN":
             self.model = KNeighborsClassifier()
         elif method == "SVM":
-            self.model = svm.SVC(kernel="rbf")  # poly good for TESS
+            self.model = svm.SVC(
+                kernel="linear", C=100, gamma="auto"
+            )  # poly good for TESS
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
-            self.model = GaussianNB()
+            self.model = BernoulliNB()
         elif method == "RF":
             self.model = RandomForestClassifier(criterion="entropy", verbose=1)
 
@@ -73,7 +75,7 @@ class Baselines:
                     {"n_neighbors": [i for i in range(1, 30, 2)]}
                 ]  # parameters for grid search
             if self.method == "DT":
-                params = [{"max_leaf_nodes": [i for i in range(20, 100, 5)]}]
+                params = [{"max_leaf_nodes": [i for i in range(180, 250, 5)]}]
             if self.method == "RF":
                 params = [
                     {
