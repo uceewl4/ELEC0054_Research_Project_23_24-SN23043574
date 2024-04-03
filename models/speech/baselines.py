@@ -41,7 +41,7 @@ class Baselines:
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
-            self.model = BernoulliNB()
+            self.model = GaussianNB()
         elif method == "RF":
             self.model = RandomForestClassifier(criterion="entropy", verbose=1)
 
@@ -75,7 +75,7 @@ class Baselines:
                     {"n_neighbors": [i for i in range(1, 30, 2)]}
                 ]  # parameters for grid search
             if self.method == "DT":
-                params = [{"max_leaf_nodes": [i for i in range(180, 250, 5)]}]
+                params = [{"max_leaf_nodes": [i for i in range(10, 100, 5)]}]
             if self.method == "RF":
                 params = [
                     {

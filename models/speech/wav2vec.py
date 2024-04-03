@@ -179,7 +179,7 @@ class Wav2Vec(Model):
                 self.train_accuracy(train_labels, predictions)
 
                 # validation
-                if step % 50 == 0:
+                if step % 25 == 0:
                     val_pred = []
                     yval = []
                     # self.val_loss.reset_states()
