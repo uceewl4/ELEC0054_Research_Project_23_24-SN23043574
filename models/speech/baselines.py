@@ -36,12 +36,12 @@ class Baselines:
             self.model = KNeighborsClassifier()
         elif method == "SVM":
             self.model = svm.SVC(
-                kernel="linear", C=100, gamma="auto"
+                kernel="poly", C=10, gamma="auto"
             )  # poly good for TESS
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
-            self.model = GaussianNB()
+            self.model = BernoulliNB()
         elif method == "RF":
             self.model = RandomForestClassifier(criterion="entropy", verbose=1)
 
@@ -75,7 +75,7 @@ class Baselines:
                     {"n_neighbors": [i for i in range(1, 30, 2)]}
                 ]  # parameters for grid search
             if self.method == "DT":
-                params = [{"max_leaf_nodes": [i for i in range(10, 100, 5)]}]
+                params = [{"max_leaf_nodes": [i for i in range(80, 150, 5)]}]
             if self.method == "RF":
                 params = [
                     {

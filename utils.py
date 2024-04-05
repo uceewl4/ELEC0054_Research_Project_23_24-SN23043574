@@ -408,10 +408,7 @@ def load_RAVDESS(
         category.append(category_map[file_name.split("-")[2]])
         audio.append(X)
         lengths.append(len(X))
-        if (
-            category_map[file_name.split("-")[2]] not in list(set(category))
-            or len(category) == 0
-        ):
+        if category.count(category_map[file_name.split("-")[2]]) == 1:
             visual4feature(file, "RAVDESS", category_map[file_name.split("-")[2]])
 
     visual4label("speech", "RAVDESS", category)
@@ -542,7 +539,7 @@ def load_TESS(
             category.append(label.lower())
             audio.append(X)
             lengths.append(len(X))
-            if label.lower() not in list(set(category)) or len(category) == 0:
+            if category.count(label.lower()) == 1:
                 visual4feature(os.path.join(dirname, filename), "TESS", label.lower())
 
         if len(y) == 2800:
@@ -683,7 +680,7 @@ def load_SAVEE(
         category.append(category_map[label])
         audio.append(X)
         lengths.append(len(X))
-        if category_map[label] not in list(set(category)) or len(category) == 0:
+        if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
 
     visual4label("speech", "SAVEE", category)
@@ -819,7 +816,7 @@ def load_CREMA(
         category.append(category_map[label.lower()])
         audio.append(X)  # list of array
         lengths.append(len(X))
-        if category_map[label.lower()] not in list(set(category)) or len(category) == 0:
+        if category.count(category_map[label.lower()]) == 1:
             visual4feature(
                 os.path.join(path, file), "SAVEE", category_map[label.lower()]
             )
@@ -959,7 +956,7 @@ def load_EmoDB(
         category.append(category_map[label])
         audio.append(X)
         lengths.append(len(X))
-        if category_map[label] not in list(set(category)) or len(category) == 0:
+        if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
 
     visual4label("speech", "EmoDB", category)
@@ -1101,7 +1098,7 @@ def load_eNTERFACE(
         category.append(category_map[label])
         audio.append(X)
         lengths.append(len(X))
-        if category_map[label] not in list(set(category)) or len(category) == 0:
+        if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
 
     visual4label("speech", "eNTERFACE05", category)

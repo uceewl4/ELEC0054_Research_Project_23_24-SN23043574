@@ -71,10 +71,10 @@ if __name__ == "__main__":
         "--reverse", type=bool, default=False, help="play the audio in a reverse way"
     )
     parser.add_argument(
-        "--noise", type=bool, default=False, help="play the audio in a reverse way"
+        "--noise", type=bool, default=False, help="play the audio with white noise"
     )
     parser.add_argument(
-        "--denoise", type=bool, default=False, help="play the audio in a reverse way"
+        "--denoise", type=bool, default=False, help="play the audio by denoising"
     )
     parser.add_argument("--window", nargs="+", type=int, help="An array of integers")
     # python script.py --integers 1 2 3 4 5
