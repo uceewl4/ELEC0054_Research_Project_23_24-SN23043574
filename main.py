@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore")
     code is run on UCL server with provided GPU resources, especially for NNs 
     and pretrained models.
 """
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # export CUDA_VISIBLE_DEVICES=1  # used for setting specific GPU in terminal
 if tf.config.list_physical_devices("GPU"):
     print("Use GPU of UCL server: turin.ee.ucl.ac.uk")
