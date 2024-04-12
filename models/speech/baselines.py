@@ -35,7 +35,9 @@ class Baselines:
         if method == "KNN":
             self.model = KNeighborsClassifier()
         elif method == "SVM":
-            self.model = svm.SVC(kernel="rbf", C=1, gamma="auto")  # poly good for TESS
+            self.model = svm.SVC(
+                kernel="rbf", C=0.01, gamma="auto"
+            )  # poly good for TESS
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
@@ -70,10 +72,12 @@ class Baselines:
             print(f"Start tuning(cross-validation) for {self.method}......")
             if self.method == "KNN":
                 params = [
-                    {"n_neighbors": [i for i in range(1, 30, 2)]}
+                    {"n_neighbors": [i for i in range(1, 30, 1)]}
                 ]  # parameters for grid search
             if self.method == "DT":
-                params = [{"max_leaf_nodes": [i for i in range(80, 150, 5)]}]  # 80, 150
+                params = [
+                    {"max_leaf_nodes": [i for i in range(220, 250, 2)]}
+                ]  # 80, 150
             if self.method == "RF":
                 params = [
                     {

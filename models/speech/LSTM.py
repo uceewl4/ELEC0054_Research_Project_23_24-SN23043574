@@ -64,6 +64,7 @@ class LSTM(Model):
         self.bidirectional = bidirectional
         self.batch_size = batch_size
         self.dataset = dataset
+        self.finetune = True if cc == "finetune" else False
         # network layers definition
         self.model = Sequential(
             [
@@ -107,7 +108,17 @@ class LSTM(Model):
   return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
   """
 
-    def train(self, Xtrain, ytrain, Xval, yval):
+    def train(
+        self,
+        Xtrain,
+        ytrain,
+        Xval,
+        yval,
+        Xtune_train=None,
+        ytune_train=None,
+        Xtune_val=None,
+        ytune_val=None,
+    ):
         print("Start training......")
         train_pred, val_pred = [], []
         start_time_train = time.time()
@@ -147,6 +158,57 @@ class LSTM(Model):
         elapsed_time_train = end_time_train - start_time_train
         print(f"Finish training for {self.method}.")
         print(f"Training time: {elapsed_time_train}s")
+
+        if self.finetune == True:
+            print("Start fine-tuning......")
+            start_time_tune = time.time()
+            for layer in self.model.layers[:-4]:
+                layer.trainable = False
+            for layer in self.model.layers[-3:]:
+                layer.trainable = True
+            for layer in self.model.layers:
+                print("{}: {}".format(layer, layer.trainable))
+
+            self.model.compile(
+                optimizer=self.optimizer,
+                loss=self.loss_object,
+                metrics=["accuracy"],
+            )
+            history = self.model.fit(
+                Xtune_train,
+                np.array(ytune_train),
+                batch_size=self.batch_size,
+                epochs=self.epoch,
+                validation_data=(Xtune_val, np.array(ytune_val)),
+            )
+
+            tune_train_predictions = self.output_layer.predict(x=Xtune_train)
+            tune_train_prob = tf.nn.softmax(tune_train_predictions)
+            tune_train_pred += np.argmax(tune_train_prob, axis=1).tolist()
+            tune_train_pred = np.array(train_pred)
+
+            tune_val_predictions = self.output_layer.predict(x=Xtune_val)
+            tune_val_prob = tf.nn.softmax(tune_val_predictions)
+            tune_val_pred += np.argmax(tune_val_prob, axis=1).tolist()
+            tune_val_pred = np.array(val_pred)
+
+            elapsed_time_tune = start_time_tune - end_time_train
+            print(f"Finish fine-tuning for {self.method}.")
+            print(f"Fine-tuning time: {elapsed_time_tune}s")
+
+            return (
+                train_res,
+                val_res,
+                train_pred,
+                val_pred,
+                ytrain,
+                yval,
+                ytune_train,
+                ytune_val,
+                tune_train_pred,
+                tune_val_pred,
+            )
+
         return train_res, val_res, train_pred, val_pred, ytrain, yval
 
     """

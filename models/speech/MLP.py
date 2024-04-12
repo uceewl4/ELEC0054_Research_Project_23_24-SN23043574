@@ -152,7 +152,7 @@ class MLP(Model):
                 self.train_accuracy(train_labels, predictions)
 
                 # validation
-                if step % 25 == 0:
+                if step % 10 == 0:
                     val_pred = []
                     yval = []
                     self.val_loss.reset_state()

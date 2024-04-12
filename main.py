@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore")
     code is run on UCL server with provided GPU resources, especially for NNs 
     and pretrained models.
 """
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 # export CUDA_VISIBLE_DEVICES=1  # used for setting specific GPU in terminal
 if tf.config.list_physical_devices("GPU"):
     print("Use GPU of UCL server: turin.ee.ucl.ac.uk")
@@ -56,7 +56,10 @@ if __name__ == "__main__":
     parser.add_argument("--method", type=str, default="SVM", help="model chosen")
     parser.add_argument("--dataset", type=str, default="TESS", help="model chosen")
     parser.add_argument(
-        "--features", type=str, default="mfcc", help="mfcc, chroma, all, mel"
+        "--features",
+        type=str,
+        default="mfcc",
+        help="mfcc, all, mel, chroma",  # chroma will have influence on AlexNet for pooling
     )
     parser.add_argument(
         "--batch_size", type=int, default=32, help="batch size of NNs like MLP and CNN"
@@ -65,7 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate of NNs")
     parser.add_argument("--n_mfcc", type=int, default=40, help="epochs of NNs")
     parser.add_argument("--n_mels", type=int, default=128, help="epochs of NNs")
-    parser.add_argument("--max_length", type=int, default=620, help="epochs of NNs")
+    parser.add_argument("--max_length", type=int, default=150, help="epochs of NNs")
     # RAVDESS 150  SAVEE 620
     parser.add_argument(
         "--reverse", type=bool, default=False, help="play the audio in a reverse way"
@@ -89,7 +92,7 @@ if __name__ == "__main__":
         "--cc",
         type=str,
         default="single",
-        help="single, cross, finetune",
+        help="single, cross, mix, finetune",
     )
     parser.add_argument(
         "--scaled",
@@ -97,12 +100,16 @@ if __name__ == "__main__":
         default=None,
         help="standard, minmax",
     )
+    parser.add_argument(
+        "--corpus", nargs="+", type=str, default=None, help="An array of string"
+    )
     args = parser.parse_args()
     task = args.task
     method = args.method
     dataset = args.dataset
     features = args.features
     cc = args.cc
+    corpus = args.corpus
 
     print(
         f"Task: {task} emotion classification, Method: {method}, Cross-corpus: {args.cc}, Dataset: {dataset}, Features: {args.features}. "
@@ -120,23 +127,58 @@ if __name__ == "__main__":
     print("Start loading data......")
     if task == "speech":
         if method in ["SVM", "DT", "RF", "NB", "KNN", "LSTM", "GMM"]:
-            Xtrain, ytrain, Xtest, ytest, Xval, yval, shape, num_classes = load_data(
-                task,
-                method,
-                dataset,
-                features,
-                args.n_mfcc,
-                args.n_mels,
-                scaled=args.scaled,
-                reverse=args.reverse,
-                noise=args.noise,
-                denoise=args.denoise,
-                window=args.window,
-            )
+            if cc != "finetune":
+                Xtrain, ytrain, Xtest, ytest, Xval, yval, shape, num_classes = (
+                    load_data(
+                        task,
+                        method,
+                        cc,
+                        dataset,
+                        features,
+                        args.n_mfcc,
+                        args.n_mels,
+                        scaled=args.scaled,
+                        reverse=args.reverse,
+                        noise=args.noise,
+                        denoise=args.denoise,
+                        window=args.window,
+                        corpus=corpus,
+                    )
+                )
+            else:
+                (
+                    Xtrain,
+                    ytrain,
+                    Xtest,
+                    ytest,
+                    Xval,
+                    yval,
+                    shape,
+                    num_classes,
+                    Xtune_train,
+                    ytune_train,
+                    Xtune_val,
+                    ytune_val,
+                ) = load_data(
+                    task,
+                    method,
+                    cc,
+                    dataset,
+                    features,
+                    args.n_mfcc,
+                    args.n_mels,
+                    scaled=args.scaled,
+                    reverse=args.reverse,
+                    noise=args.noise,
+                    denoise=args.denoise,
+                    window=args.window,
+                    corpus=corpus,
+                )
         elif method in ["MLP", "RNN"]:
             train_ds, val_ds, test_ds, shape, num_classes = load_data(
                 task,
                 method,
+                cc,
                 dataset,
                 features,
                 args.n_mfcc,
@@ -147,26 +189,63 @@ if __name__ == "__main__":
                 noise=args.noise,
                 denoise=args.denoise,
                 window=args.window,
+                corpus=corpus,
             )
         elif method in ["CNN", "AlexNet"]:
-            Xtrain, ytrain, Xtest, ytest, Xval, yval, shape, num_classes = load_data(
-                task,
-                method,
-                dataset,
-                features,
-                args.n_mfcc,
-                args.n_mels,
-                scaled=args.scaled,
-                max_length=args.max_length,
-                reverse=args.reverse,
-                noise=args.noise,
-                denoise=args.denoise,
-                window=args.window,
-            )
+            if cc != "finetune":
+                Xtrain, ytrain, Xtest, ytest, Xval, yval, shape, num_classes = (
+                    load_data(
+                        task,
+                        method,
+                        cc,
+                        dataset,
+                        features,
+                        args.n_mfcc,
+                        args.n_mels,
+                        scaled=args.scaled,
+                        max_length=args.max_length,
+                        reverse=args.reverse,
+                        noise=args.noise,
+                        denoise=args.denoise,
+                        window=args.window,
+                        corpus=corpus,
+                    )
+                )
+            else:
+                (
+                    Xtrain,
+                    ytrain,
+                    Xtest,
+                    ytest,
+                    Xval,
+                    yval,
+                    shape,
+                    num_classes,
+                    Xtune_train,
+                    ytune_train,
+                    Xtune_val,
+                    ytune_val,
+                ) = load_data(
+                    task,
+                    method,
+                    cc,
+                    dataset,
+                    features,
+                    args.n_mfcc,
+                    args.n_mels,
+                    scaled=args.scaled,
+                    max_length=args.max_length,
+                    reverse=args.reverse,
+                    noise=args.noise,
+                    denoise=args.denoise,
+                    window=args.window,
+                    corpus=corpus,
+                )
         elif method == "wav2vec":
             train_ds, val_ds, test_ds, num_classes, length = load_data(
                 task,
                 method,
+                cc,
                 dataset,
                 features,
                 args.n_mfcc,
@@ -177,6 +256,7 @@ if __name__ == "__main__":
                 noise=args.noise,
                 denoise=args.denoise,
                 window=args.window,
+                corpus=corpus,
             )
     # elif method in ["CNN", "MLP", "EnsembleNet"]:
     #     train_ds, val_ds, test_ds = load_data(
@@ -261,11 +341,25 @@ if __name__ == "__main__":
         )
         test_res, pred_test, ytest = model.test(model, test_ds)
     elif method in ["LSTM", "CNN", "AlexNet"]:
-        train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
-            Xtrain, ytrain, Xval, yval
-        )
-        print(train_res)
-        print(val_res)
+        if cc != "finetune":
+            train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
+                Xtrain, ytrain, Xval, yval
+            )
+            # print(train_res)
+            # print(val_res)
+        else:
+            (
+                train_res,
+                val_res,
+                train_pred,
+                val_pred,
+                ytrain,
+                yval,
+                ytune_train,
+                ytune_val,
+                tune_train_pred,
+                tune_val_pred,
+            ) = model.train(Xtrain, ytrain, Xval, yval)
         ytest, pred_test = model.test(Xtest, ytest)
     elif method == "GMM":
         pred_train, pred_val, ytrain, yval = model.train(Xtrain, ytrain, Xval, yval)
@@ -284,11 +378,20 @@ if __name__ == "__main__":
 
     # confusion matrix, auc roc curve, metrics calculation
     if method != "GMM":
-        res = {
-            "train_res": get_metrics(task, ytrain, pred_train),
-            "val_res": get_metrics(task, yval, pred_val),
-            "test_res": get_metrics(task, ytest, pred_test),
-        }
+        if cc != "finetune":
+            res = {
+                "train_res": get_metrics(task, ytrain, pred_train),
+                "val_res": get_metrics(task, yval, pred_val),
+                "test_res": get_metrics(task, ytest, pred_test),
+            }
+        else:
+            res = {
+                "train_res": get_metrics(task, ytrain, pred_train),
+                "val_res": get_metrics(task, yval, pred_val),
+                "fine-tune_train_res": get_metrics(task, ytune_train, tune_train_pred),
+                "fine-tune_val_res": get_metrics(task, ytune_val, tune_val_pred),
+                "test_res": get_metrics(task, ytest, pred_test),
+            }
         for i in res.items():
             print(i)
         visual4cm(
@@ -303,6 +406,10 @@ if __name__ == "__main__":
             pred_train,
             pred_val,
             pred_test,
+            ytune_train=None,
+            tune_train_pred=None,
+            ytune_val=None,
+            tune_val_pred=None,
         )
     if method in ["LSTM", "CNN", "AlexNet"]:
         visaul4curves(
