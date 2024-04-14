@@ -82,8 +82,8 @@ def get_features(
     window=None,
 ):
     with soundfile.SoundFile(filename) as sound_file:
-        X = sound_file.read(dtype="float32")  # 121715,2    # 62462  # 58124
-        if dataset == "eNTERFACE":
+        X = sound_file.read(dtype="float32")  # 121715,2    # 62462  # 58124  # 45456,
+        if dataset == "eNTERFACE" and len(X.shape) == 2:
             X = X[:, 1]
         sample_rate = sound_file.samplerate
 
@@ -135,7 +135,7 @@ def get_features(
                 result = np.vstack((result, mel))
         else:
             if features == "mfcc":
-                result = np.hstack((result, mfccs))
+                result = np.hstack((result, mfccs))  # 40,89954
             elif features == "chroma":
                 result = np.hstack((result, chroma))
             elif features == "mel":
@@ -145,7 +145,7 @@ def get_features(
                 result = np.hstack((result, chroma))
                 result = np.hstack((result, mel))
     sound_file.close()
-    return result, X
+    return result, X  # 40,
 
 
 def print_features(data, features, n_mfcc, n_mels):
@@ -273,7 +273,11 @@ def get_noise(
             X = sound_file.read(dtype="float32")
             sample_rate = sound_file.samplerate
 
-        random_values = np.random.rand(len(X))
+        random_values = (
+            np.random.rand(len(X))
+            if dataset != "eNTERFACE"
+            else np.random.rand(len(X), 2)
+        )
         X = X + 2e-2 * random_values
         name = path[i].split(".")[0].split("/")[-1]
         if not os.path.exists(f"datasets/speech/{dataset}_noise/"):
@@ -329,7 +333,7 @@ def get_denoise(
             channels=au.channels,
         )
         # name = path[i].split(".")[0].split("/")[-1]
-        name = i.split(".")[0].split("_")[0]
+        name = i.split(".")[0][:-6]
         if not os.path.exists(f"datasets/speech/{dataset}_denoise/"):
             os.makedirs(f"datasets/speech/{dataset}_denoise/")
         reduced_audio.export(
@@ -346,8 +350,24 @@ def get_denoise(
             max_length=max_length,
             window=window,
         )
+
         x.append(feature)
-        emotion = emotion_map[name.split("-")[2]]
+        if dataset == "RAVDESS":
+            emotion = emotion_map[name.split("-")[2]]
+        elif dataset == "TESS":
+            emotion = emotion_map[name.split("_")[-1].split(".")[0].lower()]
+        elif dataset == "SAVEE":
+            emotion = emotion_map[name.split(".")[0].split("_")[-1][:-2]]
+        elif dataset == "CREMA":
+            emotion = emotion_map[name.split("_")[2].lower()]
+        elif dataset == "EmoDB":
+            emotion = emotion_map[name.split(".")[0][-2]]
+        else:
+            if name[1] == "_":
+                label = name.split(".")[0].split("_")[-2]
+            else:
+                label = name.split(".")[0].split("_")[1]
+            emotion = emotion_map[label]
         y.append(emotion)
         audio.append(X)
         lengths.append(len(X))
@@ -702,7 +722,7 @@ def load_SAVEE(
             n_mfcc,
             n_mels,
             max_length,
-            500,
+            300,
             window,
         )  # sample need to evaluate
 
@@ -712,7 +732,7 @@ def load_SAVEE(
             y,
             audio,
             lengths,
-            path,
+            paths,
             "SAVEE",
             method,
             features,
@@ -850,7 +870,7 @@ def load_CREMA(
             y,
             audio,
             lengths,
-            path,
+            paths,
             "CREMA",
             method,
             features,
@@ -988,7 +1008,7 @@ def load_EmoDB(
             y,
             audio,
             lengths,
-            path,
+            paths,
             "EmoDB",
             method,
             features,
@@ -1000,21 +1020,19 @@ def load_EmoDB(
         )
 
     if denoise == True:
-        x, y, audio, lengths = (
-            get_denoise(
-                x,
-                y,
-                audio,
-                lengths,
-                emotion_map,
-                "EmoDB",
-                method,
-                features,
-                n_mfcc,
-                n_mels,
-                max_length,
-                window,
-            ),
+        x, y, audio, lengths = get_denoise(
+            x,
+            y,
+            audio,
+            lengths,
+            emotion_map,
+            "EmoDB",
+            method,
+            features,
+            n_mfcc,
+            n_mels,
+            max_length,
+            window,
         )
 
     length = None if method != "wav2vec" else max(lengths)
@@ -1130,7 +1148,7 @@ def load_eNTERFACE(
             y,
             audio,
             lengths,
-            path,
+            paths,
             "eNTERFACE",
             method,
             features,
@@ -1385,14 +1403,17 @@ def load_cross_corpus(
                     [i for i in range(np.array(x).shape[0])], 1200
                 )
                 X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
-                    np.array(x)[sample_index, :], y, test_size=0.25, random_state=9
+                    np.array(x)[sample_index, :],
+                    np.array(y)[sample_index, :].tolist(),
+                    test_size=0.25,
+                    random_state=9,
                 )  # 3:1
             elif index == 1:
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], 300
                 )
-                X_test = x
-                ytest = y
+                X_test = np.array(x)[sample_index, :]
+                ytest = np.array(y)[sample_index, :].tolist()
         else:
             if index == 0:
                 train_corpus_audio = audio
