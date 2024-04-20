@@ -20,6 +20,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
 from keras.models import Sequential
+from sklearn.model_selection import KFold
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from tensorflow.keras.layers import (
@@ -57,7 +58,7 @@ class AlexNet(Model):
         epochs=10,
         lr=0.001,
         batch_size=16,
-        cv = False
+        cv=False,
     ):
         super(AlexNet, self).__init__()
         self.num_classes = num_classes
@@ -67,7 +68,7 @@ class AlexNet(Model):
         self.task = task
         self.batch_size = batch_size
         self.dataset = dataset
-        self.cv=cv
+        self.cv = cv
         self.finetune = True if cc == "finetune" else False
         # network layers definition
         self.model = Sequential(
@@ -136,9 +137,10 @@ class AlexNet(Model):
         train_pred, val_pred, tune_train_pred, tune_val_pred = [], [], [], []
         if self.cv == True:
             input = np.concatenate((Xtrain, Xval), axis=0)
-            target = ytrain+yval
-            for kfold, (train, val) in enumerate(KFold(n_splits=10, 
-                                    shuffle=True).split(input, target)):
+            target = ytrain + yval
+            for kfold, (train, val) in enumerate(
+                KFold(n_splits=10, shuffle=True).split(input, target)
+            ):
                 train_pred, val_pred = [], []
                 self.model.compile(
                     optimizer=self.optimizer,
