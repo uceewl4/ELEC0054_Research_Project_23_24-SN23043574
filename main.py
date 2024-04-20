@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore")
     code is run on UCL server with provided GPU resources, especially for NNs 
     and pretrained models.
 """
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # export CUDA_VISIBLE_DEVICES=1  # used for setting specific GPU in terminal
 if tf.config.list_physical_devices("GPU"):
     print("Use GPU of UCL server: turin.ee.ucl.ac.uk")
@@ -68,6 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate of NNs")
     parser.add_argument("--n_mfcc", type=int, default=40, help="epochs of NNs")
     parser.add_argument("--n_mels", type=int, default=128, help="epochs of NNs")
+    parser.add_argument("--sr", type=int, default=16000, help="sampling rate")
     parser.add_argument("--max_length", type=int, default=150, help="epochs of NNs")
     # RAVDESS 150  SAVEE 620
     parser.add_argument(
@@ -86,6 +87,13 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help="whether download and preprocess the dataset",
+    )
+
+    parser.add_argument(
+        "--cv",
+        type=bool,
+        default=False,
+        help="whether cross validation",
     )
 
     parser.add_argument(
@@ -110,6 +118,7 @@ if __name__ == "__main__":
     features = args.features
     cc = args.cc
     corpus = args.corpus
+    sr = args.sr
 
     print(
         f"Task: {task} emotion classification, Method: {method}, Cross-corpus: {args.cc}, Dataset: {dataset}, Features: {args.features}. "
@@ -143,6 +152,7 @@ if __name__ == "__main__":
                         denoise=args.denoise,
                         window=args.window,
                         corpus=corpus,
+                        sr=sr
                     )
                 )
             else:
@@ -173,6 +183,7 @@ if __name__ == "__main__":
                     denoise=args.denoise,
                     window=args.window,
                     corpus=corpus,
+                    sr=sr
                 )
         elif method in ["MLP", "RNN"]:
             train_ds, val_ds, test_ds, shape, num_classes = load_data(
@@ -190,6 +201,7 @@ if __name__ == "__main__":
                 denoise=args.denoise,
                 window=args.window,
                 corpus=corpus,
+                sr=sr
             )
         elif method in ["CNN", "AlexNet"]:
             if cc != "finetune":
@@ -209,6 +221,7 @@ if __name__ == "__main__":
                         denoise=args.denoise,
                         window=args.window,
                         corpus=corpus,
+                        sr=sr
                     )
                 )
             else:
@@ -240,6 +253,7 @@ if __name__ == "__main__":
                     denoise=args.denoise,
                     window=args.window,
                     corpus=corpus,
+                    sr=sr
                 )
         elif method == "wav2vec":
             train_ds, val_ds, test_ds, num_classes, length = load_data(
@@ -257,6 +271,7 @@ if __name__ == "__main__":
                 denoise=args.denoise,
                 window=args.window,
                 corpus=corpus,
+                sr=sr
             )
     # elif method in ["CNN", "MLP", "EnsembleNet"]:
     #     train_ds, val_ds, test_ds = load_data(
@@ -281,6 +296,7 @@ if __name__ == "__main__":
             lr=args.lr,
         )
     elif method in ["RNN", "LSTM"]:
+        cv = False if method == "RNN" else args.cv
         model = load_model(
             task,
             method,
@@ -292,6 +308,7 @@ if __name__ == "__main__":
             bidirectional=args.bidirectional,
             epochs=args.epochs,
             lr=args.lr,
+            cv=cv
         )
     elif method in ["CNN", "AlexNet"]:
         model = load_model(
@@ -306,6 +323,7 @@ if __name__ == "__main__":
             bidirectional=args.bidirectional,
             epochs=args.epochs,
             lr=args.lr,
+            cv=args.cv
         )
     elif method == "GMM":
         model = load_model(task, method, features, cc, dataset, num_classes=num_classes)
@@ -361,9 +379,13 @@ if __name__ == "__main__":
                 tune_val_pred,
             ) = model.train(Xtrain, ytrain, Xval, yval)
         ytest, pred_test = model.test(Xtest, ytest)
-    elif method == "GMM":
-        pred_train, pred_val, ytrain, yval = model.train(Xtrain, ytrain, Xval, yval)
+    elif method in ["KMeans","DBSCAN", "GMM"]:
+        if method == "KMeans":
+            pred_train, pred_val, ytrain, yval, centers = model.train(Xtrain, ytrain, Xval, yval)
+        else:
+            pred_train, pred_val, ytrain, yval = model.train(Xtrain, ytrain, Xval, yval)
         pred_test, ytest = model.test(Xtest, ytest)
+
 
     # metrics and visualization
     # hyperparameters selection

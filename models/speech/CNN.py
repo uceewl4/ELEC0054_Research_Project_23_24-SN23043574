@@ -56,6 +56,7 @@ class CNN(Model):
         epochs=10,
         lr=0.001,
         batch_size=16,
+        cv=False
     ):
         super(CNN, self).__init__()
         self.num_classes = num_classes
@@ -65,6 +66,7 @@ class CNN(Model):
         self.task = task
         self.batch_size = batch_size
         self.dataset = dataset
+        self.cv=cv
         self.finetune = True if cc == "finetune" else False
         # network layers definition
         self.model = Sequential(
@@ -127,18 +129,37 @@ class CNN(Model):
         print("Start training......")
         start_time_train = time.time()
         train_pred, val_pred = [], []
-        self.model.compile(
-            optimizer=self.optimizer,
-            loss=self.loss_object,
-            metrics=["accuracy"],
-        )
-        history = self.model.fit(
-            Xtrain,
-            np.array(ytrain),
-            batch_size=self.batch_size,
-            epochs=self.epoch,
-            validation_data=(Xval, np.array(yval)),
-        )
+        if self.cv == True:
+            input = np.concatenate((Xtrain, Xval), axis=0)
+            target = ytrain+yval
+            for kfold, (train, val) in enumerate(KFold(n_splits=10, 
+                                    shuffle=True).split(input, target)):
+                train_pred, val_pred = [], []
+                self.model.compile(
+                    optimizer=self.optimizer,
+                    loss=self.loss_object,
+                    metrics=["accuracy"],
+                )
+                history = self.model.fit(
+                    input[train],
+                    target[train],
+                    batch_size=self.batch_size,
+                    epochs=self.epoch,
+                    validation_data=(input[val], target[val]),
+                )
+        else:
+            self.model.compile(
+                optimizer=self.optimizer,
+                loss=self.loss_object,
+                metrics=["accuracy"],
+            )
+            history = self.model.fit(
+                Xtrain,
+                np.array(ytrain),
+                batch_size=self.batch_size,
+                epochs=self.epoch,
+                validation_data=(Xval, np.array(yval)),
+            )
 
         # get predictions
         train_predictions = self.output_layer.predict(x=Xtrain)
@@ -164,6 +185,24 @@ class CNN(Model):
         print(f"Finish training for {self.method}.")
         print(f"Training time: {elapsed_time_train}s")
 
+        if self.cv == True:
+            input = np.concatenate((Xtrain, Xval), axis=0)
+            target = ytrain+yval
+            for kfold, (train, val) in enumerate(KFold(n_splits=10, 
+                                    shuffle=True).split(input, target)):
+                train_pred, val_pred = [], []
+                self.model.compile(
+                    optimizer=self.optimizer,
+                    loss=self.loss_object,
+                    metrics=["accuracy"],
+                )
+                history = self.model.fit(
+                    input[train],
+                    target[train],
+                    batch_size=self.batch_size,
+                    epochs=self.epoch,
+                    validation_data=(input[val], target[val]),
+                )
         if self.finetune == True:
             print("Start fine-tuning......")
             start_time_tune = time.time()

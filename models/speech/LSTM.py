@@ -19,6 +19,7 @@ import tensorflow as tf
 from tensorflow.keras import Model
 from keras.models import Sequential
 from tqdm import tqdm
+from sklearn.model_selection import KFold
 from tensorboardX import SummaryWriter
 from tensorflow.keras.layers import (
     Dense,
@@ -54,6 +55,7 @@ class LSTM(Model):
         epochs=10,
         lr=0.001,
         batch_size=16,
+        cv = False
     ):
         super(LSTM, self).__init__()
         self.num_classes = num_classes
@@ -65,6 +67,7 @@ class LSTM(Model):
         self.batch_size = batch_size
         self.dataset = dataset
         self.finetune = True if cc == "finetune" else False
+        self.cv = cv
         # network layers definition
         self.model = Sequential(
             [
@@ -122,18 +125,38 @@ class LSTM(Model):
         print("Start training......")
         train_pred, val_pred = [], []
         start_time_train = time.time()
-        self.model.compile(
-            optimizer=self.optimizer,
-            loss=self.loss_object,
-            metrics=["accuracy"],
-        )
-        history = self.model.fit(
-            Xtrain,
-            np.array(ytrain),
-            batch_size=self.batch_size,
-            epochs=self.epoch,
-            validation_data=(Xval, np.array(yval)),
-        )
+
+        if self.cv == True:
+            input = np.concatenate((Xtrain, Xval), axis=0)
+            target = ytrain+yval
+            for kfold, (train, val) in enumerate(KFold(n_splits=10, 
+                                    shuffle=True).split(input, target)):
+                train_pred, val_pred = [], []
+                self.model.compile(
+                    optimizer=self.optimizer,
+                    loss=self.loss_object,
+                    metrics=["accuracy"],
+                )
+                history = self.model.fit(
+                    input[train],
+                    target[train],
+                    batch_size=self.batch_size,
+                    epochs=self.epoch,
+                    validation_data=(input[val], target[val]),
+                )
+        else:
+            self.model.compile(
+                optimizer=self.optimizer,
+                loss=self.loss_object,
+                metrics=["accuracy"],
+            )
+            history = self.model.fit(
+                Xtrain,
+                np.array(ytrain),
+                batch_size=self.batch_size,
+                epochs=self.epoch,
+                validation_data=(Xval, np.array(yval)),
+            )
 
         # get predictions
         train_predictions = self.output_layer.predict(x=Xtrain)
@@ -141,7 +164,7 @@ class LSTM(Model):
         train_pred += np.argmax(train_prob, axis=1).tolist()
         train_pred = np.array(train_pred)
         train_res = {
-            "train_loss": history.history["loss"],
+            "train_loss": history.history["loss"],  # if cross validation, it's the history of the last time
             "train_acc": history.history["accuracy"],
         }
 
@@ -238,3 +261,5 @@ class LSTM(Model):
         print(f"Testing time: {elapsed_time_test}s")
 
         return ytest, test_pred
+    
+    
