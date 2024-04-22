@@ -61,6 +61,8 @@ import librosa
 
 from models.speech.wav2vec import Wav2Vec
 
+random.seed(123)
+
 
 def get_padding(data, max_length):
     if max_length > data.shape[1]:
@@ -81,7 +83,7 @@ def get_features(
     n_mels=128,
     max_length=109,
     window=None,
-    sr=16000
+    sr=16000,
 ):
     with soundfile.SoundFile(filename) as sound_file:
         X = sound_file.read(dtype="float32")  # 121715,2    # 62462  # 58124  # 45456,
@@ -89,7 +91,7 @@ def get_features(
             X = X[:, 1]
         sample_rate = sound_file.samplerate
         if sr != 16000:  # resample
-            X = librosa.resample(X, orig_sr=sample_rate,target_sr=sr)
+            X = librosa.resample(X, orig_sr=sample_rate, target_sr=sr)
 
         if window != None:
             X = X[
@@ -232,7 +234,7 @@ def get_reverse(
     max_length,
     sample,
     window,
-    sr
+    sr,
 ):
     sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
     for i in sample_index:
@@ -253,7 +255,7 @@ def get_reverse(
             n_mels=n_mels,
             max_length=max_length,
             window=window,
-            sr=sr
+            sr=sr,
         )
         x.append(feature)
         y.append(y[i])
@@ -276,42 +278,63 @@ def get_noise(
     max_length,
     sample,
     window,
-    sr
+    sr,
+    noise,
 ):
     sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
-    for i in sample_index:
-        with soundfile.SoundFile(path[i]) as sound_file:
-            X = sound_file.read(dtype="float32")
-            sample_rate = sound_file.samplerate
+    if noise == "white":
+        for i in sample_index:
+            with soundfile.SoundFile(path[i]) as sound_file:
+                X = sound_file.read(dtype="float32")
+                sample_rate = sound_file.samplerate
 
-        random_values = (
-            np.random.rand(len(X))
-            if dataset != "eNTERFACE"
-            else np.random.rand(len(X), 2)
-        )
-        X = X + 2e-2 * random_values
-        name = path[i].split(".")[0].split("/")[-1]
-        if not os.path.exists(f"datasets/speech/{dataset}_noise/"):
-            os.makedirs(f"datasets/speech/{dataset}_noise/")
+            random_values = (
+                np.random.rand(len(X))
+                if dataset != "eNTERFACE"
+                else np.random.rand(len(X), 2)
+            )
+            X = X + 2e-2 * random_values
+    elif noise == "buzz":
+        for i in sample_index:
+            ori_audio = AudioSegment.from_file(path[i])
+            duration, frequency, amplitude, sample_rate = 10, 100, 20000, 16000
+            t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
+            buzzing_wave = amplitude * np.sin(2 * np.pi * frequency * t)
+            buzzing_wave = buzzing_wave.astype(np.int16)
+            buzzing_noise = AudioSegment(
+                buzzing_wave.tobytes(),
+                frame_rate=sample_rate,
+                sample_width=2,
+                channels=1,
+            )
+            audio_with_noise = ori_audio.overlay(buzzing_noise)
+    name = path[i].split(".")[0].split("/")[-1]
+    if not os.path.exists(f"datasets/speech/{dataset}_noise/"):
+        os.makedirs(f"datasets/speech/{dataset}_noise/")
+    if noise == "white":
         soundfile.write(
             f"datasets/speech/{dataset}_noise/{name}_noise.wav", X, sample_rate
         )
-
-        feature, X = get_features(
-            dataset,
-            method,
-            f"datasets/speech/{dataset}_noise/{name}_noise.wav",
-            features,
-            n_mfcc=n_mfcc,
-            n_mels=n_mels,
-            max_length=max_length,
-            window=window,
-            sr=sr
+    elif noise == "buzz":
+        audio_with_noise.export(
+            f"datasets/speech/{dataset}_noise/{name}_noise.wav", format="wav"
         )
-        x.append(feature)
-        y.append(y[i])
-        audio.append(X)
-        lengths.append(len(X))
+
+    feature, X = get_features(
+        dataset,
+        method,
+        f"datasets/speech/{dataset}_noise/{name}_noise.wav",
+        features,
+        n_mfcc=n_mfcc,
+        n_mels=n_mels,
+        max_length=max_length,
+        window=window,
+        sr=sr,
+    )
+    x.append(feature)
+    y.append(y[i])
+    audio.append(X)
+    lengths.append(len(X))
     return x, y, audio, lengths
 
 
@@ -328,7 +351,7 @@ def get_denoise(
     n_mels,
     max_length,
     window,
-    sr
+    sr,
 ):
     # sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
     # for i in sample_index:
@@ -362,7 +385,7 @@ def get_denoise(
             n_mels=n_mels,
             max_length=max_length,
             window=window,
-            sr=sr
+            sr=sr,
         )
 
         x.append(feature)
@@ -399,7 +422,7 @@ def load_RAVDESS(
     noise,
     denoise,
     window=None,
-    sr=16000
+    sr=16000,
 ):
     x, y, category, path, audio, lengths = [], [], [], [], [], []
     emotion_map = {
@@ -436,7 +459,7 @@ def load_RAVDESS(
             n_mels=n_mels,
             max_length=max_length,
             window=window,
-            sr=sr
+            sr=sr,
         )
         x.append(feature)
         y.append(emotion)
@@ -469,10 +492,10 @@ def load_RAVDESS(
             max_length,
             300,
             window,
-            sr
+            sr,
         )
 
-    if noise == True:
+    if noise != None:
         x, y, audio, lengths = get_noise(
             x,
             y,
@@ -487,7 +510,8 @@ def load_RAVDESS(
             max_length,
             300,
             window,
-            sr
+            sr,
+            noise,
         )
 
     if denoise == True:
@@ -504,7 +528,7 @@ def load_RAVDESS(
             n_mels,
             max_length,
             window,
-            sr
+            sr,
         )
 
     length = None if method != "wav2vec" else max(lengths)
@@ -547,7 +571,7 @@ def load_TESS(
     noise,
     denoise,
     window=None,
-    sr=16000
+    sr=16000,
 ):
     x, y, category, path, audio, lengths = [], [], [], [], [], []
     emotion_map = {
@@ -570,7 +594,7 @@ def load_TESS(
                 n_mels=n_mels,
                 max_length=max_length,
                 window=window,
-                sr=sr
+                sr=sr,
             )
             label = filename.split("_")[-1].split(".")[0]
             emotion = emotion_map[label.lower()]
@@ -607,10 +631,10 @@ def load_TESS(
             max_length,
             500,
             window,
-            sr
+            sr,
         )
 
-    if noise == True:
+    if noise != None:
         x, y, audio, lengths = get_noise(
             x,
             y,
@@ -625,7 +649,8 @@ def load_TESS(
             max_length,
             300,
             window,
-            sr
+            sr,
+            noise,
         )
 
     if denoise == True:
@@ -642,7 +667,7 @@ def load_TESS(
             n_mels,
             max_length,
             window,
-            sr
+            sr,
         )
 
     length = None if method != "wav2vec" else max(lengths)
@@ -684,7 +709,7 @@ def load_SAVEE(
     noise,
     denoise,
     window=None,
-    sr=16000
+    sr=16000,
 ):
     x, y, category, paths, audio, lengths = [], [], [], [], [], []
     emotion_map = {
@@ -716,7 +741,7 @@ def load_SAVEE(
             n_mels=n_mels,
             max_length=max_length,
             window=window,
-            sr=sr
+            sr=sr,
         )
         label = file.split(".")[0].split("_")[-1][:-2]
         emotion = emotion_map[label]
@@ -750,10 +775,10 @@ def load_SAVEE(
             max_length,
             300,
             window,
-            sr
+            sr,
         )  # sample need to evaluate
 
-    if noise == True:
+    if noise != None:
         x, y, audio, lengths = get_noise(
             x,
             y,
@@ -768,7 +793,8 @@ def load_SAVEE(
             max_length,
             300,
             window,
-            sr
+            sr,
+            noise,
         )
 
     if denoise == True:
@@ -785,7 +811,7 @@ def load_SAVEE(
             n_mels,
             max_length,
             window,
-            sr
+            sr,
         )
 
     length = None if method != "wav2vec" else max(lengths)
@@ -827,7 +853,7 @@ def load_CREMA(
     noise,
     denoise,
     window=None,
-    sr=16000
+    sr=16000,
 ):
     x, y, category, paths, audio, lengths = [], [], [], [], [], []
     emotion_map = {
@@ -857,7 +883,7 @@ def load_CREMA(
             n_mels=n_mels,
             max_length=max_length,
             window=window,
-            sr=sr
+            sr=sr,
         )
         label = file.split("_")[2]
         emotion = emotion_map[label.lower()]
@@ -893,10 +919,10 @@ def load_CREMA(
             max_length,
             500,
             window,
-            sr
+            sr,
         )  # sample need to evaluate
 
-    if noise == True:
+    if noise != None:
         x, y, audio, lengths = get_noise(
             x,
             y,
@@ -911,7 +937,8 @@ def load_CREMA(
             max_length,
             300,
             window,
-            sr
+            sr,
+            noise,
         )
 
     if denoise == True:
@@ -928,7 +955,7 @@ def load_CREMA(
             n_mels,
             max_length,
             window,
-            sr
+            sr,
         )
 
     length = None if method != "wav2vec" else max(lengths)
@@ -970,7 +997,7 @@ def load_EmoDB(
     noise,
     denoise,
     window=None,
-    sr=16000
+    sr=16000,
 ):
     x, y, category, paths, audio, lengths = [], [], [], [], [], []
     emotion_map = {
@@ -1002,7 +1029,7 @@ def load_EmoDB(
             n_mels=n_mels,
             max_length=max_length,
             window=window,
-            sr=sr
+            sr=sr,
         )
         label = file.split(".")[0][-2]
         emotion = emotion_map[label]
@@ -1036,10 +1063,10 @@ def load_EmoDB(
             max_length,
             500,
             window,
-            sr
+            sr,
         )  # sample need to evaluate
 
-    if noise == True:
+    if noise != None:
         x, y, audio, lengths = get_noise(
             x,
             y,
@@ -1054,7 +1081,8 @@ def load_EmoDB(
             max_length,
             300,
             window,
-            sr
+            sr,
+            noise,
         )
 
     if denoise == True:
@@ -1071,7 +1099,7 @@ def load_EmoDB(
             n_mels,
             max_length,
             window,
-            sr
+            sr,
         )
 
     length = None if method != "wav2vec" else max(lengths)
@@ -1113,7 +1141,7 @@ def load_eNTERFACE(
     noise,
     denoise,
     window=None,
-    sr=16000
+    sr=16000,
 ):
     x, y, category, paths, audio, lengths = [], [], [], [], [], []
     emotion_map = {
@@ -1144,7 +1172,7 @@ def load_eNTERFACE(
             n_mels=n_mels,
             max_length=max_length,
             window=window,
-            sr=sr
+            sr=sr,
         )
         if file[1] == "_":
             label = file.split(".")[0].split("_")[-2]
@@ -1181,10 +1209,10 @@ def load_eNTERFACE(
             max_length,
             500,
             window,
-            sr
+            sr,
         )  # sample need to evaluate
 
-    if noise == True:
+    if noise != None:
         x, y, audio, lengths = get_noise(
             x,
             y,
@@ -1199,7 +1227,8 @@ def load_eNTERFACE(
             max_length,
             300,
             window,
-            sr
+            sr,
+            noise,
         )
 
     if denoise == True:
@@ -1216,7 +1245,7 @@ def load_eNTERFACE(
             n_mels,
             max_length,
             window,
-            sr
+            sr,
         )
 
     length = None if method != "wav2vec" else max(lengths)
@@ -1260,7 +1289,7 @@ def load_cross_corpus(
     denoise,
     window=None,
     corpus=None,
-    sr=16000
+    sr=16000,
 ):  # ["RAVDESS", "TESS"]
 
     lengths = []
@@ -1277,9 +1306,9 @@ def load_cross_corpus(
         test_corpus_audio,
     ) = (None, None, None, None, None, None, None, None, None, None)
     emotion_map = {
-        ["01", "02", "neutral", "n", "neu", "L", "N"]: 1,  # neutral
-        ["03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"]: 2,  # positive
-        [
+        ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+        ("03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"): 1,  # positive
+        (
             "04",
             "05",
             "06",
@@ -1304,7 +1333,7 @@ def load_cross_corpus(
             "di",
             "fe",
             "sa",
-        ]: 3,
+        ): 2,
     }
     for index, cor in enumerate(corpus):
         # index=0 train, index=1 test
@@ -1325,7 +1354,7 @@ def load_cross_corpus(
                     n_mels=n_mels,
                     max_length=max_length,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
                 x.append(feature)
                 y.append(emotion)
@@ -1344,11 +1373,11 @@ def load_cross_corpus(
                         n_mels=n_mels,
                         max_length=max_length,
                         window=window,
-                        sr=sr
+                        sr=sr,
                     )
-                    label = filename.split("_")[-1].split(".")[0]
                     for k, i in enumerate(emotion_map.keys()):
-                        if file_name.split("-")[2] in i:
+                        label = filename.split("_")[-1].split(".")[0]
+                        if label in i:
                             emotion = emotion_map[i]
                     x.append(feature)
                     y.append(emotion)
@@ -1356,7 +1385,11 @@ def load_cross_corpus(
                     audio.append(X)
                     lengths.append(len(X))
         else:
-            path = f"datasets/speech/{cor}"
+            path = (
+                f"datasets/speech/{cor}"
+                if cor != "eNTERFACE"
+                else f"datasets/speech/eNTERFACE05"
+            )
             for file in os.listdir(path):
                 feature, X = get_features(
                     cor,
@@ -1367,7 +1400,7 @@ def load_cross_corpus(
                     n_mels=n_mels,
                     max_length=max_length,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
                 label = file.split(".")[0].split("_")[-1][:-2]
                 for k, i in enumerate(emotion_map.keys()):
@@ -1398,10 +1431,10 @@ def load_cross_corpus(
                 max_length,
                 100,
                 window,
-                sr
+                sr,
             )
 
-        if noise == True:
+        if noise != None:
             x, y, audio, lengths = get_noise(
                 x,
                 y,
@@ -1416,7 +1449,8 @@ def load_cross_corpus(
                 max_length,
                 100,
                 window,
-                sr
+                sr,
+                noise,
             )
 
         if denoise == True:
@@ -1433,38 +1467,39 @@ def load_cross_corpus(
                 n_mels,
                 max_length,
                 window,
-                sr
+                sr,
             )
 
-        new_label = []
-        for i in y:
-            if i not in [1, 2, 3]:
-                new_label.append(i)
-            else:
-                for k, j in enumerate(emotion_map.keys()):
-                    if label in j:
-                        emotion = emotion_map[j]
-                new_label.append(emotion)
-        y = new_label
-
+        # new_label = []
+        # for i in y:
+        #     if i not in [1, 2, 3]:
+        #         new_label.append(i)
+        #     else:
+        #         for k, j in enumerate(emotion_map.keys()):
+        #             if label in j:
+        #                 emotion = emotion_map[j]
+        #         new_label.append(emotion)
+        # y = new_label
         if method != "wav2vec":
             if index == 0:  # train corpus
                 # split into train and val
+                random.seed(123)
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], 1200
                 )
                 X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
                     np.array(x)[sample_index, :],
-                    np.array(y)[sample_index, :].tolist(),
+                    np.array(y)[sample_index].tolist(),
                     test_size=0.25,
                     random_state=9,
                 )  # 3:1
             elif index == 1:
+                random.seed(123)
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], 300
                 )
                 X_test = np.array(x)[sample_index, :]
-                ytest = np.array(y)[sample_index, :].tolist()
+                ytest = np.array(y)[sample_index].tolist()
         else:
             if index == 0:
                 train_corpus_audio = audio
@@ -1486,6 +1521,7 @@ def load_cross_corpus(
             truncation=True,
             padding=True,
         )
+        random.seed(123)
         sample_index = random.sample([i for i in range(np.array(x).shape[0])], 1200)
         X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
             np.array(X_train_corpus["input_values"])[sample_index, :],
@@ -1501,7 +1537,7 @@ def load_cross_corpus(
             truncation=True,
             padding=True,
         )
-
+        random.seed(123)
         sample_index = random.sample([i for i in range(np.array(x).shape[0])], 300)
         X_test = np.array(X_test_corpus["input_values"])[sample_index, :]
         ytest = np.array(y_test_corpus)[sample_index, :].tolist()
@@ -1522,7 +1558,7 @@ def load_mix_corpus(
     denoise,
     window=None,
     corpus=None,
-    sr=16000
+    sr=16000,
 ):  # cc: mix, corpus: with only one string as the testing set
 
     # 900+300, 900 train 300 val, 300 test
@@ -1530,8 +1566,8 @@ def load_mix_corpus(
     # 300
     datasets = ["RAVDESS", "TESS", "SAVEE", "CREMA-D", "EmoDB"]
     emotion_map = {
-        ("01", "02", "neutral", "n", "neu", "L", "N"): 1,  # neutral
-        ("03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"): 2,  # positive
+        ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+        ("03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"): 1,  # positive
         (
             "04",
             "05",
@@ -1557,7 +1593,7 @@ def load_mix_corpus(
             "di",
             "fe",
             "sa",
-        ): 3,  # tuple can be hashed but list cannot
+        ): 2,  # tuple can be hashed but list cannot
     }
     lengths, paths, audio, X_train, ytrain, X_val, yval, X_test, ytest = (
         [],
@@ -1588,7 +1624,7 @@ def load_mix_corpus(
                     n_mels=n_mels,
                     max_length=max_length,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
                 x.append(feature)
                 y.append(emotion)
@@ -1607,7 +1643,7 @@ def load_mix_corpus(
                         n_mels=n_mels,
                         max_length=max_length,
                         window=window,
-                        sr=sr
+                        sr=sr,
                     )
                     label = filename.split("_")[-1].split(".")[0]
                     for k, i in enumerate(emotion_map.keys()):
@@ -1630,7 +1666,7 @@ def load_mix_corpus(
                     n_mels=n_mels,
                     max_length=max_length,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
                 label = file.split(".")[0].split("_")[-1][:-2]
                 for k, i in enumerate(emotion_map.keys()):
@@ -1643,6 +1679,7 @@ def load_mix_corpus(
                 lengths.append(len(X))
 
         # first reverse for each dataset, then get
+        random.seed(123)
         sample_index = random.sample(
             [i for i in range(np.array(x).shape[0])], 240
         )  # 1440, 40
@@ -1679,10 +1716,10 @@ def load_mix_corpus(
                 max_length,
                 100,
                 window,
-                sr
+                sr,
             )
 
-        if noise == True:
+        if noise != None:
             X_train, ytrain, audio, lengths = get_noise(
                 X_train,
                 ytrain,
@@ -1697,7 +1734,8 @@ def load_mix_corpus(
                 max_length,
                 100,
                 window,
-                sr
+                sr,
+                noise,
             )
 
         if denoise == True:
@@ -1714,15 +1752,17 @@ def load_mix_corpus(
                 n_mels,
                 max_length,
                 window,
-                sr
+                sr,
             )
 
         if dataset == corpus[0]:  # testing set
             left_index = [
                 i for i in range(np.array(x).shape[0]) if i not in sample_index
             ]
+            random.seed(123)
             test_index = random.sample(left_index, 300)
-            X_test = np.array(x)[test_index, :]
+            X_test = np.array(x)[test_index, :]  # 300,40
+            ytest = np.array(y)[test_index].tolist()
 
     # after traversing all dataset
     length = None
@@ -1749,7 +1789,7 @@ def load_mix_corpus(
 
     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
         X_train, ytrain, test_size=0.25, random_state=9
-    )  # 3:1
+    )  # 3:1  # 1200, 40  # 300,4
 
     return X_train, ytrain, X_val, yval, X_test, ytest, length
 
@@ -1766,7 +1806,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
     denoise,
     window=None,
     corpus=None,
-    sr=16000
+    sr=16000,
 ):  # ["RAVDESS", "TESS"]  train, finetune/test
 
     lengths = []
@@ -1835,7 +1875,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                     n_mels=n_mels,
                     max_length=max_length,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
                 x.append(feature)
                 y.append(emotion)
@@ -1854,7 +1894,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                         n_mels=n_mels,
                         max_length=max_length,
                         window=window,
-                        sr=sr
+                        sr=sr,
                     )
                     label = filename.split("_")[-1].split(".")[0]
                     for k, i in enumerate(emotion_map.keys()):
@@ -1877,7 +1917,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                     n_mels=n_mels,
                     max_length=max_length,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
                 label = file.split(".")[0].split("_")[-1][:-2]
                 for k, i in enumerate(emotion_map.keys()):
@@ -1908,10 +1948,10 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 max_length,
                 100,
                 window,
-                sr
+                sr,
             )
 
-        if noise == True:
+        if noise != None:
             x, y, audio, lengths = get_noise(
                 x,
                 y,
@@ -1926,7 +1966,8 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 max_length,
                 100,
                 window,
-                sr
+                sr,
+                noise,
             )
 
         if denoise == True:
@@ -1943,7 +1984,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 n_mels,
                 max_length,
                 window,
-                sr
+                sr,
             )
 
         new_label = []
@@ -1962,6 +2003,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
         if method != "wav2vec":
             if index == 0:  # train corpus
                 # split into train and val
+                random.seed(123)
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], 1200
                 )
@@ -1969,6 +2011,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                     np.array(x)[sample_index, :], y, test_size=0.25, random_state=9
                 )  # 3:1  # train + val
             elif index == 1:  # finetune
+                random.seed(123)
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], 1000
                 )
@@ -1999,6 +2042,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
             padding=True,
         )
 
+        random.seed(123)
         sample_index = random.sample([i for i in range(np.array(x).shape[0])], 1200)
         X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
             np.array(X_train_corpus["input_values"])[sample_index, :],
@@ -2015,6 +2059,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
             padding=True,
         )
 
+        random.seed(123)
         sample_index = random.sample(
             [i for i in range(np.array(X_finetune_corpus).shape[0])], 1000
         )
@@ -2071,7 +2116,7 @@ def load_data(
     denoise=False,
     window=None,
     corpus=None,
-    sr=16000
+    sr=16000,
 ):
     if task == "speech":
         if corpus == None:
@@ -2087,7 +2132,7 @@ def load_data(
                     noise=noise,
                     denoise=denoise,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
             elif dataset == "TESS":
                 X_train, ytrain, X_val, yval, X_test, ytest, length = load_TESS(
@@ -2101,7 +2146,7 @@ def load_data(
                     noise=noise,
                     denoise=denoise,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
             elif dataset == "SAVEE":
                 X_train, ytrain, X_val, yval, X_test, ytest, length = load_SAVEE(
@@ -2115,7 +2160,7 @@ def load_data(
                     noise=noise,
                     denoise=denoise,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
             elif dataset == "CREMA-D":
                 X_train, ytrain, X_val, yval, X_test, ytest, length = load_CREMA(
@@ -2129,7 +2174,7 @@ def load_data(
                     noise=noise,
                     denoise=denoise,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
             elif dataset == "EmoDB":
                 X_train, ytrain, X_val, yval, X_test, ytest, length = load_EmoDB(
@@ -2143,7 +2188,7 @@ def load_data(
                     noise=noise,
                     denoise=denoise,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
             elif dataset == "eNTERFACE":
                 X_train, ytrain, X_val, yval, X_test, ytest, length = load_eNTERFACE(
@@ -2157,7 +2202,7 @@ def load_data(
                     noise=noise,
                     denoise=denoise,
                     window=window,
-                    sr=sr
+                    sr=sr,
                 )
         else:
             if cc == "mix":
@@ -2173,7 +2218,7 @@ def load_data(
                     denoise,
                     window=None,
                     corpus=corpus,
-                    sr=sr
+                    sr=sr,
                 )
             elif cc == "finetune":
                 (
@@ -2200,7 +2245,7 @@ def load_data(
                     denoise,
                     window=None,
                     corpus=corpus,
-                    sr=sr
+                    sr=sr,
                 )
             elif cc == "cross":
                 X_train, ytrain, X_val, yval, X_test, ytest, length = load_cross_corpus(
@@ -2215,7 +2260,7 @@ def load_data(
                     denoise,
                     window=None,
                     corpus=corpus,
-                    sr=sr
+                    sr=sr,
                 )
 
         shape = np.array(X_train).shape[1]
@@ -2239,7 +2284,6 @@ def load_data(
                     ytune_train,
                     Xtune_val,
                     ytune_val,
-                    
                 )
         elif method in ["MLP", "RNN", "wav2vec"]:
             train_ds = tf.data.Dataset.from_tensor_slices(
@@ -2382,7 +2426,7 @@ def load_model(
     epochs=10,
     lr=0.001,
     batch_size=16,
-    cv=False
+    cv=False,
 ):
     if task == "speech":
         if method in ["SVM", "DT", "RF", "NB", "KNN"]:
@@ -2417,7 +2461,7 @@ def load_model(
                 epochs=epochs,
                 lr=lr,
                 batch_size=batch_size,
-                cv=cv
+                cv=cv,
             )
         elif method == "CNN":
             model = CNN(
@@ -2432,7 +2476,7 @@ def load_model(
                 epochs=epochs,
                 lr=lr,
                 batch_size=batch_size,
-                cv=cv
+                cv=cv,
             )
         elif method == "AlexNet":
             model = AlexNet(
@@ -2447,7 +2491,7 @@ def load_model(
                 epochs=epochs,
                 lr=lr,
                 batch_size=batch_size,
-                cv=cv
+                cv=cv,
             )
         elif method == "GMM":
             model = GMM(task, method, features, cc, dataset, num_classes)

@@ -40,7 +40,7 @@ print(sample_rate)
 # soundfile.write("tmp.wav", X, sample_rate)
 
 # from pydub import AudioSegment
- 
+
 # # 加载音频文件
 # audio = AudioSegment.from_file("datasets/speech/EmoDB/03a01Fa.wav", format="wav")
 # new_sample_rate = 3
@@ -48,13 +48,13 @@ print(sample_rate)
 # audio.export("tmp2.wav", format="wav")
 # import librosa
 # y, sr = librosa.load('datasets/speech/EmoDB/03a01Fa.wav')
- 
+
 # # 设置新的采样率
 # new_sr = 16  # 例如，将采样率改为22050Hz
- 
+
 # # 重新采样音频
 # y_resampled = librosa.resample(y, orig_sr=sr,target_sr=new_sr)
- 
+
 # # 保存新的音频文件
 # soundfile.write("tmp.wav", y_resampled, new_sr)
 # # import librosa
@@ -159,39 +159,19 @@ print(sample_rate)
 
 # print("Cleaned audio saved as", output_file)
 
-
-
-from pydub import AudioSegment
-from pydub.playback import play
 import numpy as np
- 
-# 加入噪声的函数
-def add_buzzing_noise(audio, noise_level):
-    # 将音频转换为数组
-    # audio_array = np.array(audio)
-    audio_array = audio
-    # 创建一个新的数组，包含噪声
-    noise_array = np.random.randint(-255, 255, len(audio_array)).astype(np.int16)
-    # 将噪声与原始音频合并
-    noisy_audio_array = audio_array + noise_array * noise_level
-    # 限制在有效的音频范围内
-    noisy_audio_array = np.clip(noisy_audio_array, -2**15, 2**15 - 1).astype(np.int16)
-    # 将数组转换回AudioSegment对象
-    noisy_audio = AudioSegment(noisy_audio_array.tobytes(), frame_rate=audio.frame_rate, sample_width=audio.sample_width, channels=audio.channels)
-    return noisy_audio
- 
-# 加载音频文件
-audio = AudioSegment.from_file("datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav", format="wav")
- 
-# 噪声水平 (0 是原音，10 是最大噪声)
-noise_level = 10
- 
-# 添加噪声
-noisy_audio = add_buzzing_noise(audio, noise_level)
- 
-# 输出音频文件
-noisy_audio.export("tmp2.wav", format="wav")
- 
-# 播放音频
-# play(noisy_audio)
+from pydub import AudioSegment
 
+# 加载音频文件
+audio = AudioSegment.from_file(
+    "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+)
+duration, frequency, amplitude = 10, 100, 20000
+t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
+buzzing_wave = amplitude * np.sin(2 * np.pi * frequency * t)
+buzzing_wave = buzzing_wave.astype(np.int16)
+buzzing_noise = AudioSegment(
+    buzzing_wave.tobytes(), frame_rate=sample_rate, sample_width=2, channels=1
+)
+audio_with_noise = audio.overlay(buzzing_noise)
+audio_with_noise.export("tmp2.wav", format="wav")

@@ -154,19 +154,19 @@ class AlexNet(Model):
                     epochs=self.epoch,
                     validation_data=(input[val], target[val]),
                 )
-            else:
-                self.model.compile(
-                    optimizer=self.optimizer,
-                    loss=self.loss_object,
-                    metrics=["accuracy"],
-                )
-                history = self.model.fit(
-                    Xtrain,
-                    np.array(ytrain),
-                    batch_size=self.batch_size,
-                    epochs=self.epoch,
-                    validation_data=(Xval, np.array(yval)),
-                )
+        else:
+            self.model.compile(
+                optimizer=self.optimizer,
+                loss=self.loss_object,
+                metrics=["accuracy"],
+            )
+            history = self.model.fit(
+                Xtrain,
+                np.array(ytrain),
+                batch_size=self.batch_size,
+                epochs=self.epoch,
+                validation_data=(Xval, np.array(yval)),
+            )
 
         # get predictions
         train_predictions = self.output_layer.predict(x=Xtrain)
