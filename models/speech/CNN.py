@@ -129,7 +129,7 @@ class CNN(Model):
     ):
         print("Start training......")
         start_time_train = time.time()
-        train_pred, val_pred = [], []
+        train_pred, val_pred, tune_train_pred, tune_val_pred = [], [], [], []
         if self.cv == True:
             input = np.concatenate((Xtrain, Xval), axis=0)
             target = ytrain + yval
@@ -187,25 +187,25 @@ class CNN(Model):
         print(f"Finish training for {self.method}.")
         print(f"Training time: {elapsed_time_train}s")
 
-        if self.cv == True:
-            input = np.concatenate((Xtrain, Xval), axis=0)
-            target = ytrain + yval
-            for kfold, (train, val) in enumerate(
-                KFold(n_splits=10, shuffle=True).split(input, target)
-            ):
-                train_pred, val_pred = [], []
-                self.model.compile(
-                    optimizer=self.optimizer,
-                    loss=self.loss_object,
-                    metrics=["accuracy"],
-                )
-                history = self.model.fit(
-                    input[train],
-                    target[train],
-                    batch_size=self.batch_size,
-                    epochs=self.epoch,
-                    validation_data=(input[val], target[val]),
-                )
+        # if self.cv == True:
+        #     input = np.concatenate((Xtrain, Xval), axis=0)
+        #     target = ytrain + yval
+        #     for kfold, (train, val) in enumerate(
+        #         KFold(n_splits=10, shuffle=True).split(input, target)
+        #     ):
+        #         train_pred, val_pred = [], []
+        #         self.model.compile(
+        #             optimizer=self.optimizer,
+        #             loss=self.loss_object,
+        #             metrics=["accuracy"],
+        #         )
+        #         history = self.model.fit(
+        #             input[train],
+        #             target[train],
+        #             batch_size=self.batch_size,
+        #             epochs=self.epoch,
+        #             validation_data=(input[val], target[val]),
+        #         )
         if self.finetune == True:
             print("Start fine-tuning......")
             start_time_tune = time.time()
@@ -232,12 +232,12 @@ class CNN(Model):
             tune_train_predictions = self.output_layer.predict(x=Xtune_train)
             tune_train_prob = tf.nn.softmax(tune_train_predictions)
             tune_train_pred += np.argmax(tune_train_prob, axis=1).tolist()
-            tune_train_pred = np.array(train_pred)
+            tune_train_pred = np.array(tune_train_pred)
 
             tune_val_predictions = self.output_layer.predict(x=Xtune_val)
             tune_val_prob = tf.nn.softmax(tune_val_predictions)
             tune_val_pred += np.argmax(tune_val_prob, axis=1).tolist()
-            tune_val_pred = np.array(val_pred)
+            tune_val_pred = np.array(tune_val_pred)
 
             elapsed_time_tune = start_time_tune - end_time_train
             print(f"Finish fine-tuning for {self.method}.")

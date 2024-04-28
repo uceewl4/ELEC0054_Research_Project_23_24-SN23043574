@@ -162,16 +162,160 @@ print(sample_rate)
 import numpy as np
 from pydub import AudioSegment
 
-# 加载音频文件
-audio = AudioSegment.from_file(
+# # 加载音频文件
+# audio = AudioSegment.from_file(
+#     "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# )
+# duration, frequency, amplitude = 10, 100, 20000
+# t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
+# buzzing_wave = amplitude * np.sin(2 * np.pi * frequency * t)
+# buzzing_wave = buzzing_wave.astype(np.int16)
+# buzzing_noise = AudioSegment(
+#     buzzing_wave.tobytes(), frame_rate=sample_rate, sample_width=2, channels=1
+# )
+# audio_with_noise = audio.overlay(buzzing_noise)
+# audio_with_noise.export("tmp2.wav", format="wav")
+
+
+import numpy as np
+import librosa
+import soundfile as sf
+import numpy as np
+import scipy.signal as signal
+import soundfile as sf
+
+
+def add_bubble_noise(signal, noise_level=0.1):
+    """
+    Adds bubble-like noise to a signal.
+
+    Parameters:
+        signal (ndarray): The input signal.
+        noise_level (float): The level of noise to be added. Should be between 0 and 1.
+
+    Returns:
+        ndarray: Signal with added bubble noise.
+    """
+    noise = np.random.normal(0, noise_level, len(signal))
+    return signal + noise
+
+
+# # Load audio file
+# audio_file = "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# signal, sr = librosa.load(audio_file, sr=None)
+
+# # Add bubble noise to the audio signal
+# noisy_signal = add_bubble_noise(
+#     signal, noise_level=0.01
+# )  # Adjust noise level as needed
+
+# # Save the noisy audio file
+# output_file = "tmp4.wav"
+# sf.write(output_file, noisy_signal, sr)
+
+# print("Bubble noise added to the audio file successfully!")
+
+with soundfile.SoundFile(
+    "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+) as sound_file:
+    X = sound_file.read(dtype="float32")
+    sample_rate = sound_file.samplerate
+
+    random_values = np.random.rand(len(X))
+    #     if dataset != "eNTERFACE"
+    #     else np.random.rand(len(X), 2)
+    # )
+    X = X + 2e-2 * random_values
+
+# if noise == "white":
+soundfile.write(f"tmp5.wav", X, sample_rate)
+
+
+import numpy as np
+import librosa
+import soundfile as sf
+
+
+# Load original audio file
+# original_audio_file = "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# original_audio, sr = librosa.load(original_audio_file, sr=None)
+# # Generate bubble noise with the same duration and sample rate as the original audio
+# duration = len(original_audio) / sr
+# bubble_frequency_range = (1000, 5000)
+# bubble_duration_range = (0.05, 0.5)
+# amplitude_range = (0.05, 0.1)
+# # Generate random parameters for each bubble
+# num_bubbles = int(
+#     duration * np.random.uniform(1, 10)
+# )  # Adjust number of bubbles based on duration
+# frequencies = np.random.uniform(*bubble_frequency_range, size=num_bubbles)
+# durations = np.random.uniform(*bubble_duration_range, size=num_bubbles)
+# amplitudes = np.random.uniform(*amplitude_range, size=num_bubbles)
+# # Generate bubble noise signal
+# t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
+# bubble_noise = np.zeros_like(t)
+# for freq, dur, amp in zip(frequencies, durations, amplitudes):
+#     envelope = signal.gaussian(int(dur * sample_rate), int(dur * sample_rate / 4))
+#     bubble = amp * np.sin(
+#         2 * np.pi * freq * np.linspace(0, dur, int(dur * sample_rate))
+#     )
+#     start_idx = np.random.randint(0, len(t) - len(bubble))
+#     bubble_noise[start_idx : start_idx + len(bubble)] += bubble * envelope
+# noisy_audio = original_audio + bubble_noise
+# output_file = "tmp4.wav"
+# sf.write(output_file, noisy_audio, sr)
+# print("Bubble noise added to the original audio file and saved successfully!")
+# # Calculate SNR
+# signal_power = np.sum(original_audio**2) / len(original_audio)
+# noise_power = np.sum(bubble_noise**2) / len(bubble_noise)
+# snr = 10 * np.log10(signal_power / noise_power)
+
+# print("Signal-to-Noise Ratio (SNR): {:.2f} dB".format(snr))
+
+
+ori_audio = AudioSegment.from_file(
     "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
 )
-duration, frequency, amplitude = 10, 100, 20000
+duration, frequency, amplitude, sample_rate = 10, 100, 20000, 16000
 t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
 buzzing_wave = amplitude * np.sin(2 * np.pi * frequency * t)
 buzzing_wave = buzzing_wave.astype(np.int16)
 buzzing_noise = AudioSegment(
-    buzzing_wave.tobytes(), frame_rate=sample_rate, sample_width=2, channels=1
+    buzzing_wave.tobytes(),
+    frame_rate=sample_rate,
+    sample_width=2,
+    channels=1,
 )
-audio_with_noise = audio.overlay(buzzing_noise)
-audio_with_noise.export("tmp2.wav", format="wav")
+audio_with_noise = ori_audio.overlay(buzzing_noise)
+P_signal = np.mean(np.array(ori_audio.get_array_of_samples()) ** 2)
+
+# Calculate noise power (mean squared amplitude)
+P_noise = np.mean(np.array(buzzing_noise.get_array_of_samples()) ** 2)
+
+# Calculate SNR in dB
+SNR = 10 * np.log10(P_signal / P_noise)
+print("Signal-to-Noise Ratio (SNR):", SNR, "dB")
+
+
+# with soundfile.SoundFile(
+#     "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# ) as sound_file:
+#     X = sound_file.read(dtype="float32")
+#     sample_rate = sound_file.samplerate
+
+# random_values = (
+#     np.random.rand(len(X))
+#     # if dataset != "eNTERFACE"
+#     # else np.random.rand(len(X), 2)
+# )
+# X_noisy = X + 2e-2 * random_values
+
+# # Calculate signal power
+# signal_power = np.mean(X**2)
+
+# # Calculate noise power
+# noise_power = np.mean((2e-2 * random_values) ** 2)
+
+# # Calculate SNR in dB
+# SNR = 10 * np.log10(signal_power / noise_power)
+# print("Signal-to-Noise Ratio (SNR):", SNR, "dB")

@@ -78,7 +78,7 @@ if __name__ == "__main__":
         "--noise",
         type=str,
         default=None,
-        help="play the audio with white noise, white/buzz",
+        help="play the audio with white noise, white/buzz/bubble",
     )
     parser.add_argument(
         "--denoise", type=bool, default=False, help="play the audio by denoising"
@@ -372,15 +372,24 @@ if __name__ == "__main__":
             (
                 train_res,
                 val_res,
-                train_pred,
-                val_pred,
+                pred_train,
+                pred_val,
                 ytrain,
                 yval,
                 ytune_train,
                 ytune_val,
                 tune_train_pred,
                 tune_val_pred,
-            ) = model.train(Xtrain, ytrain, Xval, yval)
+            ) = model.train(
+                Xtrain,
+                ytrain,
+                Xval,
+                yval,
+                Xtune_train,
+                ytune_train,
+                Xtune_val,
+                ytune_val,
+            )
         ytest, pred_test = model.test(Xtest, ytest)
     elif method in ["KMeans", "DBSCAN", "GMM"]:
         if method == "KMeans":
@@ -420,23 +429,39 @@ if __name__ == "__main__":
             }
         for i in res.items():
             print(i)
-        visual4cm(
-            task,
-            method,
-            features,
-            cc,
-            dataset,
-            ytrain,
-            yval,
-            ytest,
-            pred_train,
-            pred_val,
-            pred_test,
-            ytune_train=None,
-            tune_train_pred=None,
-            ytune_val=None,
-            tune_val_pred=None,
-        )
+        if cc == "finetune":
+            visual4cm(
+                task,
+                method,
+                features,
+                cc,
+                dataset,
+                ytrain,
+                yval,
+                ytest,
+                pred_train,
+                pred_val,
+                pred_test,
+                ytune_train,
+                tune_train_pred,
+                ytune_val,
+                tune_val_pred,
+            )
+        else:
+            visual4cm(
+                task,
+                method,
+                features,
+                cc,
+                dataset,
+                ytrain,
+                yval,
+                ytest,
+                pred_train,
+                pred_val,
+                pred_test,
+            )
+
     if method in ["LSTM", "CNN", "AlexNet"]:
         visaul4curves(
             task, method, features, cc, dataset, train_res, val_res, args.epochs

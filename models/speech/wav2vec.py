@@ -74,16 +74,6 @@ class Wav2Vec(Model):
         print(num_classes)
         self.final_layer = Dense(num_classes, name="outputs")
 
-        # self.basenet = BaseNet("facebook/wav2vec2-base", self.num_classes)(self.input)
-        # self.basenet = BaseNet("facebook/wav2vec2-base", self.num_classes)
-        # # Model
-        # self.model = Sequential([self.input, self.basenet])
-        # # self.model = tf.keras.Model(self.input, self.basenet)
-        # self.model.summary()
-        # self.output_layer = tf.keras.models.Model(
-        #     inputs=self.input, outputs=self.model.get_layer("outputs").output
-        # )
-
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True
         )
@@ -112,7 +102,7 @@ class Wav2Vec(Model):
     def call(self, x):
         hidden_states = self.wav2vec2(x)[0]
         # print(hidden_states.shape)  # None,453,768
-        pooled_state = self.pooling(hidden_states)
+        pooled_state = self.pooling(hidden_states)  # 360, 40
         # print(pooled_state.shape)  # none 768
         intermediate_state = self.intermediate_layer_dropout(pooled_state)
         # print(intermediate_state.shape)  # none, 768

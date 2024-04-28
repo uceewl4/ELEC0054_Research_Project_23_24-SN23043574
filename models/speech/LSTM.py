@@ -55,7 +55,7 @@ class LSTM(Model):
         epochs=10,
         lr=0.001,
         batch_size=16,
-        cv = False
+        cv=False,
     ):
         super(LSTM, self).__init__()
         self.num_classes = num_classes
@@ -123,14 +123,15 @@ class LSTM(Model):
         ytune_val=None,
     ):
         print("Start training......")
-        train_pred, val_pred = [], []
+        train_pred, val_pred, tune_train_pred, tune_val_pred = [], [], [], []
         start_time_train = time.time()
 
         if self.cv == True:
             input = np.concatenate((Xtrain, Xval), axis=0)
-            target = ytrain+yval
-            for kfold, (train, val) in enumerate(KFold(n_splits=10, 
-                                    shuffle=True).split(input, target)):
+            target = ytrain + yval
+            for kfold, (train, val) in enumerate(
+                KFold(n_splits=10, shuffle=True).split(input, target)
+            ):
                 train_pred, val_pred = [], []
                 self.model.compile(
                     optimizer=self.optimizer,
@@ -164,7 +165,9 @@ class LSTM(Model):
         train_pred += np.argmax(train_prob, axis=1).tolist()
         train_pred = np.array(train_pred)
         train_res = {
-            "train_loss": history.history["loss"],  # if cross validation, it's the history of the last time
+            "train_loss": history.history[
+                "loss"
+            ],  # if cross validation, it's the history of the last time
             "train_acc": history.history["accuracy"],
         }
 
@@ -208,12 +211,12 @@ class LSTM(Model):
             tune_train_predictions = self.output_layer.predict(x=Xtune_train)
             tune_train_prob = tf.nn.softmax(tune_train_predictions)
             tune_train_pred += np.argmax(tune_train_prob, axis=1).tolist()
-            tune_train_pred = np.array(train_pred)
+            tune_train_pred = np.array(tune_train_pred)
 
             tune_val_predictions = self.output_layer.predict(x=Xtune_val)
             tune_val_prob = tf.nn.softmax(tune_val_predictions)
             tune_val_pred += np.argmax(tune_val_prob, axis=1).tolist()
-            tune_val_pred = np.array(val_pred)
+            tune_val_pred = np.array(tune_val_pred)
 
             elapsed_time_tune = start_time_tune - end_time_train
             print(f"Finish fine-tuning for {self.method}.")
@@ -261,5 +264,3 @@ class LSTM(Model):
         print(f"Testing time: {elapsed_time_test}s")
 
         return ytest, test_pred
-    
-    

@@ -39,7 +39,7 @@ class Baselines:
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
-            self.model = GaussianNB()
+            self.model = BernoulliNB()
         elif method == "RF":
             self.model = RandomForestClassifier(criterion="entropy", verbose=1)
 

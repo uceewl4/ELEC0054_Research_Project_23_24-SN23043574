@@ -218,12 +218,12 @@ class AlexNet(Model):
             tune_train_predictions = self.output_layer.predict(x=Xtune_train)
             tune_train_prob = tf.nn.softmax(tune_train_predictions)
             tune_train_pred += np.argmax(tune_train_prob, axis=1).tolist()
-            tune_train_pred = np.array(train_pred)
+            tune_train_pred = np.array(tune_train_pred)
 
             tune_val_predictions = self.output_layer.predict(x=Xtune_val)
             tune_val_prob = tf.nn.softmax(tune_val_predictions)
             tune_val_pred += np.argmax(tune_val_prob, axis=1).tolist()
-            tune_val_pred = np.array(val_pred)
+            tune_val_pred = np.array(tune_val_pred)
 
             elapsed_time_tune = start_time_tune - end_time_train
             print(f"Finish fine-tuning for {self.method}.")

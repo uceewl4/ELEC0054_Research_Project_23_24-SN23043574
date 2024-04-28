@@ -58,6 +58,12 @@ import numpy as np
 from scipy.io import wavfile
 import soundfile
 import librosa
+import numpy as np
+import librosa
+import soundfile as sf
+import numpy as np
+import scipy.signal as signal
+import soundfile as sf
 
 from models.speech.wav2vec import Wav2Vec
 
@@ -283,6 +289,7 @@ def get_noise(
 ):
     sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
     if noise == "white":
+        avg_snr = 0
         for i in sample_index:
             with soundfile.SoundFile(path[i]) as sound_file:
                 X = sound_file.read(dtype="float32")
@@ -294,7 +301,16 @@ def get_noise(
                 else np.random.rand(len(X), 2)
             )
             X = X + 2e-2 * random_values
+
+            signal_power = np.mean(X**2)
+            noise_power = np.mean((2e-2 * random_values) ** 2)
+            snr = 10 * np.log10(signal_power / noise_power)
+            avg_snr += snr
+        avg_snr /= len(sample_index)
+        print("Average Signal-to-Noise Ratio (SNR):", avg_snr, "dB")
+
     elif noise == "buzz":
+        avg_snr = 0
         for i in sample_index:
             ori_audio = AudioSegment.from_file(path[i])
             duration, frequency, amplitude, sample_rate = 10, 100, 20000, 16000
@@ -308,6 +324,54 @@ def get_noise(
                 channels=1,
             )
             audio_with_noise = ori_audio.overlay(buzzing_noise)
+            signal_power = np.mean(np.array(ori_audio.get_array_of_samples()) ** 2)
+            noise_power = np.mean(np.array(buzzing_noise.get_array_of_samples()) ** 2)
+            if noise_power > 0:
+                snr = 10 * np.log10(signal_power / noise_power)
+                avg_snr += snr
+            else:
+                snr = float("-inf")  # Set SNR to negative infinity
+        avg_snr = avg_snr / len(sample_index)
+        print("Average Signal-to-Noise Ratio (SNR):", avg_snr, "dB")
+    elif noise == "bubble":
+        avg_snr = 0
+        for i in sample_index:
+            # Load original audio file
+            original_audio, sr = librosa.load(path[i], sr=None)
+            # Generate bubble noise with the same duration and sample rate as the original audio
+            duration = len(original_audio) / sr
+            bubble_frequency_range = (1000, 5000)
+            bubble_duration_range = (0.05, 0.5)
+            amplitude_range = (0.05, 0.1)
+            # Generate random parameters for each bubble
+            num_bubbles = int(
+                duration * np.random.uniform(1, 10)
+            )  # Adjust number of bubbles based on duration
+            frequencies = np.random.uniform(*bubble_frequency_range, size=num_bubbles)
+            durations = np.random.uniform(*bubble_duration_range, size=num_bubbles)
+            amplitudes = np.random.uniform(*amplitude_range, size=num_bubbles)
+            # Generate bubble noise signal
+            t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
+            bubble_noise = np.zeros_like(t)
+            for freq, dur, amp in zip(frequencies, durations, amplitudes):
+                envelope = signal.gaussian(
+                    int(dur * sample_rate), int(dur * sample_rate / 4)
+                )
+                bubble = amp * np.sin(
+                    2 * np.pi * freq * np.linspace(0, dur, int(dur * sample_rate))
+                )
+                start_idx = np.random.randint(0, len(t) - len(bubble))
+                bubble_noise[start_idx : start_idx + len(bubble)] += bubble * envelope
+            noisy_audio = original_audio + bubble_noise
+
+            # Calculate SNR
+            signal_power = np.sum(original_audio**2) / len(original_audio)
+            noise_power = np.sum(bubble_noise**2) / len(bubble_noise)
+            snr = 10 * np.log10(signal_power / noise_power)
+            avg_anr += snr
+        avg_snr = avg_snr / len(sample_index)
+        print("Average Signal-to-Noise Ratio (SNR): {:.2f} dB".format(avg_snr))
+
     name = path[i].split(".")[0].split("/")[-1]
     if not os.path.exists(f"datasets/speech/{dataset}_noise/"):
         os.makedirs(f"datasets/speech/{dataset}_noise/")
@@ -318,6 +382,10 @@ def get_noise(
     elif noise == "buzz":
         audio_with_noise.export(
             f"datasets/speech/{dataset}_noise/{name}_noise.wav", format="wav"
+        )
+    elif noise == "bubble":
+        soundfile.write(
+            f"datasets/speech/{dataset}_noise/{name}_noise.wav", noisy_audio, sr
         )
 
     feature, X = get_features(
@@ -1402,7 +1470,17 @@ def load_cross_corpus(
                     window=window,
                     sr=sr,
                 )
-                label = file.split(".")[0].split("_")[-1][:-2]
+                if cor == "SAVEE":
+                    label = file.split(".")[0].split("_")[-1][:-2]
+                elif cor == "CREMA-D":
+                    label = file.split("_")[2].lower()
+                elif cor == "EmoDB":
+                    label = file.split(".")[0][-2]
+                elif cor == "eNTERFACE":
+                    if file[1] == "_":
+                        label = file.split(".")[0].split("_")[-2]
+                    else:
+                        label = file.split(".")[0].split("_")[1]
                 for k, i in enumerate(emotion_map.keys()):
                     if label in i:
                         emotion = emotion_map[i]
@@ -1495,11 +1573,13 @@ def load_cross_corpus(
                 )  # 3:1
             elif index == 1:
                 random.seed(123)
-                sample_index = random.sample(
-                    [i for i in range(np.array(x).shape[0])], 300
-                )
-                X_test = np.array(x)[sample_index, :]
-                ytest = np.array(y)[sample_index].tolist()
+                # sample_index = random.sample(
+                #     [i for i in range(np.array(x).shape[0])], 300
+                # )
+                # X_test = np.array(x)[sample_index, :]
+                # ytest = np.array(y)[sample_index].tolist()
+                X_test = np.array(x)
+                ytest = y
         else:
             if index == 0:
                 train_corpus_audio = audio
@@ -1538,9 +1618,11 @@ def load_cross_corpus(
             padding=True,
         )
         random.seed(123)
-        sample_index = random.sample([i for i in range(np.array(x).shape[0])], 300)
-        X_test = np.array(X_test_corpus["input_values"])[sample_index, :]
-        ytest = np.array(y_test_corpus)[sample_index, :].tolist()
+        # sample_index = random.sample([i for i in range(np.array(x).shape[0])], 300)
+        # X_test = np.array(X_test_corpus["input_values"])[sample_index, :]
+        # ytest = np.array(y_test_corpus)[sample_index, :].tolist()
+        X_test = np.array(X_test_corpus["input_values"])
+        ytest = y_test_corpus.tolist()
 
     return X_train, ytrain, X_val, yval, X_test, ytest, length
     # 900, 300, 300, train_corpus 1200, test_corpus 300
@@ -1645,9 +1727,9 @@ def load_mix_corpus(
                         window=window,
                         sr=sr,
                     )
-                    label = filename.split("_")[-1].split(".")[0]
                     for k, i in enumerate(emotion_map.keys()):
-                        if file_name.split("-")[2] in i:
+                        label = filename.split("_")[-1].split(".")[0]
+                        if label in i:
                             emotion = emotion_map[i]
                     x.append(feature)
                     y.append(emotion)
@@ -1668,7 +1750,17 @@ def load_mix_corpus(
                     window=window,
                     sr=sr,
                 )
-                label = file.split(".")[0].split("_")[-1][:-2]
+                if dataset == "SAVEE":
+                    label = file.split(".")[0].split("_")[-1][:-2]
+                elif dataset == "CREMA-D":
+                    label = file.split("_")[2].lower()
+                elif dataset == "EmoDB":
+                    label = file.split(".")[0][-2]
+                elif dataset == "eNTERFACE":
+                    if file[1] == "_":
+                        label = file.split(".")[0].split("_")[-2]
+                    else:
+                        label = file.split(".")[0].split("_")[1]
                 for k, i in enumerate(emotion_map.keys()):
                     if label in i:
                         emotion = emotion_map[i]
@@ -1755,14 +1847,18 @@ def load_mix_corpus(
                 sr,
             )
 
-        if dataset == corpus[0]:  # testing set
+        if (dataset == corpus[0]) or (corpus[0] == "eNTERFACE"):  # testing set
+            # if dataset == corpus[0]:  # testing set
             left_index = [
                 i for i in range(np.array(x).shape[0]) if i not in sample_index
             ]
-            random.seed(123)
-            test_index = random.sample(left_index, 300)
-            X_test = np.array(x)[test_index, :]  # 300,40
-            ytest = np.array(y)[test_index].tolist()
+            # random.seed(123)
+            # test_index = (
+            #     left_index if dataset == "SAVEE" else random.sample(left_index, 300)
+            # )
+            # the left index of SAVEE is not enough for 300
+            X_test = np.array(x)[left_index, :]  # 300,40
+            ytest = np.array(y)[left_index].tolist()
 
     # after traversing all dataset
     length = None
@@ -1821,15 +1917,13 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
         ytune_train,
         Xtune_val,
         ytune_val,
-        y_train_corpus,
-        y_test_corpus,
         train_corpus_audio,
         finetune_corpus_audio,
-    ) = (None, None, None, None, None, None, None, None, None, None)
+    ) = (None, None, None, None, None, None, None, None, None, None, None, None)
     emotion_map = {
-        ["01", "02", "neutral", "n", "neu", "L", "N"]: 1,  # neutral
-        ["03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"]: 2,  # positive
-        [
+        ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+        ("03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"): 1,  # positive
+        (
             "04",
             "05",
             "06",
@@ -1854,14 +1948,13 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
             "di",
             "fe",
             "sa",
-        ]: 3,
+        ): 2,
     }
     for index, cor in enumerate(corpus):
         # index=0 train, index=1 test
         x, y, paths, audio = [], [], [], []
         if cor == "RAVDESS":
             for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
-                # print(file)
                 file_name = os.path.basename(file)
                 for k, i in enumerate(emotion_map.keys()):
                     if file_name.split("-")[2] in i:
@@ -1896,9 +1989,10 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                         window=window,
                         sr=sr,
                     )
-                    label = filename.split("_")[-1].split(".")[0]
+                    # label = filename.split("_")[-1].split(".")[0]
                     for k, i in enumerate(emotion_map.keys()):
-                        if file_name.split("-")[2] in i:
+                        label = filename.split("_")[-1].split(".")[0]
+                        if label in i:
                             emotion = emotion_map[i]
                     x.append(feature)
                     y.append(emotion)
@@ -1919,7 +2013,17 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                     window=window,
                     sr=sr,
                 )
-                label = file.split(".")[0].split("_")[-1][:-2]
+                if cor == "SAVEE":
+                    label = file.split(".")[0].split("_")[-1][:-2]
+                elif cor == "CREMA-D":
+                    label = file.split("_")[2].lower()
+                elif cor == "EmoDB":
+                    label = file.split(".")[0][-2]
+                elif cor == "eNTERFACE":
+                    if file[1] == "_":
+                        label = file.split(".")[0].split("_")[-2]
+                    else:
+                        label = file.split(".")[0].split("_")[1]
                 for k, i in enumerate(emotion_map.keys()):
                     if label in i:
                         emotion = emotion_map[i]
@@ -1987,16 +2091,16 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 sr,
             )
 
-        new_label = []
-        for i in y:
-            if i not in [1, 2, 3]:
-                new_label.append(i)
-            else:
-                for k, j in enumerate(emotion_map.keys()):
-                    if label in j:
-                        emotion = emotion_map[j]
-                new_label.append(emotion)
-        y = new_label
+        # new_label = []
+        # for i in y:
+        #     if i not in [1, 2, 3]:
+        #         new_label.append(i)
+        #     else:
+        #         for k, j in enumerate(emotion_map.keys()):
+        #             if label in j:
+        #                 emotion = emotion_map[j]
+        #         new_label.append(emotion)
+        # y = new_label
 
         # train: 1200 (900+300, train+val)
         # finetune: 600 train, 200 val, 200 test
@@ -2008,15 +2112,23 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                     [i for i in range(np.array(x).shape[0])], 1200
                 )
                 X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
-                    np.array(x)[sample_index, :], y, test_size=0.25, random_state=9
+                    np.array(x)[sample_index, :],
+                    np.array(y)[sample_index],
+                    test_size=0.25,
+                    random_state=9,
                 )  # 3:1  # train + val
             elif index == 1:  # finetune
                 random.seed(123)
-                sample_index = random.sample(
-                    [i for i in range(np.array(x).shape[0])], 1000
-                )
+                # sample_index = random.sample(
+                #     [i for i in range(np.array(x).shape[0])], 1000
+                # )
                 Xtune_train, X_left, ytune_train, yleft = train_test_split(
-                    np.array(x)[sample_index, :], y, test_size=0.4, random_state=9
+                    # np.array(x)[sample_index, :],
+                    # np.array(y)[sample_index],
+                    np.array(x),
+                    y,
+                    test_size=0.4,
+                    random_state=9,
                 )  # 3:2
 
                 Xtune_val, X_test, ytune_val, ytest = train_test_split(
@@ -2060,11 +2172,12 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
         )
 
         random.seed(123)
-        sample_index = random.sample(
-            [i for i in range(np.array(X_finetune_corpus).shape[0])], 1000
-        )
+        # sample_index = random.sample(
+        #     [i for i in range(np.array(X_finetune_corpus).shape[0])], 1000
+        # )
         Xtune_train, X_left, ytune_train, yleft = train_test_split(
-            np.array(X_finetune_corpus["input_values"])[sample_index, :],
+            # np.array(X_finetune_corpus["input_values"])[sample_index, :],
+            np.array(X_finetune_corpus["input_values"]),
             y,
             test_size=0.4,
             random_state=9,
@@ -2076,15 +2189,15 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
 
     return (
         X_train,
-        ytrain,
+        ytrain,  # 900
         X_val,
-        yval,
+        yval,  # 300
         X_test,
-        ytest,
+        ytest,  # 200
         length,
         Xtune_train,
-        ytune_train,
-        Xtune_val,
+        ytune_train,  # 600
+        Xtune_val,  # 200
         ytune_val,
     )
     # 900, 300, 300, train_corpus 1200, test_corpus 300
@@ -2300,6 +2413,8 @@ def load_data(
             else:
                 return train_ds, val_ds, test_ds, shape, num_classes
 
+    # elif task == "image":
+    # dataset: CK/FER/RAF
     # file = os.listdir(path)
     # Xtest, ytest, Xtrain, ytrain, Xval, yval = [], [], [], [], [], []
 
@@ -2539,10 +2654,10 @@ def visual4cm(
     train_pred,
     val_pred,
     test_pred,
-    ytune_train,
-    tune_train_pred,
-    ytune_val,
-    tune_val_pred,
+    ytune_train=None,
+    tune_train_pred=None,
+    ytune_val=None,
+    tune_val_pred=None,
 ):
     # confusion matrix
     if cc != "finetune":
