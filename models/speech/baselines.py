@@ -35,7 +35,7 @@ class Baselines:
         if method == "KNN":
             self.model = KNeighborsClassifier()
         elif method == "SVM":
-            self.model = svm.SVC(kernel="rbf", C=1, gamma="auto")  # poly good for TESS
+            self.model = svm.SVC(kernel="poly", C=1, gamma="auto")  # poly good for TESS
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
