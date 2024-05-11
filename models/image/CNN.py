@@ -11,6 +11,7 @@
 
 # here put the import lib
 import os
+import time
 import numpy as np
 from keras.models import Sequential
 import tensorflow as tf
@@ -31,12 +32,9 @@ class CNN(Model):
         self,
         task,
         method,
-        features,
         cc,
-        # shape,
+        h,
         num_classes,
-        dataset,
-        # length,
         epochs=10,
         lr=0.001,
         batch_size=16,
@@ -44,19 +42,15 @@ class CNN(Model):
 
         super(CNN, self).__init__()
         self.num_classes = num_classes
-        self.features = features
         self.cc = cc
         self.method = method
         self.task = task
         self.batch_size = batch_size
-        self.dataset = dataset
         self.finetune = True if cc == "finetune" else False
 
         self.model = Sequential(
             [
-                Conv2D(
-                    32, 3, padding="same", activation="relu", input_shape=(100, 100, 3)
-                ),
+                Conv2D(32, 3, padding="same", activation="relu", input_shape=(h, h, 1)),
                 BatchNormalization(),
                 Conv2D(32, 3, padding="same", activation="relu"),
                 BatchNormalization(),
@@ -80,7 +74,7 @@ class CNN(Model):
                 Dense(num_classes, name="outputs"),  # 12-class
             ]
         )
-        self.model.build((None, 100, 100, 3))
+        self.model.build((None, h, h, 1))
         self.model.summary()
         # self.model.build((None, shape, length, 1))  # change
 

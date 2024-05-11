@@ -34,7 +34,10 @@ warnings.filterwarnings("ignore")
     code is run on UCL server with provided GPU resources, especially for NNs 
     and pretrained models.
 """
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+import os
+
+print(os.environ["CUDA_HOME"])
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 # export CUDA_VISIBLE_DEVICES=1  # used for setting specific GPU in terminal
 if tf.config.list_physical_devices("GPU"):
     print("Use GPU of UCL server: turin.ee.ucl.ac.uk")
@@ -83,6 +86,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--denoise", type=bool, default=False, help="play the audio by denoising"
     )
+    parser.add_argument(
+        "--landmark", type=bool, default=False, help="play the audio by denoising"
+    )
     parser.add_argument("--window", nargs="+", type=int, help="An array of integers")
     # python script.py --integers 1 2 3 4 5
     parser.add_argument(
@@ -114,6 +120,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--corpus", nargs="+", type=str, default=None, help="An array of string"
     )
+    parser.add_argument(
+        "--split", type=float, default=None, help="play the audio by denoising"
+    )  # 0.2, 0.4, 0.5, 0.6, 0.8
     args = parser.parse_args()
     task = args.task
     method = args.method
@@ -122,6 +131,7 @@ if __name__ == "__main__":
     cc = args.cc
     corpus = args.corpus
     sr = args.sr
+    split = args.split
 
     print(
         f"Task: {task} emotion classification, Method: {method}, Cross-corpus: {args.cc}, Dataset: {dataset}, Features: {args.features}. "
@@ -156,6 +166,7 @@ if __name__ == "__main__":
                         window=args.window,
                         corpus=corpus,
                         sr=sr,
+                        split=split,
                     )
                 )
             else:
@@ -205,6 +216,7 @@ if __name__ == "__main__":
                 window=args.window,
                 corpus=corpus,
                 sr=sr,
+                split=split,
             )
         elif method in ["CNN", "AlexNet"]:
             if cc != "finetune":
@@ -225,6 +237,7 @@ if __name__ == "__main__":
                         window=args.window,
                         corpus=corpus,
                         sr=sr,
+                        split=split,
                     )
                 )
             else:
@@ -276,6 +289,28 @@ if __name__ == "__main__":
                 corpus=corpus,
                 sr=sr,
             )
+    elif task == "image":
+        if method in ["CNN", "Inception"]:
+            X_train, ytrain, X_val, yval, X_test, ytest, h = load_data(
+                task,
+                method,
+                cc,
+                dataset,
+                batch_size=16,
+                # corpus=None,
+                landmark=args.landmark,
+            )
+        elif method in ["MLP"]:
+            X_train, ytrain, X_val, yval, X_test, ytest = load_data(
+                task,
+                method,
+                cc,
+                dataset,
+                batch_size=16,
+                # corpus=None,
+                landmark=args.landmark,
+            )
+
     # elif method in ["CNN", "MLP", "EnsembleNet"]:
     #     train_ds, val_ds, test_ds = load_data(
     #         task, pre_path, method, batch_size=args.batch_size
@@ -284,121 +319,175 @@ if __name__ == "__main__":
 
     # model selection
     print("Start loading model......")
-    if method in ["SVM", "DT", "RF", "NB", "KNN"]:
-        model = load_model(task, method)
-    elif method == "MLP":
-        model = load_model(
-            task,
-            method,
-            features,
-            cc,
-            shape,
-            num_classes,
-            dataset,
-            epochs=args.epochs,
-            lr=args.lr,
-        )
-    elif method in ["RNN", "LSTM"]:
-        cv = False if method == "RNN" else args.cv
-        model = load_model(
-            task,
-            method,
-            features,
-            cc,
-            shape,
-            num_classes,
-            dataset,
-            bidirectional=args.bidirectional,
-            epochs=args.epochs,
-            lr=args.lr,
-            cv=cv,
-        )
-    elif method in ["CNN", "AlexNet"]:
-        model = load_model(
-            task,
-            method,
-            features,
-            cc,
-            shape,
-            num_classes,
-            dataset,
-            max_length=args.max_length,
-            bidirectional=args.bidirectional,
-            epochs=args.epochs,
-            lr=args.lr,
-            cv=args.cv,
-        )
-    elif method == "GMM":
-        model = load_model(task, method, features, cc, dataset, num_classes=num_classes)
-    elif method == "wav2vec":
-        model = load_model(
-            task,
-            method,
-            features,
-            cc,
-            shape=None,
-            num_classes=num_classes,
-            dataset=dataset,
-            max_length=length,
-            epochs=args.epochs,
-            lr=args.lr,
-            batch_size=args.batch_size,
-        )
+    if task == "speech":
+        if method in ["SVM", "DT", "RF", "NB", "KNN"]:
+            model = load_model(task, method)
+        elif method == "MLP":
+            model = load_model(
+                task,
+                method,
+                features,
+                cc,
+                shape,
+                num_classes,
+                dataset,
+                epochs=args.epochs,
+                lr=args.lr,
+            )
+        elif method in ["RNN", "LSTM"]:
+            cv = False if method == "RNN" else args.cv
+            model = load_model(
+                task,
+                method,
+                features,
+                cc,
+                shape,
+                num_classes,
+                dataset,
+                bidirectional=args.bidirectional,
+                epochs=args.epochs,
+                lr=args.lr,
+                cv=cv,
+            )
+        elif method in ["CNN", "AlexNet"]:
+            model = load_model(
+                task,
+                method,
+                features,
+                cc,
+                shape,
+                num_classes,
+                dataset,
+                max_length=args.max_length,
+                bidirectional=args.bidirectional,
+                epochs=args.epochs,
+                lr=args.lr,
+                cv=args.cv,
+            )
+        elif method == "GMM":
+            model = load_model(
+                task, method, features, cc, dataset, num_classes=num_classes
+            )
+        elif method == "wav2vec":
+            model = load_model(
+                task,
+                method,
+                features,
+                cc,
+                shape=None,
+                num_classes=num_classes,
+                dataset=dataset,
+                max_length=length,
+                epochs=args.epochs,
+                lr=args.lr,
+                batch_size=args.batch_size,
+            )
+    elif task == "image":
+        if method in ["MLP", "CNN", "Inception"]:
+            model = load_model(
+                task,
+                method,
+                cc,
+                h,
+                num_classes,
+                epochs=args.epochs,
+                lr=args.lr,
+                batch_size=args.batch_size,
+            )
+        elif method == "ViT":
+            pass
+
     print("Load model successfully.")
 
     """
         This part includes all training, validation and testing process with encapsulated functions.
         Detailed process of each method can be seen in corresponding classes.
     """
-    if method in ["SVM", "DT", "RF", "NB", "KNN"]:
-        if method in ["KNN", "DT", "RF"]:
-            cv_results_ = model.train(Xtrain, ytrain, Xval, yval, gridSearch=True)
-        else:
-            model.train(Xtrain, ytrain, Xval, yval)
-        pred_train, pred_val, pred_test = model.test(Xtrain, ytrain, Xval, yval, Xtest)
-    elif method in ["MLP", "RNN", "wav2vec"]:
-        train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
-            model, train_ds, val_ds
-        )
-        test_res, pred_test, ytest = model.test(model, test_ds)
-    elif method in ["LSTM", "CNN", "AlexNet"]:
-        if cc != "finetune":
+    if task == "speech":
+        if method in ["SVM", "DT", "RF", "NB", "KNN"]:
+            if method in ["KNN", "DT", "RF"]:
+                cv_results_ = model.train(Xtrain, ytrain, Xval, yval, gridSearch=True)
+            else:
+                model.train(Xtrain, ytrain, Xval, yval)
+            pred_train, pred_val, pred_test = model.test(
+                Xtrain, ytrain, Xval, yval, Xtest
+            )
+        elif method in ["MLP", "RNN", "wav2vec"]:
             train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
-                Xtrain, ytrain, Xval, yval
+                model, train_ds, val_ds
             )
-            # print(train_res)
-            # print(val_res)
-        else:
-            (
-                train_res,
-                val_res,
-                pred_train,
-                pred_val,
-                ytrain,
-                yval,
-                ytune_train,
-                ytune_val,
-                tune_train_pred,
-                tune_val_pred,
-            ) = model.train(
-                Xtrain,
-                ytrain,
-                Xval,
-                yval,
-                Xtune_train,
-                ytune_train,
-                Xtune_val,
-                ytune_val,
-            )
-        ytest, pred_test = model.test(Xtest, ytest)
-    elif method in ["KMeans", "DBSCAN", "GMM"]:
-        if method == "KMeans":
-            pred_train, pred_val, ytrain, yval, centers = model.train(
-                Xtrain, ytrain, Xval, yval
-            )
-        else:
-            pred_train, pred_val, ytrain, yval = model.train(Xtrain, ytrain, Xval, yval)
-        pred_test, ytest = model.test(Xtest, ytest)
+            test_res, pred_test, ytest = model.test(model, test_ds)
+        elif method in ["LSTM", "CNN", "AlexNet"]:
+            if cc != "finetune":
+                train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
+                    Xtrain, ytrain, Xval, yval
+                )
+                # print(train_res)
+                # print(val_res)
+            else:
+                (
+                    train_res,
+                    val_res,
+                    pred_train,
+                    pred_val,
+                    ytrain,
+                    yval,
+                    ytune_train,
+                    ytune_val,
+                    tune_train_pred,
+                    tune_val_pred,
+                ) = model.train(
+                    Xtrain,
+                    ytrain,
+                    Xval,
+                    yval,
+                    Xtune_train,
+                    ytune_train,
+                    Xtune_val,
+                    ytune_val,
+                )
+            ytest, pred_test = model.test(Xtest, ytest)
+        elif method in ["KMeans", "DBSCAN", "GMM"]:
+            if method == "KMeans":
+                pred_train, pred_val, ytrain, yval, centers = model.train(
+                    Xtrain, ytrain, Xval, yval
+                )
+            else:
+                pred_train, pred_val, ytrain, yval = model.train(
+                    Xtrain, ytrain, Xval, yval
+                )
+            pred_test, ytest = model.test(Xtest, ytest)
+    elif task == "image":
+        if method in ["MLP", "CNN", "Inception"]:
+            if cc != "finetune":
+                train_res, val_res, pred_train, pred_val, ytrain, yval = model.train(
+                    Xtrain, ytrain, Xval, yval
+                )
+                # print(train_res)
+                # print(val_res)
+            else:
+                (
+                    train_res,
+                    val_res,
+                    pred_train,
+                    pred_val,
+                    ytrain,
+                    yval,
+                    ytune_train,
+                    ytune_val,
+                    tune_train_pred,
+                    tune_val_pred,
+                ) = model.train(
+                    Xtrain,
+                    ytrain,
+                    Xval,
+                    yval,
+                    Xtune_train,
+                    ytune_train,
+                    Xtune_val,
+                    ytune_val,
+                )
+            pred_test, ytest = model.test(model, test_ds)
 
     # metrics and visualization
     # hyperparameters selection

@@ -21,18 +21,95 @@
 # reversed_sound.export("tmp.wav", format="wav")
 
 
+from matplotlib import pyplot as plt
+from matplotlib.colors import Normalize
 import numpy as np
 from scipy.io import wavfile
 import soundfile
 
 import librosa
 
-with soundfile.SoundFile(
-    "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
-) as sound_file:
+
+def visual4feature(data, sr, name):
+
+    # waveform, spectrum (specshow)
+    plt.figure(figsize=(10, 4))
+    librosa.display.waveshow(
+        data, sr=sr, color="blue"
+    )  # visualize wave in the time domain
+    plt.savefig(f"tmp_waveform_{name}.png")
+    plt.close()
+
+    x = librosa.stft(
+        data
+    )  # frequency domain: The STFT represents a signal in the time-frequency domain by computing discrete Fourier transforms (DFT) over short overlapping windows.
+    xdb = librosa.amplitude_to_db(
+        abs(x)
+    )  # Convert an amplitude spectrogram to dB-scaled spectrogram.
+    plt.figure(figsize=(11, 4))
+    librosa.display.specshow(
+        xdb, sr=sr, x_axis="time", y_axis="hz"
+    )  # visualize wave in the frequency domain
+    plt.colorbar()
+    plt.savefig(f"tmp_spectrum_{name}.png")
+    plt.close()
+
+    # mfcc spectrum
+    mfc_coefficients = librosa.feature.mfcc(y=data, sr=sr, n_mfcc=40)
+    plt.figure(figsize=(10, 4))
+    librosa.display.specshow(
+        mfc_coefficients, x_axis="time", norm=Normalize(vmin=-30, vmax=30)
+    )
+    plt.colorbar()
+    plt.yticks(())
+    plt.ylabel("MFC Coefficient")
+    plt.tight_layout()
+    plt.savefig(f"tmp_mfcc_{name}.png")
+    plt.close()
+
+    # mel spectrum
+    melspectrogram = librosa.feature.melspectrogram(
+        y=data, sr=sr, n_mels=128, fmax=8000
+    )
+    plt.figure(figsize=(10, 4))
+    librosa.display.specshow(
+        librosa.power_to_db(S=melspectrogram, ref=np.mean),
+        y_axis="mel",
+        fmax=8000,
+        x_axis="time",
+        norm=Normalize(vmin=-20, vmax=20),
+    )
+    plt.colorbar(format="%+2.0f dB", label="Amplitude")
+    plt.ylabel("Mels")
+    plt.tight_layout()
+    plt.savefig(f"tmp_mels_{name}.png")
+    plt.close()
+
+    # chroma spectrum
+    chromagram = librosa.feature.chroma_stft(y=data, sr=sr)
+    plt.figure(figsize=(10, 4))
+    librosa.display.specshow(chromagram, y_axis="chroma", x_axis="time")
+    plt.colorbar(label="Relative Intensity")
+    plt.tight_layout()
+    plt.savefig(f"tmp_chroma_{name}.png")
+    plt.close()
+
+
+with soundfile.SoundFile("datasets/speech/eNTERFACE05/s_3_sa_1.wav") as sound_file:
     X = sound_file.read(dtype="float32")
     sample_rate = sound_file.samplerate
 print(sample_rate)
+print(X)
+print(np.array(X).shape)
+Y = X[:, 0]
+soundfile.write("single_channel_eNTERFACE.wav", Y, sample_rate)
+Z = X[:, 1]
+soundfile.write("single_channel_eNTERFACE2.wav", Z, sample_rate)
+
+visual4feature(Y, sample_rate, "eNTERFACE")
+visual4feature(Z, sample_rate, "eNTERFACE2")
+
+
 # random_values = np.random.rand(len(X))
 # print(X)
 # print(random_values)
@@ -177,27 +254,27 @@ from pydub import AudioSegment
 # audio_with_noise.export("tmp2.wav", format="wav")
 
 
-import numpy as np
-import librosa
-import soundfile as sf
-import numpy as np
-import scipy.signal as signal
-import soundfile as sf
+# import numpy as np
+# import librosa
+# import soundfile as sf
+# import numpy as np
+# import scipy.signal as signal
+# import soundfile as sf
 
 
-def add_bubble_noise(signal, noise_level=0.1):
-    """
-    Adds bubble-like noise to a signal.
+# def add_bubble_noise(signal, noise_level=0.1):
+#     """
+#     Adds bubble-like noise to a signal.
 
-    Parameters:
-        signal (ndarray): The input signal.
-        noise_level (float): The level of noise to be added. Should be between 0 and 1.
+#     Parameters:
+#         signal (ndarray): The input signal.
+#         noise_level (float): The level of noise to be added. Should be between 0 and 1.
 
-    Returns:
-        ndarray: Signal with added bubble noise.
-    """
-    noise = np.random.normal(0, noise_level, len(signal))
-    return signal + noise
+#     Returns:
+#         ndarray: Signal with added bubble noise.
+#     """
+#     noise = np.random.normal(0, noise_level, len(signal))
+#     return signal + noise
 
 
 # # Load audio file
@@ -215,25 +292,25 @@ def add_bubble_noise(signal, noise_level=0.1):
 
 # print("Bubble noise added to the audio file successfully!")
 
-with soundfile.SoundFile(
-    "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
-) as sound_file:
-    X = sound_file.read(dtype="float32")
-    sample_rate = sound_file.samplerate
+# with soundfile.SoundFile(
+#     "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# ) as sound_file:
+#     X = sound_file.read(dtype="float32")
+#     sample_rate = sound_file.samplerate
 
-    random_values = np.random.rand(len(X))
-    #     if dataset != "eNTERFACE"
-    #     else np.random.rand(len(X), 2)
-    # )
-    X = X + 2e-2 * random_values
+#     random_values = np.random.rand(len(X))
+#     #     if dataset != "eNTERFACE"
+#     #     else np.random.rand(len(X), 2)
+#     # )
+#     X = X + 2e-2 * random_values
 
-# if noise == "white":
-soundfile.write(f"tmp5.wav", X, sample_rate)
+# # if noise == "white":
+# soundfile.write(f"tmp5.wav", X, sample_rate)
 
 
-import numpy as np
-import librosa
-import soundfile as sf
+# import numpy as np
+# import librosa
+# import soundfile as sf
 
 
 # Load original audio file
@@ -273,28 +350,28 @@ import soundfile as sf
 # print("Signal-to-Noise Ratio (SNR): {:.2f} dB".format(snr))
 
 
-ori_audio = AudioSegment.from_file(
-    "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
-)
-duration, frequency, amplitude, sample_rate = 10, 100, 20000, 16000
-t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
-buzzing_wave = amplitude * np.sin(2 * np.pi * frequency * t)
-buzzing_wave = buzzing_wave.astype(np.int16)
-buzzing_noise = AudioSegment(
-    buzzing_wave.tobytes(),
-    frame_rate=sample_rate,
-    sample_width=2,
-    channels=1,
-)
-audio_with_noise = ori_audio.overlay(buzzing_noise)
-P_signal = np.mean(np.array(ori_audio.get_array_of_samples()) ** 2)
+# ori_audio = AudioSegment.from_file(
+#     "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# )
+# duration, frequency, amplitude, sample_rate = 10, 100, 20000, 16000
+# t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
+# buzzing_wave = amplitude * np.sin(2 * np.pi * frequency * t)
+# buzzing_wave = buzzing_wave.astype(np.int16)
+# buzzing_noise = AudioSegment(
+#     buzzing_wave.tobytes(),
+#     frame_rate=sample_rate,
+#     sample_width=2,
+#     channels=1,
+# )
+# audio_with_noise = ori_audio.overlay(buzzing_noise)
+# P_signal = np.mean(np.array(ori_audio.get_array_of_samples()) ** 2)
 
-# Calculate noise power (mean squared amplitude)
-P_noise = np.mean(np.array(buzzing_noise.get_array_of_samples()) ** 2)
+# # Calculate noise power (mean squared amplitude)
+# P_noise = np.mean(np.array(buzzing_noise.get_array_of_samples()) ** 2)
 
-# Calculate SNR in dB
-SNR = 10 * np.log10(P_signal / P_noise)
-print("Signal-to-Noise Ratio (SNR):", SNR, "dB")
+# # Calculate SNR in dB
+# SNR = 10 * np.log10(P_signal / P_noise)
+# print("Signal-to-Noise Ratio (SNR):", SNR, "dB")
 
 
 # with soundfile.SoundFile(
@@ -319,3 +396,114 @@ print("Signal-to-Noise Ratio (SNR):", SNR, "dB")
 # # Calculate SNR in dB
 # SNR = 10 * np.log10(signal_power / noise_power)
 # print("Signal-to-Noise Ratio (SNR):", SNR, "dB")
+
+
+# import numpy as np
+# import librosa
+# import soundfile as sf
+
+# # Load the audio file
+# audio_file_path = "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# audio_data, sample_rate = librosa.load(audio_file_path, sr=None)
+
+# # Parameters for babble noise
+# duration = len(audio_data) / sample_rate  # Duration of the audio in seconds
+# num_samples = len(audio_data)  # Total number of samples
+# num_sources = 1  # Number of sources contributing to the babble noise
+
+# # Generate babble noise
+# babble = np.zeros(num_samples)
+# for _ in range(num_sources):
+#     frequency = np.random.uniform(
+#         100, 1000
+#     )  # Random frequency between 100 Hz and 1000 Hz
+#     amplitude = np.random.uniform(0.1, 0.5)  # Random amplitude
+#     phase = np.random.uniform(0, 2 * np.pi)  # Random phase
+#     source = amplitude * np.sin(
+#         2 * np.pi * frequency * np.arange(num_samples) / sample_rate + phase
+#     )
+#     babble += source
+
+# # Adjust babble noise to match the amplitude of the audio signal
+# babble *= np.max(np.abs(audio_data)) / np.max(np.abs(babble))
+
+# # Mix audio and babble noise
+# mixed_audio = audio_data + babble
+
+# # Save the mixed audio
+# output_file_path = "mixed_audio.wav"
+# sf.write(output_file_path, mixed_audio, sample_rate)
+
+# print("Mixed audio saved successfully!")
+
+
+# import numpy as np
+# import librosa
+# import soundfile as sf
+
+
+# def generate_voice(duration, sample_rate, frequency, amplitude):
+#     phase = np.random.uniform(0, 2 * np.pi)  # Random phase
+#     voice = amplitude * np.sin(
+#         2 * np.pi * frequency * np.arange(duration * sample_rate) / sample_rate + phase
+#     )
+#     return voice
+
+
+# # Load the audio file
+# audio_file_path = "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# audio_data, sample_rate = librosa.load(audio_file_path, sr=None)
+
+# # Parameters
+# duration = len(audio_data) / sample_rate  # Duration of the audio in seconds
+# num_samples = len(audio_data)  # Total number of samples
+# num_voices = 2  # Number of voices
+
+# # Define parameters for each voice
+# voice_params = [
+#     {"frequency": 300, "amplitude": 0.3},
+#     {"frequency": 500, "amplitude": 0.4},
+# ]
+
+# # Generate babble noise with two voices speaking together
+# babble = np.zeros(num_samples)
+# for params in voice_params:
+#     voice = generate_voice(
+#         duration, sample_rate, params["frequency"], params["amplitude"]
+#     )
+#     start_idx = np.random.randint(0, len(babble) - len(voice))
+#     babble[start_idx : start_idx + len(voice)] += voice
+
+# # Adjust babble noise to match the amplitude of the audio signal
+# babble *= np.max(np.abs(audio_data)) / np.max(np.abs(babble))
+
+# # Mix audio and babble noise
+# mixed_audio = audio_data + babble
+
+# # Save the mixed audio
+# output_file_path = "mixed_audio_with_babble.wav"
+# sf.write(output_file_path, mixed_audio, sample_rate)
+
+# # print("Mixed audio with babble noise saved successfully!")
+# import numpy as np
+# import librosa
+# import soundfile as sf
+
+# # Load the original audio file
+# original_audio_path = "datasets/speech/RAVDESS/Actor_01/03-01-01-01-01-01-01.wav"
+# original_audio, sample_rate = librosa.load(original_audio_path, sr=None)
+
+# # Reverse the original audio
+# reversed_audio = original_audio[::-1]
+
+# # Mix the original audio with its reverse
+# mixed_audio = original_audio + reversed_audio
+
+# # Normalize mixed audio
+# mixed_audio /= np.max(np.abs(mixed_audio))
+
+# # Save the mixed audio
+# mixed_audio_path = "mixed_audio_with_reverse.wav"
+# sf.write(mixed_audio_path, mixed_audio, sample_rate)
+
+# print("Mixed audio with reverse added saved successfully!")

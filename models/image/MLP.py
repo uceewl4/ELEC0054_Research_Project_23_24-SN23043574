@@ -33,28 +33,17 @@ class MLP(Model):
     """
 
     def __init__(
-        self,
-        task,
-        method,
-        features,
-        cc,
-        shape,
-        num_classes,
-        dataset,
-        epochs=10,
-        lr=0.001,
+        self, task, method, cc, h, num_classes, epochs=10, lr=0.001, batch_size=32
     ):
         super(MLP, self).__init__()
         self.num_classes = num_classes
-        self.features = features
         self.cc = cc
         self.method = method
         self.task = task
-        self.dataset = dataset
 
         self.model = Sequential(
             [
-                Dense(256, activation="relu", input_shape=(shape,)),
+                Dense(256, activation="relu", input_shape=(h,)),
                 Dense(128, activation="relu"),
                 Dropout(0.2),
                 Dense(64, activation="relu"),
@@ -64,7 +53,12 @@ class MLP(Model):
             ]
         )
 
-        self.model.build((None, 100, 100, 3))
+        self.model.build(
+            (
+                None,
+                h,
+            )
+        )
 
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.layers[0].input,

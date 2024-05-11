@@ -38,17 +38,19 @@ class ClassToken(Layer):
 
 
 class ViT(Model):
-    def __init__(self, method=None, lr=0.00001, epochs=10, batch_size=32):
+    def __init__(
+        self, task, method, cc, h, num_classes, epochs=10, lr=0.001, batch_size=32
+    ):
         super(ViT, self).__init__()
-
-        self.num_patches = 100  # 100x100x3 -- 100 patches
-        self.patch_size = 10  # 10x10x3
-        self.channel = 3
+        # FER/CK
+        self.num_patches = 36  # 48x48x1 -- 8x8x1 patches
+        self.patch_size = 8  # 8x8x1
+        self.channel = 1
         self.hidden_dim = 768
-        self.num_layers = 12  # num of layers for transformer
+        self.num_layers = num_classes  # num of layers for transformer
         self.mlp_dim = 300  # num of dimension for MLP
         self.num_heads = 12  # multihead
-        self.inputs = Input((100, 10 * 10 * 3))  # (None,100 patches,300)
+        self.inputs = Input((36, 8 * 8 * 1))  # (None,100 patches,300)
 
         # patch + position embedding
         self.patch_embed = Dense(self.hidden_dim)(
@@ -80,7 +82,7 @@ class ViT(Model):
         self.outputs = Dense(12, activation="softmax")(self.hidden)
 
         self.model = Model(self.inputs, self.outputs)
-        self.model.build((None, 100, 300))
+        self.model.build((None, 36, 64))
         self.model.summary()
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.input, outputs=self.model.layers[-1].output
