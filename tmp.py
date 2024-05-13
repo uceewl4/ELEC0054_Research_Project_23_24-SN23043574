@@ -507,3 +507,246 @@ from pydub import AudioSegment
 # sf.write(mixed_audio_path, mixed_audio, sample_rate)
 
 # print("Mixed audio with reverse added saved successfully!")
+
+
+def load_AESDD(
+    method,
+    features,
+    n_mfcc,
+    n_mels,
+    scaled,
+    max_length,
+    reverse,
+    noise,
+    denoise,
+    window=None,
+    sr=16000,
+    split=None,
+):
+    x, y, category, path, audio, lengths = [], [], [], [], [], []
+
+    # original class of ranging split
+    # emotion_map = {
+    #     "angry": 0,
+    #     "disgust": 1,
+    #     "fear": 2,
+    #     "happy": 3,
+    #     "neutral": 4,
+    #     "ps": 5,
+    #     "sad": 6,
+    # }
+
+    if split == None:
+        emotion_map = {
+            "anger": 0,
+            "disgust": 1,
+            "fear": 2,
+            "happiness": 3,
+            "sadness": 4,
+        }
+    else:
+        emotion_map = {
+            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 1,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 2,
+        }
+
+    for dirname, _, filenames in os.walk("datasets/speech/AESDD"):
+        for filename in filenames:
+            feature, X = get_features(
+                "AESDD",
+                method,
+                os.path.join(dirname, filename),
+                features,
+                n_mfcc=n_mfcc,
+                n_mels=n_mels,
+                max_length=max_length,
+                window=window,
+                sr=sr,
+            )
+            # label = filename.split("_")[-1].split(".")[0]
+            if split == None:
+                emotion = emotion_map[dirname]
+            else:
+                for k, i in enumerate(emotion_map.keys()):
+                    # label = filename.split("_")[-1].split(".")[0]
+                    if dirname in i:
+                        emotion = emotion_map[i]
+
+            x.append(feature)
+            y.append(emotion)
+            path.append(os.path.join(dirname, filename))
+            category.append(dirname)
+            audio.append(X)
+            lengths.append(len(X))
+            if category.count(dirname) == 1:
+                visual4feature(os.path.join(dirname, filename), "AESDD", dirname)
+
+        # if len(y) == 2800:
+        #     break
+
+    visual4label("speech", "AESDD", category)
+    print(np.array(x).shape)
+
+    if method != "wav2vec":
+        if scaled != None:
+            x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
+
+    if reverse == True:
+        x, y, audio, lengths = get_reverse(
+            x,
+            y,
+            audio,
+            lengths,
+            path,
+            "AESDD",
+            method,
+            features,
+            n_mfcc,
+            n_mels,
+            max_length,
+            500,
+            window,
+            sr,
+        )
+
+    if noise != None:
+        x, y, audio, lengths = get_noise(
+            x,
+            y,
+            audio,
+            lengths,
+            path,
+            "AESDD",
+            method,
+            features,
+            n_mfcc,
+            n_mels,
+            max_length,
+            300,
+            window,
+            sr,
+            noise,
+        )
+
+    if denoise == True:
+        x, y, audio, lengths = get_denoise(
+            x,
+            y,
+            audio,
+            lengths,
+            emotion_map,
+            "AESDD",
+            method,
+            features,
+            n_mfcc,
+            n_mels,
+            max_length,
+            window,
+            sr,
+        )
+
+    length = None if method != "wav2vec" else max(lengths)
+
+    if split == None:
+        if method != "wav2vec":
+            X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+                np.array(x), y, test_size=0.4, random_state=9
+            )  # 3:2
+        else:
+            feature_extractor = AutoFeatureExtractor.from_pretrained(
+                "facebook/wav2vec2-base", return_attention_mask=True
+            )
+            X = feature_extractor(
+                audio,
+                sampling_rate=feature_extractor.sampling_rate,
+                max_length=length,
+                truncation=True,
+                padding=True,
+            )  # (1440, 84351)
+            X_train, X_left, ytrain, yleft = train_test_split(
+                np.array(X["input_values"]), y, test_size=0.4, random_state=9
+            )  # 3:2
+
+        X_val, X_test, yval, ytest = train_test_split(
+            X_left, yleft, test_size=0.5, random_state=9
+        )  # 1:1
+        # (1680, 40), (560, 40), (560, 40), (1680,)
+    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+        """
+        # this one is used for original ranging split of proportion
+        X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
+            np.array(x), y, test_size=split, random_state=9
+        )  # 0.25
+        X_train, X_val, ytrain, yval = train_test_split(
+            X_train, ytrain, test_size=0.5, random_state=9
+        )  # 1:1 for train : val
+
+        """
+
+        # this is the new one after modification, which is used for corresponding split for single-corpus
+        # for cross-corpus-split-size
+
+        # test
+        random.seed(123)
+        test_index = random.sample(
+            [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
+        )  # 1440, 40
+        left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
+        X_test = np.array(x)[test_index, :]
+        ytest = np.array(y)[test_index].tolist()
+        X_left = np.array(x)[left_index, :]
+        yleft = np.array(y)[left_index].tolist()
+
+        # train/val
+        random.seed(123)
+        train_index = random.sample(
+            [i for i in range(np.array(X_left).shape[0])], int(split * 200)
+        )  # train + val
+        X_train, X_val, ytrain, yval = train_test_split(
+            X_left[train_index, :],
+            np.array(yleft)[train_index].tolist(),
+            test_size=0.5,
+            random_state=9,
+        )  # 1:1 for train : val
+
+    return X_train, ytrain, X_val, yval, X_test, ytest, length

@@ -518,16 +518,76 @@ def load_RAVDESS(
     split=None,
 ):
     x, y, category, path, audio, lengths = [], [], [], [], [], []
-    emotion_map = {
-        "01": 0,  # 'neutral'
-        "02": 1,  # 'calm'
-        "03": 2,  # 'happy'
-        "04": 3,  # 'sad'
-        "05": 4,  # 'angry'
-        "06": 5,  # 'fearful'
-        "07": 6,  # 'disgust'
-        "08": 7,  # 'surprised'
-    }
+
+    # if we use original class for ranging split
+    # emotion_map = {
+    #     "01": 0,  # 'neutral'
+    #     "02": 1,  # 'calm'
+    #     "03": 2,  # 'happy'
+    #     "04": 3,  # 'sad'
+    #     "05": 4,  # 'angry'
+    #     "06": 5,  # 'fearful'
+    #     "07": 6,  # 'disgust'
+    #     "08": 7,  # 'surprised'
+    # }
+
+    # this is for ranging split with 3 classes
+    if split == None:
+        emotion_map = {
+            "01": 0,  # 'neutral'
+            "02": 1,  # 'calm'
+            "03": 2,  # 'happy'
+            "04": 3,  # 'sad'
+            "05": 4,  # 'angry'
+            "06": 5,  # 'fearful'
+            "07": 6,  # 'disgust'
+            "08": 7,  # 'surprised'
+        }
+    else:
+        emotion_map = {
+            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 1,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 2,
+        }
 
     category_map = {
         "01": "neutral",
@@ -542,7 +602,12 @@ def load_RAVDESS(
     for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
         # print(file)
         file_name = os.path.basename(file)
-        emotion = emotion_map[file_name.split("-")[2]]
+        if split == None:
+            emotion = emotion_map[file_name.split("-")[2]]
+        else:
+            for k, i in enumerate(emotion_map.keys()):
+                if file_name.split("-")[2] in i:
+                    emotion = emotion_map[i]
         feature, X = get_features(
             "RAVDESS",
             method,
@@ -707,15 +772,74 @@ def load_TESS(
     split=None,
 ):
     x, y, category, path, audio, lengths = [], [], [], [], [], []
-    emotion_map = {
-        "angry": 0,
-        "disgust": 1,
-        "fear": 2,
-        "happy": 3,
-        "neutral": 4,
-        "ps": 5,
-        "sad": 6,
-    }
+
+    # original class of ranging split
+    # emotion_map = {
+    #     "angry": 0,
+    #     "disgust": 1,
+    #     "fear": 2,
+    #     "happy": 3,
+    #     "neutral": 4,
+    #     "ps": 5,
+    #     "sad": 6,
+    # }
+
+    if split == None:
+        emotion_map = {
+            "angry": 0,
+            "disgust": 1,
+            "fear": 2,
+            "happy": 3,
+            "neutral": 4,
+            "ps": 5,
+            "sad": 6,
+        }
+    else:
+        emotion_map = {
+            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 1,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 2,
+        }
+
     for dirname, _, filenames in os.walk("datasets/speech/TESS"):
         for filename in filenames:
             feature, X = get_features(
@@ -730,7 +854,14 @@ def load_TESS(
                 sr=sr,
             )
             label = filename.split("_")[-1].split(".")[0]
-            emotion = emotion_map[label.lower()]
+            if split == None:
+                emotion = emotion_map[label.lower()]
+            else:
+                for k, i in enumerate(emotion_map.keys()):
+                    label = filename.split("_")[-1].split(".")[0]
+                    if label in i:
+                        emotion = emotion_map[i]
+
             x.append(feature)
             y.append(emotion)
             path.append(os.path.join(dirname, filename))
@@ -886,15 +1017,74 @@ def load_SAVEE(
     split=None,
 ):
     x, y, category, paths, audio, lengths = [], [], [], [], [], []
-    emotion_map = {
-        "a": 0,  # angry
-        "d": 1,  # digust
-        "f": 2,  # fear
-        "h": 3,  # happiness
-        "n": 4,  # neutral
-        "sa": 5,  # sadness
-        "su": 6,  # surprise
-    }
+
+    # original class ranging split
+    # emotion_map = {
+    #     "a": 0,  # angry
+    #     "d": 1,  # digust
+    #     "f": 2,  # fear
+    #     "h": 3,  # happiness
+    #     "n": 4,  # neutral
+    #     "sa": 5,  # sadness
+    #     "su": 6,  # surprise
+    # }
+
+    if split == None:
+        emotion_map = {
+            "a": 0,  # angry
+            "d": 1,  # digust
+            "f": 2,  # fear
+            "h": 3,  # happiness
+            "n": 4,  # neutral
+            "sa": 5,  # sadness
+            "su": 6,  # surprise
+        }
+    else:
+        emotion_map = {
+            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 1,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 2,
+        }
+
     category_map = {
         "a": "angry",  # angry
         "d": "disgust",
@@ -918,7 +1108,12 @@ def load_SAVEE(
             sr=sr,
         )
         label = file.split(".")[0].split("_")[-1][:-2]
-        emotion = emotion_map[label]
+        if split == None:
+            emotion = emotion_map[label]
+        else:
+            for k, i in enumerate(emotion_map.keys()):
+                if label in i:
+                    emotion = emotion_map[i]
         x.append(feature)
         y.append(emotion)
         paths.append(os.path.join(path, file))
@@ -1071,14 +1266,70 @@ def load_CREMA(
     split=None,
 ):
     x, y, category, paths, audio, lengths = [], [], [], [], [], []
-    emotion_map = {
-        "ang": 0,  # angry
-        "dis": 1,  # disgust
-        "fea": 2,  # fear
-        "hap": 3,  # happiness
-        "neu": 4,  # neutral
-        "sad": 5,  # sadness
-    }
+    # original class ranging split
+    # emotion_map = {
+    #     "ang": 0,  # angry
+    #     "dis": 1,  # disgust
+    #     "fea": 2,  # fear
+    #     "hap": 3,  # happiness
+    #     "neu": 4,  # neutral
+    #     "sad": 5,  # sadness
+    # }
+
+    if split == None:
+        emotion_map = {
+            "ang": 0,  # angry
+            "dis": 1,  # disgust
+            "fea": 2,  # fear
+            "hap": 3,  # happiness
+            "neu": 4,  # neutral
+            "sad": 5,  # sadness
+        }
+    else:
+        emotion_map = {
+            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 1,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 2,
+        }
     category_map = {
         "ang": "angry",
         "dis": "disgust",
@@ -1101,7 +1352,14 @@ def load_CREMA(
             sr=sr,
         )
         label = file.split("_")[2]
-        emotion = emotion_map[label.lower()]
+        # emotion = emotion_map[label.lower()]
+
+        if split == None:
+            emotion = emotion_map[label.lower()]
+        else:
+            for k, i in enumerate(emotion_map.keys()):
+                if label.lower() in i:
+                    emotion = emotion_map[i]
         x.append(feature)
         y.append(emotion)
         paths.append(os.path.join(path, file))
@@ -1256,15 +1514,74 @@ def load_EmoDB(
     split=None,
 ):
     x, y, category, paths, audio, lengths = [], [], [], [], [], []
-    emotion_map = {
-        "W": 0,  # angry
-        "L": 1,  # boredom
-        "E": 2,  # disgust
-        "A": 3,  # anxiety/fear
-        "F": 4,  # happiness
-        "T": 5,  # sadness
-        "N": 6,
-    }
+    # original class ranging split
+
+    # emotion_map = {
+    #     "W": 0,  # angry
+    #     "L": 1,  # boredom
+    #     "E": 2,  # disgust
+    #     "A": 3,  # anxiety/fear
+    #     "F": 4,  # happiness
+    #     "T": 5,  # sadness
+    #     "N": 6,
+    # }
+
+    if split == None:
+        emotion_map = {
+            "W": 0,  # angry
+            "L": 1,  # boredom
+            "E": 2,  # disgust
+            "A": 3,  # anxiety/fear
+            "F": 4,  # happiness
+            "T": 5,  # sadness
+            "N": 6,
+        }
+    else:
+        emotion_map = {
+            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 1,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 2,
+        }
+
     category_map = {
         "W": "angry",
         "L": "boredom",
@@ -1288,7 +1605,12 @@ def load_EmoDB(
             sr=sr,
         )
         label = file.split(".")[0][-2]
-        emotion = emotion_map[label]
+        if split == None:
+            emotion = emotion_map[label]
+        else:
+            for k, i in enumerate(emotion_map.keys()):
+                if label in i:
+                    emotion = emotion_map[i]
         x.append(feature)
         y.append(emotion)
         paths.append(os.path.join(path, file))
@@ -1441,14 +1763,70 @@ def load_eNTERFACE(
     split=None,
 ):
     x, y, category, paths, audio, lengths = [], [], [], [], [], []
-    emotion_map = {
-        "an": 0,  # angry
-        "di": 1,  # disgust
-        "fe": 2,  # fear
-        "ha": 3,  # happiness
-        "sa": 4,  # sadness
-        "su": 5,  # surprise
-    }
+    # original class ranging split
+    # emotion_map = {
+    #     "an": 0,  # angry
+    #     "di": 1,  # disgust
+    #     "fe": 2,  # fear
+    #     "ha": 3,  # happiness
+    #     "sa": 4,  # sadness
+    #     "su": 5,  # surprise
+    # }
+
+    if split == None:
+        emotion_map = {
+            "an": 0,  # angry
+            "di": 1,  # disgust
+            "fe": 2,  # fear
+            "ha": 3,  # happiness
+            "sa": 4,  # sadness
+            "su": 5,  # surprise
+        }
+    else:
+        emotion_map = {
+            # ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 0,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 1,
+        }
 
     category_map = {
         "an": "angry",
@@ -1475,7 +1853,15 @@ def load_eNTERFACE(
             label = file.split(".")[0].split("_")[-2]
         else:
             label = file.split(".")[0].split("_")[1]
-        emotion = emotion_map[label]
+
+        # emotion = emotion_map[label]
+        if split == None:
+            emotion = emotion_map[label]
+        else:
+            for k, i in enumerate(emotion_map.keys()):
+                if label in i:
+                    emotion = emotion_map[i]
+
         x.append(feature)
         y.append(emotion)
         paths.append(os.path.join(path, file))
@@ -1567,6 +1953,249 @@ def load_eNTERFACE(
 
             X_train, X_left, ytrain, yleft = train_test_split(
                 np.array(X), y, test_size=0.4, random_state=9
+            )  # 3:2
+
+        X_val, X_test, yval, ytest = train_test_split(
+            X_left, yleft, test_size=0.5, random_state=9
+        )  # 1:1
+        # (1680, 40), (560, 40), (560, 40), (1680,)
+    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+        """
+        # this one is used for original ranging split of proportion
+        X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
+            np.array(x), y, test_size=split, random_state=9
+        )  # 0.25
+        X_train, X_val, ytrain, yval = train_test_split(
+            X_train, ytrain, test_size=0.5, random_state=9
+        )  # 1:1 for train : val
+
+        """
+
+        # this is the new one after modification, which is used for corresponding split for single-corpus
+        # for cross-corpus-split-size
+
+        # test
+        random.seed(123)
+        test_index = random.sample(
+            [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
+        )  # 1440, 40
+        left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
+        X_test = np.array(x)[test_index, :]
+        ytest = np.array(y)[test_index].tolist()
+        X_left = np.array(x)[left_index, :]
+        yleft = np.array(y)[left_index].tolist()
+
+        # train/val
+        random.seed(123)
+        train_index = random.sample(
+            [i for i in range(np.array(X_left).shape[0])], int(split * 200)
+        )  # train + val
+        X_train, X_val, ytrain, yval = train_test_split(
+            X_left[train_index, :],
+            np.array(yleft)[train_index].tolist(),
+            test_size=0.5,
+            random_state=9,
+        )  # 1:1 for train : val
+
+    return X_train, ytrain, X_val, yval, X_test, ytest, length
+
+
+def load_AESDD(
+    method,
+    features,
+    n_mfcc,
+    n_mels,
+    scaled,
+    max_length,
+    reverse,
+    noise,
+    denoise,
+    window=None,
+    sr=16000,
+    split=None,
+):
+    x, y, category, path, audio, lengths = [], [], [], [], [], []
+
+    # original class of ranging split
+    # emotion_map = {
+    #     "angry": 0,
+    #     "disgust": 1,
+    #     "fear": 2,
+    #     "happy": 3,
+    #     "neutral": 4,
+    #     "ps": 5,
+    #     "sad": 6,
+    # }
+
+    if split == None:
+        emotion_map = {
+            "anger": 0,
+            "disgust": 1,
+            "fear": 2,
+            "happiness": 3,
+            "sadness": 4,
+        }
+    else:
+        emotion_map = {
+            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 1,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 2,
+        }
+
+    for dirname, _, filenames in os.walk("datasets/speech/AESDD"):
+        for filename in filenames:
+            feature, X = get_features(
+                "AESDD",
+                method,
+                os.path.join(dirname, filename),
+                features,
+                n_mfcc=n_mfcc,
+                n_mels=n_mels,
+                max_length=max_length,
+                window=window,
+                sr=sr,
+            )
+            # label = filename.split("_")[-1].split(".")[0]
+            if split == None:
+                emotion = emotion_map[dirname]
+            else:
+                for k, i in enumerate(emotion_map.keys()):
+                    # label = filename.split("_")[-1].split(".")[0]
+                    if dirname in i:
+                        emotion = emotion_map[i]
+
+            x.append(feature)
+            y.append(emotion)
+            path.append(os.path.join(dirname, filename))
+            category.append(dirname)
+            audio.append(X)
+            lengths.append(len(X))
+            if category.count(dirname) == 1:
+                visual4feature(os.path.join(dirname, filename), "AESDD", dirname)
+
+        # if len(y) == 2800:
+        #     break
+
+    visual4label("speech", "AESDD", category)
+    print(np.array(x).shape)
+
+    if method != "wav2vec":
+        if scaled != None:
+            x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
+
+    if reverse == True:
+        x, y, audio, lengths = get_reverse(
+            x,
+            y,
+            audio,
+            lengths,
+            path,
+            "AESDD",
+            method,
+            features,
+            n_mfcc,
+            n_mels,
+            max_length,
+            500,
+            window,
+            sr,
+        )
+
+    if noise != None:
+        x, y, audio, lengths = get_noise(
+            x,
+            y,
+            audio,
+            lengths,
+            path,
+            "AESDD",
+            method,
+            features,
+            n_mfcc,
+            n_mels,
+            max_length,
+            300,
+            window,
+            sr,
+            noise,
+        )
+
+    if denoise == True:
+        x, y, audio, lengths = get_denoise(
+            x,
+            y,
+            audio,
+            lengths,
+            emotion_map,
+            "AESDD",
+            method,
+            features,
+            n_mfcc,
+            n_mels,
+            max_length,
+            window,
+            sr,
+        )
+
+    length = None if method != "wav2vec" else max(lengths)
+
+    if split == None:
+        if method != "wav2vec":
+            X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+                np.array(x), y, test_size=0.4, random_state=9
+            )  # 3:2
+        else:
+            feature_extractor = AutoFeatureExtractor.from_pretrained(
+                "facebook/wav2vec2-base", return_attention_mask=True
+            )
+            X = feature_extractor(
+                audio,
+                sampling_rate=feature_extractor.sampling_rate,
+                max_length=length,
+                truncation=True,
+                padding=True,
+            )  # (1440, 84351)
+            X_train, X_left, ytrain, yleft = train_test_split(
+                np.array(X["input_values"]), y, test_size=0.4, random_state=9
             )  # 3:2
 
         X_val, X_test, yval, ytest = train_test_split(
@@ -2545,6 +3174,28 @@ def load_split_corpus_size(
                     paths.append(os.path.join(dirname, filename))
                     audio.append(X)
                     lengths.append(len(X))
+        elif cor == "AESDD":
+            for dirname, _, filenames in os.walk("datasets/speech/AESDD"):
+                for filename in filenames:
+                    feature, X = get_features(
+                        cor,
+                        method,
+                        os.path.join(dirname, filename),
+                        features,
+                        n_mfcc=n_mfcc,
+                        n_mels=n_mels,
+                        max_length=max_length,
+                        window=window,
+                        sr=sr,
+                    )
+                    for k, i in enumerate(emotion_map.keys()):
+                        if dirname in i:
+                            emotion = emotion_map[i]
+                    x.append(feature)
+                    y.append(emotion)
+                    paths.append(os.path.join(dirname, filename))
+                    audio.append(X)
+                    lengths.append(len(X))
         else:
             # if cor == "eNTERFACE":
             #     cor = "eNTERFACE05"
@@ -3371,6 +4022,21 @@ def load_data(
                     split=split,
                 )
             elif dataset == "eNTERFACE":
+                X_train, ytrain, X_val, yval, X_test, ytest, length = load_eNTERFACE(
+                    method,
+                    features=features,
+                    n_mfcc=n_mfcc,
+                    n_mels=n_mels,
+                    scaled=scaled,
+                    max_length=max_length,
+                    reverse=reverse,
+                    noise=noise,
+                    denoise=denoise,
+                    window=window,
+                    sr=sr,
+                    split=split,
+                )
+            elif dataset == "AESDD":
                 X_train, ytrain, X_val, yval, X_test, ytest, length = load_eNTERFACE(
                     method,
                     features=features,

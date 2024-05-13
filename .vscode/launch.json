@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         
 
 
@@ -19,7 +20,7 @@
                 "--method","AlexNet",
                 "--task","speech",
                 // "--corpus","TESS","RAVDESS",
-                "--dataset","TESS",
+                "--dataset","eNTERFACE",
                 "--split","4.0",
                 "--epochs","1"
                 // "--cc","finetune"
