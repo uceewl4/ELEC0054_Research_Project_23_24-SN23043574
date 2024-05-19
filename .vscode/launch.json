@@ -4,11 +4,6 @@
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-
-        
-
-
     
         {
             "name": "Python 调试程序: 当前文件",
@@ -20,8 +15,8 @@
                 "--method","AlexNet",
                 "--task","speech",
                 // "--corpus","TESS","RAVDESS",
-                "--dataset","eNTERFACE",
-                "--split","4.0",
+                "--dataset","AESDD",
+                // "--split","4.0",
                 "--epochs","1"
                 // "--cc","finetune"
                 // "--window","0","3"

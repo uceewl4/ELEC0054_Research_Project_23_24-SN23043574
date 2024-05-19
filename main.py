@@ -37,7 +37,7 @@ warnings.filterwarnings("ignore")
 import os
 
 print(os.environ["CUDA_HOME"])
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # export CUDA_VISIBLE_DEVICES=1  # used for setting specific GPU in terminal
 if tf.config.list_physical_devices("GPU"):
     print("Use GPU of UCL server: turin.ee.ucl.ac.uk")

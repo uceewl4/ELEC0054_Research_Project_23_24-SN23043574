@@ -2017,69 +2017,67 @@ def load_AESDD(
     x, y, category, path, audio, lengths = [], [], [], [], [], []
 
     # original class of ranging split
-    # emotion_map = {
-    #     "angry": 0,
-    #     "disgust": 1,
-    #     "fear": 2,
-    #     "happy": 3,
-    #     "neutral": 4,
-    #     "ps": 5,
-    #     "sad": 6,
-    # }
+    emotion_map = {
+        "anger": 0,
+        "disgust": 1,
+        "fear": 2,
+        "happiness": 3,
+        "sadness": 4,
+    }
 
-    if split == None:
-        emotion_map = {
-            "anger": 0,
-            "disgust": 1,
-            "fear": 2,
-            "happiness": 3,
-            "sadness": 4,
-        }
-    else:
-        emotion_map = {
-            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
-            (
-                "03",
-                "08",
-                "happy",
-                "ps",
-                "h",
-                "su",
-                "hap",
-                "F",
-                "ha",
-                "su",
-                "happiness",
-            ): 1,  # positive
-            (
-                "04",
-                "05",
-                "06",
-                "07",
-                "angry",
-                "disgust",
-                "fear",
-                "sad",
-                "a",
-                "d",
-                "f",
-                "sa",
-                "ang",
-                "dis",
-                "fea",
-                "sad",
-                "W",
-                "E",
-                "A",
-                "T",
-                "an",
-                "di",
-                "fe",
-                "sa",
-                "anger",
-                "sadness",
-            ): 2,
-        }
+    # if split == None:
+    #     emotion_map = {
+    #         "anger": 0,
+    #         "disgust": 1,
+    #         "fear": 2,
+    #         "happiness": 3,
+    #         "sadness": 4,
+    #     }
+    # else:
+    #     emotion_map = {
+    #         # ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+    #         (
+    #             "03",
+    #             "08",
+    #             "happy",
+    #             "ps",
+    #             "h",
+    #             "su",
+    #             "hap",
+    #             "F",
+    #             "ha",
+    #             "su",
+    #             "happiness",
+    #         ): 0,  # positive
+    #         (
+    #             "04",
+    #             "05",
+    #             "06",
+    #             "07",
+    #             "angry",
+    #             "disgust",
+    #             "fear",
+    #             "sad",
+    #             "a",
+    #             "d",
+    #             "f",
+    #             "sa",
+    #             "ang",
+    #             "dis",
+    #             "fea",
+    #             "sad",
+    #             "W",
+    #             "E",
+    #             "A",
+    #             "T",
+    #             "an",
+    #             "di",
+    #             "fe",
+    #             "sa",
+    #             "anger",
+    #             "sadness",
+    #         ): 1,
+    #     }
 
     for dirname, _, filenames in os.walk("datasets/speech/AESDD"):
         for filename in filenames:
@@ -2095,22 +2093,27 @@ def load_AESDD(
                 sr=sr,
             )
             # label = filename.split("_")[-1].split(".")[0]
-            if split == None:
-                emotion = emotion_map[dirname]
-            else:
-                for k, i in enumerate(emotion_map.keys()):
-                    # label = filename.split("_")[-1].split(".")[0]
-                    if dirname in i:
-                        emotion = emotion_map[i]
+            label = dirname.split("/")[-1]
+
+            # original ranging spllit
+            emotion = emotion_map[label]
+
+            # if split == None:
+            #     emotion = emotion_map[label]
+            # else:
+            #     for k, i in enumerate(emotion_map.keys()):
+            #         # label = filename.split("_")[-1].split(".")[0]
+            #         if label in i:
+            #             emotion = emotion_map[i]
 
             x.append(feature)
             y.append(emotion)
             path.append(os.path.join(dirname, filename))
-            category.append(dirname)
+            category.append(label)
             audio.append(X)
             lengths.append(len(X))
-            if category.count(dirname) == 1:
-                visual4feature(os.path.join(dirname, filename), "AESDD", dirname)
+            if category.count(label) == 1:
+                visual4feature(os.path.join(dirname, filename), "AESDD", label)
 
         # if len(y) == 2800:
         #     break
@@ -2788,6 +2791,267 @@ def load_mix_corpus(
     return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
+def load_mix3_corpus(
+    method,
+    features,
+    n_mfcc,
+    n_mels,
+    scaled,
+    max_length,
+    reverse,
+    noise,
+    denoise,
+    window=None,
+    corpus=None,
+    sr=16000,
+):  # cc: mix, corpus: with only one string as the testing set
+
+    # 900+300, 900 train 300 val, 300 test
+    # 900/5=180, 300/5=60, 1200/5=240
+    # 300
+    datasets = ["RAVDESS", "TESS", "CREMA-D"]
+    emotion_map = {
+        ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+        ("03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"): 1,  # positive
+        (
+            "04",
+            "05",
+            "06",
+            "07",
+            "angry",
+            "disgust",
+            "fear",
+            "sad",
+            "a",
+            "d",
+            "f",
+            "sa",
+            "ang",
+            "dis",
+            "fea",
+            "sad",
+            "W",
+            "E",
+            "A",
+            "T",
+            "an",
+            "di",
+            "fe",
+            "sa",
+        ): 2,  # tuple can be hashed but list cannot
+    }
+    lengths, paths, audio, X_train, ytrain, X_val, yval, X_test, ytest = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
+    for index, dataset in enumerate(datasets):
+        x, y = [], []  # for each dataset
+        if dataset == "RAVDESS":
+            for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
+                # print(file)
+                file_name = os.path.basename(file)
+                for k, i in enumerate(emotion_map.keys()):
+                    if file_name.split("-")[2] in i:  # tuple
+                        emotion = emotion_map[i]
+                feature, X = get_features(
+                    dataset,
+                    method,
+                    file,
+                    features,
+                    n_mfcc=n_mfcc,
+                    n_mels=n_mels,
+                    max_length=max_length,
+                    window=window,
+                    sr=sr,
+                )
+                x.append(feature)
+                y.append(emotion)
+                paths.append(file)
+                audio.append(X)
+                lengths.append(len(X))
+        elif dataset == "TESS":
+            for dirname, _, filenames in os.walk("datasets/speech/TESS"):
+                for filename in filenames:
+                    feature, X = get_features(
+                        dataset,
+                        method,
+                        os.path.join(dirname, filename),
+                        features,
+                        n_mfcc=n_mfcc,
+                        n_mels=n_mels,
+                        max_length=max_length,
+                        window=window,
+                        sr=sr,
+                    )
+                    for k, i in enumerate(emotion_map.keys()):
+                        label = filename.split("_")[-1].split(".")[0]
+                        if label in i:
+                            emotion = emotion_map[i]
+                    x.append(feature)
+                    y.append(emotion)
+                    paths.append(os.path.join(dirname, filename))
+                    audio.append(X)
+                    lengths.append(len(X))
+        else:
+            path = f"datasets/speech/{dataset}"
+            for file in os.listdir(path):
+                feature, X = get_features(
+                    dataset,
+                    method,
+                    os.path.join(path, file),
+                    features,
+                    n_mfcc=n_mfcc,
+                    n_mels=n_mels,
+                    max_length=max_length,
+                    window=window,
+                    sr=sr,
+                )
+                # if dataset == "SAVEE":
+                #     label = file.split(".")[0].split("_")[-1][:-2]
+                # elif dataset == "CREMA-D":
+                #     label = file.split("_")[2].lower()
+                # elif dataset == "EmoDB":
+                #     label = file.split(".")[0][-2]
+                # elif dataset == "eNTERFACE":
+                #     if file[1] == "_":
+                #         label = file.split(".")[0].split("_")[-2]
+                #     else:
+                #         label = file.split(".")[0].split("_")[1]
+                if dataset == "CREMA-D":
+                    label = file.split("_")[2].lower()
+
+                for k, i in enumerate(emotion_map.keys()):
+                    if label in i:
+                        emotion = emotion_map[i]
+                x.append(feature)
+                y.append(emotion)
+                paths.append(os.path.join(path, file))
+                audio.append(X)
+                lengths.append(len(X))
+
+        # first reverse for each dataset, then get
+        # 200 for CREMA-D, RAVDESS, TESS of each
+        random.seed(123)
+        sample_index = random.sample([i for i in range(np.array(x).shape[0])], 200)
+
+        X_train = (
+            np.array(x)[sample_index, :]
+            if len(X_train) == 0
+            else np.concatenate((X_train, np.array(x)[sample_index, :]), axis=0)
+        )
+        ytrain = (
+            np.array(y)[sample_index].tolist()
+            if len(ytrain) == 0
+            else (ytrain + np.array(y)[sample_index].tolist())
+        )
+
+        if method != "wav2vec":
+            if scaled != None:
+                X_train = transform_feature(
+                    method, X_train, features, n_mfcc, n_mels, scaled
+                )
+
+        if reverse == True:
+            X_train, ytrain, audio, lengths = get_reverse(
+                X_train,
+                ytrain,
+                audio,
+                lengths,
+                paths,
+                "mix",
+                method,
+                features,
+                n_mfcc,
+                n_mels,
+                max_length,
+                100,
+                window,
+                sr,
+            )
+
+        if noise != None:
+            X_train, ytrain, audio, lengths = get_noise(
+                X_train,
+                ytrain,
+                audio,
+                lengths,
+                paths,
+                "mix",
+                method,
+                features,
+                n_mfcc,
+                n_mels,
+                max_length,
+                100,
+                window,
+                sr,
+                noise,
+            )
+
+        if denoise == True:
+            X_train, ytrain, audio, lengths = get_denoise(
+                X_train,
+                ytrain,
+                audio,
+                lengths,
+                emotion_map,
+                "mix",
+                method,
+                features,
+                n_mfcc,
+                n_mels,
+                max_length,
+                window,
+                sr,
+            )
+
+        # if (dataset == corpus[0]) or (corpus[0] == "eNTERFACE"):  # testing set
+        if dataset == corpus[0]:  # testing set
+            left_index = [
+                i for i in range(np.array(x).shape[0]) if i not in sample_index
+            ]
+            random.seed(123)
+            test_index = random.sample(left_index, 200)  # 200:200:200  -- 200
+            X_test = np.array(x)[test_index, :]  # 300,40
+            ytest = np.array(y)[test_index].tolist()
+
+    # after traversing all dataset
+    length = None
+    if method == "wav2vec":
+        length = max(lengths)
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            "facebook/wav2vec2-base", return_attention_mask=True
+        )
+        X_train = feature_extractor(
+            X_train,
+            sampling_rate=feature_extractor.sampling_rate,
+            max_length=length,
+            truncation=True,
+            padding=True,
+        )
+        X_test = feature_extractor(
+            X_test,
+            sampling_rate=feature_extractor.sampling_rate,
+            max_length=length,
+            truncation=True,
+            padding=True,
+        )
+        X_test = np.array(X_test["input_values"])
+
+    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+        X_train, ytrain, test_size=0.5, random_state=9
+    )  # 3:1  # 1200, 40  # 300,4
+
+    return X_train, ytrain, X_val, yval, X_test, ytest, length
+
+
 def load_split_corpus(
     method,
     features,
@@ -3085,36 +3349,96 @@ def load_split_corpus_size(
     # 900/5=180, 300/5=60, 1200/5=240
     # 300
     # datasets = ["RAVDESS", "TESS", "SAVEE", "CREMA-D", "EmoDB"]
-    emotion_map = {
-        ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
-        ("03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"): 1,  # positive
-        (
-            "04",
-            "05",
-            "06",
-            "07",
-            "angry",
-            "disgust",
-            "fear",
-            "sad",
-            "a",
-            "d",
-            "f",
-            "sa",
-            "ang",
-            "dis",
-            "fea",
-            "sad",
-            "W",
-            "E",
-            "A",
-            "T",
-            "an",
-            "di",
-            "fe",
-            "sa",
-        ): 2,  # tuple can be hashed but list cannot
-    }
+    if ("eNTERFACE" in set(corpus)) and ("AESDD" in set(corpus)):
+        emotion_map = {
+            # ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 0,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 1,  # tuple can be hashed but list cannot
+        }
+    else:
+        emotion_map = {
+            ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 1,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 2,  # tuple can be hashed but list cannot
+        }
     lengths, paths, audio, X_train, ytrain, X_val, yval, X_test, ytest = (
         [],
         [],
@@ -3188,8 +3512,9 @@ def load_split_corpus_size(
                         window=window,
                         sr=sr,
                     )
+                    label = dirname.split("/")[-1]
                     for k, i in enumerate(emotion_map.keys()):
-                        if dirname in i:
+                        if label in i:
                             emotion = emotion_map[i]
                     x.append(feature)
                     y.append(emotion)
@@ -4037,7 +4362,7 @@ def load_data(
                     split=split,
                 )
             elif dataset == "AESDD":
-                X_train, ytrain, X_val, yval, X_test, ytest, length = load_eNTERFACE(
+                X_train, ytrain, X_val, yval, X_test, ytest, length = load_AESDD(
                     method,
                     features=features,
                     n_mfcc=n_mfcc,
@@ -4054,8 +4379,27 @@ def load_data(
         else:
             if split == None:
                 if cc == "mix":
+                    # # use for original design of mixture of 5
+                    # X_train, ytrain, X_val, yval, X_test, ytest, length = (
+                    #     load_mix_corpus(
+                    #         method,
+                    #         features,
+                    #         n_mfcc,
+                    #         n_mels,
+                    #         scaled,
+                    #         max_length,
+                    #         reverse,
+                    #         noise,
+                    #         denoise,
+                    #         window=None,
+                    #         corpus=corpus,
+                    #         sr=sr,
+                    #     )
+                    # )
+
+                    # used for new design of ranging split case of 3
                     X_train, ytrain, X_val, yval, X_test, ytest, length = (
-                        load_mix_corpus(
+                        load_mix3_corpus(
                             method,
                             features,
                             n_mfcc,
