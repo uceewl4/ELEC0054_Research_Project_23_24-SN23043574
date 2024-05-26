@@ -198,7 +198,7 @@ class RNN(Model):
                             predictions = model(
                                 np.expand_dims(val_images, axis=2), training=True
                             )
-                            val_prob = tf.nn.sigmoid(predictions)
+                            val_prob = tf.nn.softmax(predictions)
                             val_pred += np.argmax(val_prob, axis=1).tolist()
                             yval += np.array(val_labels).tolist()
                             val_loss = self.loss_object(val_labels, predictions)
@@ -285,7 +285,7 @@ class RNN(Model):
             predictions = model(
                 np.expand_dims(test_images, axis=2), training=False
             )  # logits
-            test_prob = tf.nn.sigmoid(predictions)  # probability
+            test_prob = tf.nn.softmax(predictions)  # probability
             test_pred += np.argmax(test_prob, axis=1).tolist()
             ytest += np.array(test_labels).tolist()  # ground truth
 

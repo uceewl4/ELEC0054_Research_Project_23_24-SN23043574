@@ -162,7 +162,7 @@ class MLP(Model):
                     for val_images, val_labels in val_ds:
                         with tf.GradientTape() as tape:
                             predictions = model(val_images, training=True)
-                            val_prob = tf.nn.sigmoid(predictions)
+                            val_prob = tf.nn.softmax(predictions)
                             val_pred += np.argmax(val_prob, axis=1).tolist()
                             yval += np.array(val_labels).tolist()
                             val_loss = self.loss_object(val_labels, predictions)
@@ -240,7 +240,7 @@ class MLP(Model):
 
         for test_images, test_labels in test_ds:
             predictions = model(test_images, training=False)  # logits
-            test_prob = tf.nn.sigmoid(predictions)  # probability
+            test_prob = tf.nn.softmax(predictions)  # probability
             test_pred += np.argmax(test_prob, axis=1).tolist()
             ytest += np.array(test_labels).tolist()  # ground truth
 

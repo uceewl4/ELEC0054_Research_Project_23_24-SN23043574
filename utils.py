@@ -2017,67 +2017,67 @@ def load_AESDD(
     x, y, category, path, audio, lengths = [], [], [], [], [], []
 
     # original class of ranging split
-    emotion_map = {
-        "anger": 0,
-        "disgust": 1,
-        "fear": 2,
-        "happiness": 3,
-        "sadness": 4,
-    }
+    # emotion_map = {
+    #     "anger": 0,
+    #     "disgust": 1,
+    #     "fear": 2,
+    #     "happiness": 3,
+    #     "sadness": 4,
+    # }
 
-    # if split == None:
-    #     emotion_map = {
-    #         "anger": 0,
-    #         "disgust": 1,
-    #         "fear": 2,
-    #         "happiness": 3,
-    #         "sadness": 4,
-    #     }
-    # else:
-    #     emotion_map = {
-    #         # ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
-    #         (
-    #             "03",
-    #             "08",
-    #             "happy",
-    #             "ps",
-    #             "h",
-    #             "su",
-    #             "hap",
-    #             "F",
-    #             "ha",
-    #             "su",
-    #             "happiness",
-    #         ): 0,  # positive
-    #         (
-    #             "04",
-    #             "05",
-    #             "06",
-    #             "07",
-    #             "angry",
-    #             "disgust",
-    #             "fear",
-    #             "sad",
-    #             "a",
-    #             "d",
-    #             "f",
-    #             "sa",
-    #             "ang",
-    #             "dis",
-    #             "fea",
-    #             "sad",
-    #             "W",
-    #             "E",
-    #             "A",
-    #             "T",
-    #             "an",
-    #             "di",
-    #             "fe",
-    #             "sa",
-    #             "anger",
-    #             "sadness",
-    #         ): 1,
-    #     }
+    if split == None:
+        emotion_map = {
+            "anger": 0,
+            "disgust": 1,
+            "fear": 2,
+            "happiness": 3,
+            "sadness": 4,
+        }
+    else:
+        emotion_map = {
+            # ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
+            (
+                "03",
+                "08",
+                "happy",
+                "ps",
+                "h",
+                "su",
+                "hap",
+                "F",
+                "ha",
+                "su",
+                "happiness",
+            ): 0,  # positive
+            (
+                "04",
+                "05",
+                "06",
+                "07",
+                "angry",
+                "disgust",
+                "fear",
+                "sad",
+                "a",
+                "d",
+                "f",
+                "sa",
+                "ang",
+                "dis",
+                "fea",
+                "sad",
+                "W",
+                "E",
+                "A",
+                "T",
+                "an",
+                "di",
+                "fe",
+                "sa",
+                "anger",
+                "sadness",
+            ): 1,
+        }
 
     for dirname, _, filenames in os.walk("datasets/speech/AESDD"):
         for filename in filenames:
@@ -2096,15 +2096,15 @@ def load_AESDD(
             label = dirname.split("/")[-1]
 
             # original ranging spllit
-            emotion = emotion_map[label]
+            # emotion = emotion_map[label]
 
-            # if split == None:
-            #     emotion = emotion_map[label]
-            # else:
-            #     for k, i in enumerate(emotion_map.keys()):
-            #         # label = filename.split("_")[-1].split(".")[0]
-            #         if label in i:
-            #             emotion = emotion_map[i]
+            if split == None:
+                emotion = emotion_map[label]
+            else:
+                for k, i in enumerate(emotion_map.keys()):
+                    # label = filename.split("_")[-1].split(".")[0]
+                    if label in i:
+                        emotion = emotion_map[i]
 
             x.append(feature)
             y.append(emotion)
@@ -4831,6 +4831,8 @@ def visual4cm(
     tune_train_pred=None,
     ytune_val=None,
     tune_val_pred=None,
+    corpus=None,
+    split=None,
 ):
     # confusion matrix
     if cc != "finetune":
@@ -4871,9 +4873,19 @@ def visual4cm(
 
     if not os.path.exists(f"outputs/{task}/confusion_matrix/"):
         os.makedirs(f"outputs/{task}/confusion_matrix/")
-    fig.savefig(
-        f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}.png"
-    )
+
+    if (corpus != None) and (split != None):
+        fig.savefig(
+            f"outputs/{task}/confusion_matrix/{method}_{features}_cross_{corpus[0]}_{corpus[1]}_{split}.png"
+        )
+    elif (corpus == None) and (split != None):
+        fig.savefig(
+            f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}_{split}.png"
+        )
+    else:
+        fig.savefig(
+            f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}.png"
+        )
     plt.close()
 
 

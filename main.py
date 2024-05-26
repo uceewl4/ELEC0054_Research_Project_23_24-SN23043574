@@ -549,6 +549,8 @@ if __name__ == "__main__":
                 pred_train,
                 pred_val,
                 pred_test,
+                corpus=corpus,
+                split=split,
             )
 
     if method in ["LSTM", "CNN", "AlexNet"]:
