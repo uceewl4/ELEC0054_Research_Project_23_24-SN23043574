@@ -787,3 +787,20 @@
 #             f"datasets/speech/AESDD_reverse/{label}/{name}_reverse.wav",
 #             format="wav",
 #         )
+
+
+# importing the modules
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# generating 2-D 10x10 matrix of random numbers
+# from 1 to 100
+data = np.random.randint(low=1, high=100, size=(40, 10))
+
+print(data)
+# plotting the heatmap
+hm = sns.heatmap(data=data, annot=True)
+
+# displaying the plotted heatmap
+plt.show()

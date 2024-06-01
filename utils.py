@@ -15,6 +15,8 @@
 from pydub import AudioSegment
 import cv2
 from patchify import patchify
+import seaborn as sns
+import csv
 
 # import mediapipe as mp
 
@@ -630,6 +632,8 @@ def load_RAVDESS(
 
     visual4label("speech", "RAVDESS", category)
     print(np.array(x).shape)  # (864,40), (288,40), (288,40)
+    if method not in ["AlexNet", "CNN"]:
+        visual4corr(x, "RAVDESS")
 
     if method != "wav2vec":
         if scaled != None:
@@ -876,6 +880,8 @@ def load_TESS(
 
     visual4label("speech", "TESS", category)
     print(np.array(x).shape)
+    if method not in ["AlexNet", "CNN"]:
+        visual4corr(x, "TESS")
 
     if method != "wav2vec":
         if scaled != None:
@@ -1125,6 +1131,8 @@ def load_SAVEE(
 
     visual4label("speech", "SAVEE", category)
     print(np.array(x).shape)
+    if method not in ["AlexNet", "CNN"]:
+        visual4corr(x, "SAVEE")
 
     if method != "wav2vec":
         if scaled != None:
@@ -1373,6 +1381,8 @@ def load_CREMA(
 
     visual4label("speech", "CREMA", category)
     print(np.array(x).shape)
+    if method not in ["AlexNet", "CNN"]:
+        visual4corr(x, "CREMA-D")
 
     if method != "wav2vec":
         if scaled != None:
@@ -1622,6 +1632,8 @@ def load_EmoDB(
 
     visual4label("speech", "EmoDB", category)
     print(np.array(x).shape)
+    if method not in ["AlexNet", "CNN"]:
+        visual4corr(x, "EmoDB")
 
     if method != "wav2vec":
         if scaled != None:
@@ -1873,6 +1885,8 @@ def load_eNTERFACE(
 
     visual4label("speech", "eNTERFACE05", category)
     print(np.array(x).shape)
+    if method not in ["AlexNet", "CNN"]:
+        visual4corr(x, "eNTERFACE")
 
     if method != "wav2vec":
         if scaled != None:
@@ -2120,6 +2134,8 @@ def load_AESDD(
 
     visual4label("speech", "AESDD", category)
     print(np.array(x).shape)
+    if method not in ["AlexNet", "CNN"]:
+        visual4corr(x, "AESDD")
 
     if method != "wav2vec":
         if scaled != None:
@@ -5209,3 +5225,42 @@ def visual4label(task, dataset, category):
         os.makedirs(f"outputs/{task}/emotion_labels/")
     fig.savefig(f"outputs/{task}/emotion_labels/{dataset}.png")
     plt.close()
+
+
+def visual4corr(feature, dataset):
+    # print(feature)
+    # print(np.array(feature).shape)
+    fea = []
+    for i in feature:
+        fea.append(i.tolist())
+    corr_matrix = np.corrcoef(fea, rowvar=False)
+    # Finally if we use the option rowvar=False,
+    # the columns are now being treated as the variables and
+    # we will find the column-wise Pearson correlation
+    # coefficients between variables in xarr and yarr.
+
+    # print(corr_matrix)
+    # print(np.array(corr_matrix).shape)
+    plt.figure(figsize=(10, 8))
+    hm = sns.heatmap(data=corr_matrix, annot=False)
+    plt.title(f"Correlation matrix of {dataset}")
+    if not os.path.exists(f"outputs/speech/corr_matrix/"):
+        os.makedirs(f"outputs/speech/corr_matrix/")
+    plt.savefig(f"outputs/speech/corr_matrix/{dataset}.png")
+    plt.close()
+
+    # txt
+    filename = f"outputs/speech/corr_matrix/corr.csv"
+    if not os.path.isfile(filename):
+        with open(filename, "w") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(dataset)
+            for i in corr_matrix:
+                writer.writerow(i)
+    else:
+        with open(filename, "a") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow("\n")
+            writer.writerow(dataset)
+            for i in corr_matrix:
+                writer.writerow(i)
