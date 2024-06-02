@@ -12,11 +12,16 @@
 # here put the import lib
 
 # here put the import lib
+import math
 from pydub import AudioSegment
 import cv2
 from patchify import patchify
 import seaborn as sns
 import csv
+from imblearn.metrics import geometric_mean_score
+from imblearn.metrics import sensitivity_score
+from imblearn.metrics import specificity_score
+from imblearn.metrics import classification_report_imbalanced
 
 # import mediapipe as mp
 
@@ -36,7 +41,11 @@ from sklearn.utils import shuffle
 import matplotlib.colors as mcolors
 from sklearn.decomposition import PCA
 from sklearn.metrics import (
+    balanced_accuracy_score,
+    class_likelihood_ratios,
+    cohen_kappa_score,
     confusion_matrix,
+    matthews_corrcoef,
     roc_curve,
     silhouette_score,
     accuracy_score,
@@ -5019,6 +5028,54 @@ def get_metrics(task, y, pred):
             4,
         ),
     }
+    return result
+
+
+def get_imbalance(task, y, pred):
+    # mcc  [-1,1]
+    # geometric mean  [0,1]
+    # discriminant power
+    # balanced accuracy  [0,1]
+    # kappa [-1,1]
+    # youden's index
+    # likelihoods
+    # auroc
+    # classification report imbalance & IBA
+    sen = sensitivity_score(np.array(y).astype(int), pred.astype(int), average="macro")
+    spe = specificity_score(np.array(y).astype(int), pred.astype(int), average="macro")
+    X = sen / (1 - sen)
+    Y = spe / (1 - spe)
+    LR_pos = sen / (1 - spe)
+    LR_neg = (1 - sen) / spe
+    result = {
+        "mcc": round(matthews_corrcoef(np.array(y).astype(int), pred.astype(int)), 4),
+        "g-mean": round(
+            geometric_mean_score(
+                np.array(y).astype(int), pred.astype(int), average="macro"
+            )
+            * 100,
+            4,
+        ),
+        "discriminant-power": round(
+            (math.sqrt(3) * (math.log(X) + math.log(Y))) / math.pi, 4
+        ),
+        "balanced-accuracy": round(
+            balanced_accuracy_score(np.array(y).astype(int), pred.astype(int)) * 100,
+            4,
+        ),
+        "kappa": round(
+            cohen_kappa_score(np.array(y).astype(int), pred.astype(int)),
+            4,
+        ),
+        "yoden": round(
+            spe + sen - 1,
+            4,
+        ),
+        # "likelihood" : class_likelihood_ratios(np.array(y).astype(int), pred.astype(int)),
+        "likelihood": [round(LR_pos, 4), round(LR_neg, 4)],
+    }
+    print(classification_report_imbalanced(np.array(y).astype(int), pred.astype(int)))
+
     return result
 
 

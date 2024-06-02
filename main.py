@@ -18,6 +18,7 @@ import argparse
 import warnings
 import tensorflow as tf
 from utils import (
+    get_imbalance,
     load_data,
     load_model,
     get_metrics,
@@ -518,6 +519,16 @@ if __name__ == "__main__":
             }
         for i in res.items():
             print(i)
+
+        if split != None:
+            res_imbalance = {
+                "train_res_imbalance": get_imbalance(task, ytrain, pred_train),
+                "val_res_imbalance": get_imbalance(task, yval, pred_val),
+                "test_res_imbalance": get_imbalance(task, ytest, pred_test),
+            }
+            for i in res_imbalance.items():
+                print(i)
+
         if cc == "finetune":
             visual4cm(
                 task,

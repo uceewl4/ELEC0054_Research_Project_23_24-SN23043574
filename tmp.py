@@ -804,3 +804,6 @@ hm = sns.heatmap(data=data, annot=True)
 
 # displaying the plotted heatmap
 plt.show()
+
+# mcc
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.matthews_corrcoef.html
