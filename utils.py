@@ -39,7 +39,6 @@ from sklearn import tree
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 import matplotlib.colors as mcolors
-from sklearn.decomposition import PCA
 from sklearn.metrics import (
     balanced_accuracy_score,
     class_likelihood_ratios,

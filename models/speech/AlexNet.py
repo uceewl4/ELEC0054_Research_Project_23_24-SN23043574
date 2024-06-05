@@ -28,9 +28,6 @@ from tensorflow.keras.layers import (
     Flatten,
     Conv2D,
     Dropout,
-    Input,
-    SimpleRNN,
-    Bidirectional,
     MaxPooling2D,
 )
 
