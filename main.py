@@ -134,9 +134,14 @@ if __name__ == "__main__":
     sr = args.sr
     split = args.split
 
-    print(
-        f"Task: {task} emotion classification, Method: {method}, Cross-corpus: {args.cc}, Dataset: {dataset}, Features: {args.features}. "
-    )
+    if task == "speech":
+        print(
+            f"Task: {task} emotion classification, Method: {method}, Cross-corpus: {args.cc}, Dataset: {dataset}, Features: {args.features}. "
+        )
+    elif task == "image":
+        print(
+            f"Task: {task} emotion classification, Method: {method}, Cross-corpus: {args.cc}, Dataset: {dataset}, Landmark: {args.landmark}. "
+        )
 
     # data processing
     # if pre_data:
@@ -297,6 +302,7 @@ if __name__ == "__main__":
                 method,
                 cc,
                 dataset,
+                None,
                 batch_size=16,
                 # corpus=None,
                 landmark=args.landmark,
@@ -307,6 +313,7 @@ if __name__ == "__main__":
                 method,
                 cc,
                 dataset,
+                None,
                 batch_size=16,
                 # corpus=None,
                 landmark=args.landmark,
