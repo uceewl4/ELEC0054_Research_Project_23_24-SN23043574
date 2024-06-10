@@ -55,6 +55,7 @@ from sklearn.metrics import (
     auc,
 )
 import librosa
+from scipy.io import wavfile
 import soundfile
 import os, glob, pickle
 import numpy as np
@@ -527,7 +528,16 @@ def load_RAVDESS(
     sr=16000,
     split=None,
 ):
-    x, y, category, path, audio, lengths = [], [], [], [], [], []
+    x, y, category, path, audio, lengths, corr, corr_emo = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
 
     # if we use original class for ranging split
     # emotion_map = {
@@ -637,7 +647,10 @@ def load_RAVDESS(
         lengths.append(len(X))
         if category.count(category_map[file_name.split("-")[2]]) == 1:
             visual4feature(file, "RAVDESS", category_map[file_name.split("-")[2]])
+            corr.append(file)
+            corr_emo.append(category_map[file_name.split("-")[2]])
 
+    visual4corrs("RAVDESS", corr, corr_emo)
     visual4label("speech", "RAVDESS", category)
     print(np.array(x).shape)  # (864,40), (288,40), (288,40)
     if method not in ["AlexNet", "CNN"]:
@@ -783,7 +796,16 @@ def load_TESS(
     sr=16000,
     split=None,
 ):
-    x, y, category, path, audio, lengths = [], [], [], [], [], []
+    x, y, category, path, audio, lengths, corr, corr_emo = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
 
     # original class of ranging split
     # emotion_map = {
@@ -882,10 +904,13 @@ def load_TESS(
             lengths.append(len(X))
             if category.count(label.lower()) == 1:
                 visual4feature(os.path.join(dirname, filename), "TESS", label.lower())
+                corr.append(os.path.join(dirname, filename))
+                corr_emo.append(label.lower())
 
         if len(y) == 2800:
             break
 
+    visual4corrs("TESS", corr, corr_emo)
     visual4label("speech", "TESS", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -1030,7 +1055,16 @@ def load_SAVEE(
     sr=16000,
     split=None,
 ):
-    x, y, category, paths, audio, lengths = [], [], [], [], [], []
+    x, y, category, paths, audio, lengths, corr, corr_emo = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
 
     # original class ranging split
     # emotion_map = {
@@ -1136,7 +1170,10 @@ def load_SAVEE(
         lengths.append(len(X))
         if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
+            corr.append(os.path.join(path, file))
+            corr_emo.append(category_map[label])
 
+    visual4corrs("SAVEE", corr, corr_emo)
     visual4label("speech", "SAVEE", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -1281,7 +1318,16 @@ def load_CREMA(
     sr=16000,
     split=None,
 ):
-    x, y, category, paths, audio, lengths = [], [], [], [], [], []
+    x, y, category, paths, audio, lengths, corr, corr_emo = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
     # original class ranging split
     # emotion_map = {
     #     "ang": 0,  # angry
@@ -1386,7 +1432,10 @@ def load_CREMA(
             visual4feature(
                 os.path.join(path, file), "CREMA-D", category_map[label.lower()]
             )
+            corr.append(os.path.join(path, file))
+            corr_emo.append(category_map[label.lower()])
 
+    visual4corrs("CREMA", corr, corr_emo)
     visual4label("speech", "CREMA", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -1531,7 +1580,16 @@ def load_EmoDB(
     sr=16000,
     split=None,
 ):
-    x, y, category, paths, audio, lengths = [], [], [], [], [], []
+    x, y, category, paths, audio, lengths, corr, corr_emo = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
     # original class ranging split
 
     # emotion_map = {
@@ -1637,7 +1695,10 @@ def load_EmoDB(
         lengths.append(len(X))
         if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "EmoDB", category_map[label])
+            corr.append(os.path.join(path, file))
+            corr_emo.append(category_map[label])
 
+    visual4corrs("EmoDB", corr, corr_emo)
     visual4label("speech", "EmoDB", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -1782,7 +1843,16 @@ def load_eNTERFACE(
     sr=16000,
     split=None,
 ):
-    x, y, category, paths, audio, lengths = [], [], [], [], [], []
+    x, y, category, paths, audio, lengths, corr, corr_emo = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
     # original class ranging split
     # emotion_map = {
     #     "an": 0,  # angry
@@ -1890,7 +1960,10 @@ def load_eNTERFACE(
         lengths.append(len(X))
         if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "eNTERFACE", category_map[label])
+            corr.append(os.path.join(path, file))
+            corr_emo.append(category_map[label])
 
+    visual4corrs("eNTERFACE", corr, corr_emo)
     visual4label("speech", "eNTERFACE05", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -2036,7 +2109,16 @@ def load_AESDD(
     sr=16000,
     split=None,
 ):
-    x, y, category, path, audio, lengths = [], [], [], [], [], []
+    x, y, category, path, audio, lengths, corr, corr_emo = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
 
     # original class of ranging split
     # emotion_map = {
@@ -2136,10 +2218,11 @@ def load_AESDD(
             lengths.append(len(X))
             if category.count(label) == 1:
                 visual4feature(os.path.join(dirname, filename), "AESDD", label)
-
+                corr.append(os.path.join(dirname, filename))
+                corr_emo.append(label)
         # if len(y) == 2800:
         #     break
-
+    visual4corrs("AESDD", corr, corr_emo)
     visual4label("speech", "AESDD", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -5320,3 +5403,39 @@ def visual4corr(feature, dataset):
             writer.writerow(dataset)
             for i in corr_matrix:
                 writer.writerow(i)
+
+
+def visual4corrs(dataset, corr, corr_emo):
+    for index_i, i in enumerate(corr):
+        for index_j, j in enumerate(corr):
+            if index_i != index_j:
+                sample_rate, data1 = wavfile.read(i)
+                sample_rate, data2 = wavfile.read(j)
+                if dataset == "eNTERFACE":
+                    data1 = data1[:, 0]
+                    data2 = data2[:, 0]
+                data1 = data1.astype(float)
+                data2 = data2.astype(float)
+                data1 /= np.max(np.abs(data1))
+                data2 /= np.max(np.abs(data2))
+
+                correlation = np.correlate(data1, data2, mode="full")
+                lags = np.arange(-len(data1) + 1, len(data2))
+
+                # Plot the cross-correlation
+                plt.figure(figsize=(10, 5))
+                fig, (ax1, ax2, ax_corr) = plt.subplots(3, 1, sharex=True)
+                ax1.plot(data1)
+                ax2.plot(data2)
+                plt.title(
+                    f"Cross-Correlation of {corr_emo[index_i]} and {corr_emo[index_j]} in {dataset}"
+                )
+                ax_corr.plot(lags, correlation)
+                plt.xlabel("Lag")
+                plt.ylabel("Correlation")
+                if not os.path.exists(f"outputs/speech/corr_signal/"):
+                    os.makedirs(f"outputs/speech/corr_signal/")
+                fig.savefig(
+                    f"outputs/speech/corr_signal/{dataset}_{corr_emo[index_i]}_{corr_emo[index_j]}.png"
+                )
+                plt.close()

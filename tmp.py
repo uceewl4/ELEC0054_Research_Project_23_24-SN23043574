@@ -789,21 +789,62 @@
 #         )
 
 
-# importing the modules
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
+# # importing the modules
+# import numpy as np
+# import seaborn as sns
+# import matplotlib.pyplot as plt
 
-# generating 2-D 10x10 matrix of random numbers
-# from 1 to 100
-data = np.random.randint(low=1, high=100, size=(40, 10))
+# # generating 2-D 10x10 matrix of random numbers
+# # from 1 to 100
+# data = np.random.randint(low=1, high=100, size=(40, 10))
 
-print(data)
-# plotting the heatmap
-hm = sns.heatmap(data=data, annot=True)
+# print(data)
+# # plotting the heatmap
+# hm = sns.heatmap(data=data, annot=True)
 
-# displaying the plotted heatmap
-plt.show()
+# # displaying the plotted heatmap
+# plt.show()
 
 # mcc
 # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.matthews_corrcoef.html
+
+
+# # Function to read audio file
+# def read_audio(filename):
+#     sample_rate, data = wavfile.read(filename)
+#     return sample_rate, data
+
+
+# # Function to normalize audio data
+# def normalize(data):
+#     return data / np.max(np.abs(data))
+
+
+# # Read the two audio files
+# sample_rate1, data1 = read_audio("datasets/speech/TESS/OAF_angry/OAF_back_angry.wav")
+# sample_rate2, data2 = read_audio(
+#     "datasets/speech/TESS/OAF_disgust/OAF_back_disgust.wav"
+# )
+
+# # Ensure both audio files have the same sample rate
+# if sample_rate1 != sample_rate2:
+#     raise ValueError("Sample rates of the two audio files do not match.")
+
+# # Normalize the audio data
+# data1 = normalize(data1)
+# data2 = normalize(data2)
+
+# # Compute the cross-correlation
+# correlation = np.correlate(data1, data2, mode="full")
+# lags = np.arange(-len(data1) + 1, len(data2))
+
+# # Plot the cross-correlation
+# plt.figure(figsize=(10, 5))
+# fig, (ax1, ax2, ax_corr) = plt.subplots(3, 1, sharex=True)
+# ax_corr.plot(lags, correlation)
+# ax1.plot(data1)
+# ax2.plot(data2)
+# plt.title("Cross-Correlation of Two Audio Signals")
+# plt.xlabel("Lag")
+# plt.ylabel("Correlation")
+# plt.savefig("corr.png")
