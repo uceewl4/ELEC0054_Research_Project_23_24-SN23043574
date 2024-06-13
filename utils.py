@@ -649,8 +649,15 @@ def load_RAVDESS(
             visual4feature(file, "RAVDESS", category_map[file_name.split("-")[2]])
             corr.append(file)
             corr_emo.append(category_map[file_name.split("-")[2]])
+        if category.count(category_map[file_name.split("-")[2]]) == 2:
+            index = category.index(
+                category_map[file_name.split("-")[2]]
+            )  # find the index of the first one
+            visual4corr3(
+                "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
+            )
 
-    visual4corrs("RAVDESS", corr, corr_emo)
+    visual4corr2("RAVDESS", corr, corr_emo)
     visual4label("speech", "RAVDESS", category)
     print(np.array(x).shape)  # (864,40), (288,40), (288,40)
     if method not in ["AlexNet", "CNN"]:
@@ -910,7 +917,7 @@ def load_TESS(
         if len(y) == 2800:
             break
 
-    visual4corrs("TESS", corr, corr_emo)
+    visual4corr2("TESS", corr, corr_emo)
     visual4label("speech", "TESS", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -1173,7 +1180,7 @@ def load_SAVEE(
             corr.append(os.path.join(path, file))
             corr_emo.append(category_map[label])
 
-    visual4corrs("SAVEE", corr, corr_emo)
+    visual4corr2("SAVEE", corr, corr_emo)
     visual4label("speech", "SAVEE", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -1435,7 +1442,7 @@ def load_CREMA(
             corr.append(os.path.join(path, file))
             corr_emo.append(category_map[label.lower()])
 
-    visual4corrs("CREMA", corr, corr_emo)
+    visual4corr2("CREMA", corr, corr_emo)
     visual4label("speech", "CREMA", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -1698,7 +1705,7 @@ def load_EmoDB(
             corr.append(os.path.join(path, file))
             corr_emo.append(category_map[label])
 
-    visual4corrs("EmoDB", corr, corr_emo)
+    visual4corr2("EmoDB", corr, corr_emo)
     visual4label("speech", "EmoDB", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -1963,7 +1970,7 @@ def load_eNTERFACE(
             corr.append(os.path.join(path, file))
             corr_emo.append(category_map[label])
 
-    visual4corrs("eNTERFACE", corr, corr_emo)
+    visual4corr2("eNTERFACE", corr, corr_emo)
     visual4label("speech", "eNTERFACE05", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -2222,7 +2229,7 @@ def load_AESDD(
                 corr_emo.append(label)
         # if len(y) == 2800:
         #     break
-    visual4corrs("AESDD", corr, corr_emo)
+    visual4corr2("AESDD", corr, corr_emo)
     visual4label("speech", "AESDD", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
@@ -5412,7 +5419,7 @@ def visual4corr(feature, dataset):
                 writer.writerow(i)
 
 
-def visual4corrs(dataset, corr, corr_emo):
+def visual4corr2(dataset, corr, corr_emo):
     for index_i, i in enumerate(corr):
         for index_j, j in enumerate(corr):
             if index_i != index_j:
@@ -5446,3 +5453,32 @@ def visual4corrs(dataset, corr, corr_emo):
                     f"outputs/speech/corr_signal/{dataset}_{corr_emo[index_i]}_{corr_emo[index_j]}.png"
                 )
                 plt.close()
+
+
+def visual4corr3(dataset, file1, file2, emotion):
+    sample_rate, data1 = wavfile.read(file1)
+    sample_rate, data2 = wavfile.read(file2)
+    if dataset == "eNTERFACE":
+        data1 = data1[:, 0]
+        data2 = data2[:, 0]
+    data1 = data1.astype(float)
+    data2 = data2.astype(float)
+    data1 /= np.max(np.abs(data1))
+    data2 /= np.max(np.abs(data2))
+
+    correlation = np.correlate(data1, data2, mode="full")
+    lags = np.arange(-len(data1) + 1, len(data2))
+
+    # Plot the cross-correlation
+    plt.figure(figsize=(10, 5))
+    fig, (ax1, ax2, ax_corr) = plt.subplots(3, 1, sharex=True)
+    ax1.plot(data1)
+    ax2.plot(data2)
+    plt.title(f"Cross-Correlation of {emotion} in {dataset}")
+    ax_corr.plot(lags, correlation)
+    plt.xlabel("Lag")
+    plt.ylabel("Correlation")
+    if not os.path.exists(f"outputs/speech/corr_signal2/"):
+        os.makedirs(f"outputs/speech/corr_signal2/")
+    fig.savefig(f"outputs/speech/corr_signal/{dataset}_{emotion}.png")
+    plt.close()
