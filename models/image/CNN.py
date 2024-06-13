@@ -216,7 +216,6 @@ class CNN(Model):
         test_prob = tf.nn.softmax(test_predictions)  # probabilities
         test_pred += np.argmax(test_prob, axis=1).tolist()
         test_pred = np.array(test_pred)
-        test_pred = np.array(test_pred)
 
         end_time_test = time.time()
         elapsed_time_test = end_time_test - start_time_test

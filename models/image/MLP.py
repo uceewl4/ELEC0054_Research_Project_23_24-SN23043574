@@ -40,10 +40,13 @@ class MLP(Model):
         self.cc = cc
         self.method = method
         self.task = task
+        self.finetune = True if cc == "finetune" else False
 
         self.model = Sequential(
             [
-                Dense(256, activation="relu", input_shape=(h,)),
+                Dense(1024, activation="relu", input_shape=(h,)),
+                Dense(512, activation="relu"),
+                Dense(256, activation="relu"),
                 Dense(128, activation="relu"),
                 Dropout(0.2),
                 Dense(64, activation="relu"),

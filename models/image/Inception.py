@@ -25,6 +25,19 @@ from tensorflow.keras.layers import (
     Dropout,
     BatchNormalization,
 )
+
+# from tensorflow.keras.layers import Activation, Convolution2D, Dropout, Conv2D
+# from tensorflow.keras.layers import AveragePooling2D, BatchNormalization
+# from tensorflow.keras.layers import GlobalAveragePooling2D
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import Flatten
+# from tensorflow.keras.models import Model
+# from tensorflow.keras.layers import Input
+# from tensorflow.keras.layers import MaxPooling2D
+# from tensorflow.keras.layers import SeparableConv2D
+# from tensorflow.keras import layers
+# from tensorflow.keras.regularizers import l2
+
 from tensorflow.keras.layers import Activation, Convolution2D, Dropout, Conv2D
 from tensorflow.keras.layers import AveragePooling2D, BatchNormalization
 from tensorflow.keras.layers import GlobalAveragePooling2D
@@ -33,9 +46,9 @@ from tensorflow.keras.layers import Flatten
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input
 from tensorflow.keras.layers import MaxPooling2D
-from tensorflow.keras.layers import SeparableConv2D
+from keras.layers import SeparableConv2D
 from tensorflow.keras import layers
-from tensorflow.keras.regularizers import l2
+from keras.regularizers import l2
 
 
 class Inception(Model):
@@ -64,10 +77,10 @@ class Inception(Model):
         self.model.summary()
         # self.model.build((None, shape, length, 1))  # change
 
-        self.output_layer = tf.keras.models.Model(
-            inputs=self.model.layers[0].input,
-            outputs=self.model.get_layer("outputs").output,
-        )
+        # self.output_layer = tf.keras.models.Model(
+        #     inputs=self.model.layers[0].input,
+        #     outputs=self.model.get_layer("outputs").output,
+        # )
 
         # objective function: sparse categorical cross entropy for mutliclass classification
         # notice that here the loss is calculated from logits, no need to set activation function for the output layer
@@ -81,7 +94,7 @@ class Inception(Model):
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
     # 40x40 input into mini-xception
-    def mini_XCEPTION(input_shape, num_classes, l2_regularization=0.01):
+    def mini_XCEPTION(self, input_shape, num_classes, l2_regularization=0.01):
         regularization = l2(l2_regularization)
 
         # base, 7 classes
@@ -111,7 +124,7 @@ class Inception(Model):
             16,
             (3, 3),
             padding="same",
-            kernel_regularizer=regularization,
+            depthwise_regularizer=regularization,
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
@@ -120,7 +133,7 @@ class Inception(Model):
             16,
             (3, 3),
             padding="same",
-            kernel_regularizer=regularization,
+            depthwise_regularizer=regularization,
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
@@ -136,7 +149,7 @@ class Inception(Model):
             32,
             (3, 3),
             padding="same",
-            kernel_regularizer=regularization,
+            depthwise_regularizer=regularization,
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
@@ -145,7 +158,7 @@ class Inception(Model):
             32,
             (3, 3),
             padding="same",
-            kernel_regularizer=regularization,
+            depthwise_regularizer=regularization,
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
@@ -160,7 +173,7 @@ class Inception(Model):
             64,
             (3, 3),
             padding="same",
-            kernel_regularizer=regularization,
+            depthwise_regularizer=regularization,
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
@@ -169,7 +182,7 @@ class Inception(Model):
             64,
             (3, 3),
             padding="same",
-            kernel_regularizer=regularization,
+            depthwise_regularizer=regularization,
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
@@ -187,7 +200,7 @@ class Inception(Model):
             128,
             (3, 3),
             padding="same",
-            kernel_regularizer=regularization,
+            depthwise_regularizer=regularization,
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
@@ -196,7 +209,7 @@ class Inception(Model):
             128,
             (3, 3),
             padding="same",
-            kernel_regularizer=regularization,
+            depthwise_regularizer=regularization,
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
@@ -208,7 +221,7 @@ class Inception(Model):
         x = Conv2D(
             num_classes,  # take num of classes and do global average pooling
             (3, 3),
-            # kernel_regularizer=regularization,
+            kernel_regularizer=regularization,
             padding="same",
         )(x)
         x = GlobalAveragePooling2D()(x)  # take average of all values
@@ -247,6 +260,7 @@ class Inception(Model):
 
         # get predictions
         # train_predictions = self.output_layer.predict(x=Xtrain)
+        train_predictions = self.model.predict(x=Xtrain)
         # train_prob = tf.nn.softmax(train_predictions)
         train_pred += np.argmax(train_predictions, axis=1).tolist()
         train_pred = np.array(train_pred)
@@ -255,7 +269,8 @@ class Inception(Model):
             "train_acc": history.history["accuracy"],
         }
 
-        val_predictions = self.output_layer.predict(x=Xval)
+        val_predictions = self.model.predict(x=Xval)
+        # val_predictions = self.output_layer.predict(x=Xval)
         # val_prob = tf.nn.softmax(val_predictions)
         val_pred += np.argmax(val_predictions, axis=1).tolist()
         val_pred = np.array(val_pred)
@@ -335,9 +350,10 @@ class Inception(Model):
         start_time_test = time.time()
         test_pred = []
         test_loss, test_acc = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
-        test_predictions = self.output_layer.predict(x=Xtest)
+        # test_predictions = self.output_layer.predict(x=Xtest)
+        test_predictions = self.model.predict(x=Xtest)
         # test_prob = tf.nn.softmax(test_predictions)  # probabilities
-        test_pred += np.argmax(test_predicions, axis=1).tolist()
+        test_pred += np.argmax(test_predictions, axis=1).tolist()
         test_pred = np.array(test_pred)
         test_pred = np.array(test_pred)
 

@@ -1,3 +1,12 @@
+"""
+Author: uceewl4 uceewl4@ucl.ac.uk
+Date: 2024-06-13 04:30:30
+LastEditors: uceewl4 uceewl4@ucl.ac.uk
+LastEditTime: 2024-06-13 04:30:53
+FilePath: /ELEC0054_Research_Project_23_24-SN23043574/utils.py
+Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+"""
+
 # -*- encoding: utf-8 -*-
 """
 @File    :   utils.py
@@ -913,6 +922,11 @@ def load_TESS(
                 visual4feature(os.path.join(dirname, filename), "TESS", label.lower())
                 corr.append(os.path.join(dirname, filename))
                 corr_emo.append(label.lower())
+            if category.count(label.lower()) == 2:
+                index = category.index(label.lower())  # find the index of the first one
+                visual4corr3(
+                    "TESS", path[index], os.path.join(dirname, filename), label.lower()
+                )
 
         if len(y) == 2800:
             break
@@ -1179,6 +1193,13 @@ def load_SAVEE(
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
             corr.append(os.path.join(path, file))
             corr_emo.append(category_map[label])
+        if category.count(category_map[label]) == 2:
+            index = category.index(
+                category_map[label]
+            )  # find the index of the first one
+            visual4corr3(
+                "SAVEE", paths[index], os.path.join(path, file), category_map[label]
+            )
 
     visual4corr2("SAVEE", corr, corr_emo)
     visual4label("speech", "SAVEE", category)
@@ -1441,6 +1462,16 @@ def load_CREMA(
             )
             corr.append(os.path.join(path, file))
             corr_emo.append(category_map[label.lower()])
+        if category.count(category_map[label.lower()]) == 2:
+            index = category.index(
+                category_map[label.lower()]
+            )  # find the index of the first one
+            visual4corr3(
+                "CREMA",
+                paths[index],
+                os.path.join(path, file),
+                category_map[label.lower()],
+            )
 
     visual4corr2("CREMA", corr, corr_emo)
     visual4label("speech", "CREMA", category)
@@ -1704,6 +1735,13 @@ def load_EmoDB(
             visual4feature(os.path.join(path, file), "EmoDB", category_map[label])
             corr.append(os.path.join(path, file))
             corr_emo.append(category_map[label])
+        if category.count(category_map[label]) == 2:
+            index = category.index(
+                category_map[label]
+            )  # find the index of the first one
+            visual4corr3(
+                "EmoDB", paths[index], os.path.join(path, file), category_map[label]
+            )
 
     visual4corr2("EmoDB", corr, corr_emo)
     visual4label("speech", "EmoDB", category)
@@ -1969,6 +2007,13 @@ def load_eNTERFACE(
             visual4feature(os.path.join(path, file), "eNTERFACE", category_map[label])
             corr.append(os.path.join(path, file))
             corr_emo.append(category_map[label])
+        if category.count(category_map[label]) == 2:
+            index = category.index(
+                category_map[label]
+            )  # find the index of the first one
+            visual4corr3(
+                "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
+            )
 
     visual4corr2("eNTERFACE", corr, corr_emo)
     visual4label("speech", "eNTERFACE05", category)
@@ -2227,6 +2272,11 @@ def load_AESDD(
                 visual4feature(os.path.join(dirname, filename), "AESDD", label)
                 corr.append(os.path.join(dirname, filename))
                 corr_emo.append(label)
+            if category.count(label) == 2:
+                index = category.index(label)  # find the index of the first one
+                visual4corr3(
+                    "AESDD", path[index], os.path.join(dirname, filename), label
+                )
         # if len(y) == 2800:
         #     break
     visual4corr2("AESDD", corr, corr_emo)
@@ -4164,7 +4214,7 @@ def get_face_landmarks(image):
     return image
 
 
-def load_CK(landmark=False):
+def load_CK(method, landmark=False):
     X, y = [], []
     emotion_map = {
         "anger": 0,
@@ -4181,16 +4231,23 @@ def load_CK(landmark=False):
             img = cv2.imread(os.path.join(dirname, filename))
             label = dirname.split("/")[-1]
             if landmark == False:
-                X.append(img)  # grayscale
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                X.append(img)  # grayscale
+
             else:  # MLP
                 face_landmarks = get_face_landmarks(img)
                 X.append(face_landmarks)
             y.append(emotion_map[label])  # anger
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
+    num_classes = len(set(y))
     if landmark == False:
-        n, h, w, d = np.array(X).shape  # expected: 48x48x1
+        n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        if method == "MLP":
+            X = np.array(X).reshape((n, h * w)).tolist()
+            h = h * w
     X_train, X_left, ytrain, yleft = train_test_split(
         np.array(X),
         y,
@@ -4202,18 +4259,18 @@ def load_CK(landmark=False):
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
 
-    if landmark == "False":
+    if landmark == False:
         # np.array() format for X now
-        return X_train, ytrain, X_val, yval, X_test, ytest, h  # shape 48
+        return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
     else:
         np.savetxt(
             "outputs/image/landmark_CK.txt",
             np.asarray(X),
         )
-        return X_train, ytrain, X_val, yval, X_test, ytest
+        return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
 
 
-def load_FER(landmark=False):
+def load_FER(method, landmark=False):
     X, y = [], []
     emotion_map = {
         "angry": 0,
@@ -4232,8 +4289,8 @@ def load_FER(landmark=False):
             for file in os.listdir(sec_path):
                 img = cv2.imread(os.path.join(sec_path, file))
                 if landmark == False:
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     X.append(img)  # grayscale
-                    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 else:  # MLP
                     face_landmarks = get_face_landmarks(img)
                     X.append(face_landmarks)
@@ -4242,7 +4299,11 @@ def load_FER(landmark=False):
     X, y = shuffle(X, y, random_state=42)  # shuffle
     num_classes = len(set(y))
     if landmark == False:
-        n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        if method == "MLP":
+            X = np.array(X).reshape((n, h * w)).tolist()
+            h = h * w
     X_train, X_left, ytrain, yleft = train_test_split(
         np.array(X),
         y,
@@ -4265,7 +4326,7 @@ def load_FER(landmark=False):
         return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
 
 
-def load_RAF(landmark=False):
+def load_RAF(method, landmark=False):
     X, y = [], []
     emotion_map = {
         "1": 0,
@@ -4284,16 +4345,21 @@ def load_RAF(landmark=False):
             for file in os.listdir(sec_path):
                 img = cv2.imread(os.path.join(sec_path, file))
                 if landmark == False:
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     X.append(img)  # grayscale
-                    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 else:  # MLP
                     face_landmarks = get_face_landmarks(img)
                     X.append(face_landmarks)
                 y.append(emotion_map[secdir])  # anger
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
-    n, h, w, d = np.array(X).shape if landmark == False else h == None
-    # expected: 48x48x1
+    num_classes = len(set(y))
+    if landmark == False:
+        n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        if method == "MLP":
+            X = np.array(X).reshape((n, h * w)).tolist()
+            h = h * w
     X_train, X_left, ytrain, yleft = train_test_split(
         np.array(X),
         y,
@@ -4305,13 +4371,15 @@ def load_RAF(landmark=False):
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
 
-    if landmark == True:
+    if landmark == False:
+        # np.array() format for X now
+        return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
+    else:
         np.savetxt(
             "outputs/image/landmark_RAF.txt",
             np.asarray(X),
         )
-        # np.array() format for X now
-    return X_train, ytrain, X_val, yval, X_test, ytest, h  # shape 48
+        return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
 
 
 def load_patches(X):
@@ -4647,15 +4715,15 @@ def load_data(
     elif task == "image":
         if dataset == "CK":
             X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_CK(
-                landmark
+                method, landmark
             )
         elif dataset == "FER":
             X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_FER(
-                landmark
+                method, landmark
             )
         elif dataset == "RAF":
             X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_RAF(
-                landmark
+                method, landmark
             )
         if method == "ViT":
             # Xtrain, ytrain = sample_ViT(Xtrain, ytrain, ntrain)
@@ -4666,9 +4734,9 @@ def load_data(
             Xval = load_patches(Xval)
             Xtest = load_patches(Xtest)
 
-        if method in ["CNN", "Inception"]:
+        if method in ["CNN", "Inception", "MLP"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
-        elif method in ["MLP", "ViT"]:
+        elif method in ["ViT"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
 
     # dataset: CK/FER/RAF
@@ -5480,5 +5548,5 @@ def visual4corr3(dataset, file1, file2, emotion):
     plt.ylabel("Correlation")
     if not os.path.exists(f"outputs/speech/corr_signal2/"):
         os.makedirs(f"outputs/speech/corr_signal2/")
-    fig.savefig(f"outputs/speech/corr_signal/{dataset}_{emotion}.png")
+    fig.savefig(f"outputs/speech/corr_signal2/{dataset}_{emotion}.png")
     plt.close()

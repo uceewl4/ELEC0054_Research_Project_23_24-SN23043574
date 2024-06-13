@@ -296,8 +296,8 @@ if __name__ == "__main__":
                 sr=sr,
             )
     elif task == "image":
-        if method in ["CNN", "Inception"]:
-            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_data(
+        if method in ["CNN", "Inception", "MLP"]:
+            Xtrain, ytrain, Xval, yval, Xtest, ytest, h, num_classes = load_data(
                 task,
                 method,
                 cc,
@@ -307,8 +307,8 @@ if __name__ == "__main__":
                 # corpus=None,
                 landmark=args.landmark,
             )
-        elif method in ["MLP"]:
-            X_train, ytrain, X_val, yval, X_test, ytest, num_classes = load_data(
+        elif method in ["ViT"]:
+            Xtrain, ytrain, Xval, yval, Xtest, ytest, num_classes = load_data(
                 task,
                 method,
                 cc,
@@ -395,12 +395,12 @@ if __name__ == "__main__":
             model = load_model(
                 task,
                 method,
-                cc,
-                h,
-                num_classes,
+                cc=cc,
+                num_classes=num_classes,
                 epochs=args.epochs,
                 lr=args.lr,
                 batch_size=args.batch_size,
+                h=h,
             )
         elif method == "ViT":
             pass
@@ -495,7 +495,7 @@ if __name__ == "__main__":
                     Xtune_val,
                     ytune_val,
                 )
-            pred_test, ytest = model.test(model, test_ds)
+            ytest, pred_test = model.test(Xtest, ytest)
 
     # metrics and visualization
     # hyperparameters selection
