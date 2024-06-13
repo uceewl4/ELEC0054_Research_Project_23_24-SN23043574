@@ -4233,8 +4233,9 @@ def load_FER(landmark=False):
                 y.append(emotion_map[secdir])  # anger
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
+    num_classes = len(set(y))
     if landmark == False:
-        n, h, w, d = np.array(X).shape  # expected: 48x48x1
+        n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
     X_train, X_left, ytrain, yleft = train_test_split(
         np.array(X),
         y,
@@ -4246,15 +4247,15 @@ def load_FER(landmark=False):
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
 
-    if landmark == "False":
+    if landmark == False:
         # np.array() format for X now
-        return X_train, ytrain, X_val, yval, X_test, ytest, h  # shape 48
+        return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
     else:
         np.savetxt(
             "outputs/image/landmark_FER.txt",
             np.asarray(X),
         )
-        return X_train, ytrain, X_val, yval, X_test, ytest
+        return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
 
 
 def load_RAF(landmark=False):
@@ -4638,11 +4639,17 @@ def load_data(
 
     elif task == "image":
         if dataset == "CK":
-            X_train, ytrain, X_val, yval, X_test, ytest, h = load_CK(landmark)
+            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_CK(
+                landmark
+            )
         elif dataset == "FER":
-            X_train, ytrain, X_val, yval, X_test, ytest, h = load_FER(landmark)
+            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_FER(
+                landmark
+            )
         elif dataset == "RAF":
-            X_train, ytrain, X_val, yval, X_test, ytest, h = load_RAF(landmark)
+            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_RAF(
+                landmark
+            )
         if method == "ViT":
             # Xtrain, ytrain = sample_ViT(Xtrain, ytrain, ntrain)
             # Xval, yval = sample_ViT(Xval, yval, nval)
@@ -4653,9 +4660,9 @@ def load_data(
             Xtest = load_patches(Xtest)
 
         if method in ["CNN", "Inception"]:
-            return X_train, ytrain, X_val, yval, X_test, ytest, h
+            return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
         elif method in ["MLP", "ViT"]:
-            return X_train, ytrain, X_val, yval, X_test, ytest
+            return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
 
     # dataset: CK/FER/RAF
     # file = os.listdir(path)

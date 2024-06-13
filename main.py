@@ -297,7 +297,7 @@ if __name__ == "__main__":
             )
     elif task == "image":
         if method in ["CNN", "Inception"]:
-            X_train, ytrain, X_val, yval, X_test, ytest, h = load_data(
+            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_data(
                 task,
                 method,
                 cc,
@@ -308,7 +308,7 @@ if __name__ == "__main__":
                 landmark=args.landmark,
             )
         elif method in ["MLP"]:
-            X_train, ytrain, X_val, yval, X_test, ytest = load_data(
+            X_train, ytrain, X_val, yval, X_test, ytest, num_classes = load_data(
                 task,
                 method,
                 cc,
