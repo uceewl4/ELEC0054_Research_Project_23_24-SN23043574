@@ -32,7 +32,7 @@ from imblearn.metrics import sensitivity_score
 from imblearn.metrics import specificity_score
 from imblearn.metrics import classification_report_imbalanced
 
-# import mediapipe as mp
+import mediapipe as mp
 
 from transformers import AutoFeatureExtractor
 import noisereduce as nr
@@ -4167,51 +4167,51 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
 # def get_face_landmarks(image, draw=False, static_image_mode=True):
 def get_face_landmarks(image):
 
-    # # Read the input image
-    # image_input_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # Read the input image
+    image_input_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    # face_mesh = mp.solutions.face_mesh.FaceMesh(
-    #     static_image_mode=True,
-    #     max_num_faces=1,
-    #     min_detection_confidence=0.5,
-    # )
-    # image_rows, image_cols, _ = image.shape
-    # results = face_mesh.process(image_input_rgb)
+    face_mesh = mp.solutions.face_mesh.FaceMesh(
+        static_image_mode=True,
+        max_num_faces=1,
+        min_detection_confidence=0.5,
+    )
+    image_rows, image_cols, _ = image.shape
+    results = face_mesh.process(image_input_rgb)
 
-    # image_landmarks = []
+    image_landmarks = []
 
-    # if results.multi_face_landmarks:
+    if results.multi_face_landmarks:
 
-    #     # if draw:
+        # if draw:
 
-    #     #     mp_drawing = mp.solutions.drawing_utils
-    #     #     mp_drawing_styles = mp.solutions.drawing_styles
-    #     #     drawing_spec = mp_drawing.DrawingSpec(thickness=2, circle_radius=1)
+        #     mp_drawing = mp.solutions.drawing_utils
+        #     mp_drawing_styles = mp.solutions.drawing_styles
+        #     drawing_spec = mp_drawing.DrawingSpec(thickness=2, circle_radius=1)
 
-    #     #     mp_drawing.draw_landmarks(
-    #     #         image=image,
-    #     #         landmark_list=results.multi_face_landmarks[0],
-    #     #         connections=mp.solutions.face_mesh.FACEMESH_CONTOURS,
-    #     #         landmark_drawing_spec=drawing_spec,
-    #     #         connection_drawing_spec=drawing_spec,
-    #     #     )
+        #     mp_drawing.draw_landmarks(
+        #         image=image,
+        #         landmark_list=results.multi_face_landmarks[0],
+        #         connections=mp.solutions.face_mesh.FACEMESH_CONTOURS,
+        #         landmark_drawing_spec=drawing_spec,
+        #         connection_drawing_spec=drawing_spec,
+        #     )
 
-    #     ls_single_face = results.multi_face_landmarks[0].landmark
-    #     xs_ = []
-    #     ys_ = []
-    #     zs_ = []
-    #     for idx in ls_single_face:  # every single landmark get three coordinates xyz
-    #         xs_.append(idx.x)
-    #         ys_.append(idx.y)
-    #         zs_.append(idx.z)
-    #     for j in range(len(xs_)):  # get landmarks of the face
-    #         image_landmarks.append(xs_[j] - min(xs_))
-    #         image_landmarks.append(ys_[j] - min(ys_))
-    #         image_landmarks.append(zs_[j] - min(zs_))
-    # face_mesh.close()
+        ls_single_face = results.multi_face_landmarks[0].landmark
+        xs_ = []
+        ys_ = []
+        zs_ = []
+        for idx in ls_single_face:  # every single landmark get three coordinates xyz
+            xs_.append(idx.x)
+            ys_.append(idx.y)
+            zs_.append(idx.z)
+        for j in range(len(xs_)):  # get landmarks of the face
+            image_landmarks.append(xs_[j] - min(xs_))
+            image_landmarks.append(ys_[j] - min(ys_))
+            image_landmarks.append(zs_[j] - min(zs_))
+    face_mesh.close()
 
-    # return image_landmarks
-    return image
+    return image_landmarks
+    # return image
 
 
 def load_CK(method, landmark=False):
@@ -4229,6 +4229,9 @@ def load_CK(method, landmark=False):
     for dirname, _, filenames in os.walk("datasets/image/CK"):
         for filename in filenames:
             img = cv2.imread(os.path.join(dirname, filename))
+            # print(img)
+            # print(filename)
+            # print(dirname)
             label = dirname.split("/")[-1]
             if landmark == False:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -4248,6 +4251,8 @@ def load_CK(method, landmark=False):
         if method == "MLP":
             X = np.array(X).reshape((n, h * w)).tolist()
             h = h * w
+    else:
+        h = np.array(X).shape[1]
     X_train, X_left, ytrain, yleft = train_test_split(
         np.array(X),
         y,
@@ -4259,15 +4264,16 @@ def load_CK(method, landmark=False):
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
 
-    if landmark == False:
-        # np.array() format for X now
-        return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
-    else:
-        np.savetxt(
-            "outputs/image/landmark_CK.txt",
-            np.asarray(X),
-        )
-        return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
+    # if landmark == False:
+    #     # np.array() format for X now
+    #     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
+    # if landmark == True:
+    #     np.savetxt(
+    #         "outputs/image/landmark_CK.txt",
+    #         np.asarray(X),
+    #     )
+
+    return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
 def load_FER(method, landmark=False):
@@ -4291,10 +4297,12 @@ def load_FER(method, landmark=False):
                 if landmark == False:
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     X.append(img)  # grayscale
+                    y.append(emotion_map[secdir])  # anger
                 else:  # MLP
                     face_landmarks = get_face_landmarks(img)
-                    X.append(face_landmarks)
-                y.append(emotion_map[secdir])  # anger
+                    if len(face_landmarks) == 1404:
+                        X.append(face_landmarks)
+                        y.append(emotion_map[secdir])  # anger
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
     num_classes = len(set(y))
@@ -4304,6 +4312,10 @@ def load_FER(method, landmark=False):
         if method == "MLP":
             X = np.array(X).reshape((n, h * w)).tolist()
             h = h * w
+    else:
+        # X = X[:, :1404]
+        h = np.array(X).shape[1]
+
     X_train, X_left, ytrain, yleft = train_test_split(
         np.array(X),
         y,
@@ -4315,15 +4327,16 @@ def load_FER(method, landmark=False):
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
 
-    if landmark == False:
-        # np.array() format for X now
-        return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
-    else:
-        np.savetxt(
-            "outputs/image/landmark_FER.txt",
-            np.asarray(X),
-        )
-        return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
+    # if landmark == False:
+    #     # np.array() format for X now
+    #     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
+    # if landmark == True:
+    #     np.savetxt(
+    #         "outputs/image/landmark_FER.txt",
+    #         np.asarray(X),
+    #     )
+
+    return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
 def load_RAF(method, landmark=False):
@@ -4347,19 +4360,25 @@ def load_RAF(method, landmark=False):
                 if landmark == False:
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     X.append(img)  # grayscale
+                    y.append(emotion_map[secdir])  # anger
                 else:  # MLP
                     face_landmarks = get_face_landmarks(img)
-                    X.append(face_landmarks)
-                y.append(emotion_map[secdir])  # anger
+                    if len(face_landmarks) == 1404:
+                        X.append(face_landmarks)
+                        y.append(emotion_map[secdir])  # anger
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
     num_classes = len(set(y))
     if landmark == False:
         n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
         # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        print(n, h, w)
         if method == "MLP":
             X = np.array(X).reshape((n, h * w)).tolist()
             h = h * w
+    else:
+        h = np.array(X).shape[1]
+
     X_train, X_left, ytrain, yleft = train_test_split(
         np.array(X),
         y,
@@ -4371,55 +4390,73 @@ def load_RAF(method, landmark=False):
         X_left, yleft, test_size=0.5, random_state=9
     )  # 1:1
 
-    if landmark == False:
-        # np.array() format for X now
-        return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
-    else:
-        np.savetxt(
-            "outputs/image/landmark_RAF.txt",
-            np.asarray(X),
-        )
-        return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
+    # if landmark == False:
+    #     # np.array() format for X now
+    #     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
+    # if landmark == True:
+    #     np.savetxt(
+    #         "outputs/image/landmark_RAF.txt",
+    #         np.asarray(X),
+    #     )
+
+    return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
-def load_patches(X):
+def load_patches(X, dataset):
     """
     description: This method is used for ViT to get image patches.
     param {*} X: input images
     return {*}: patches
     """
-    X_patches = patchify(X[0], (10, 10, 3), 10)  # 100 for 10x10x3
-    X_save = np.reshape(X_patches, (100, 10, 10, 3))
-    if not os.path.exists("outputs/image_classification/ViT/"):
-        os.makedirs("outputs/image_classification/ViT/")
-    for index, patch in enumerate(X_save):
-        cv2.imwrite(f"outputs/image_classification/ViT/patch_{index}.JPG", patch)
+    if dataset in ["CK", "FER"]:
+        X_patches = patchify(X[0], (8, 8), 8)  # 100 for 10x10x3, step
+        X_save = np.reshape(X_patches, (36, 8, 8, 1))
+        if not os.path.exists("outputs/image/patches/"):
+            os.makedirs("outputs/image/patches/")
+        for index, patch in enumerate(X_save):
+            cv2.imwrite(f"outputs/image/patches/{dataset}_{index}.JPG", patch)
 
-    X_patches = np.reshape(X_patches, (1, 100, 10 * 10 * 3))
-    for x in X[1:]:
-        patches = patchify(x, (10, 10, 3), 10)
-        patches = np.reshape(patches, (1, 100, 10 * 10 * 3))
-        X_patches = np.concatenate(((np.array(X_patches)), patches), axis=0)
+        X_patches = np.reshape(X_patches, (1, 36, 8 * 8 * 1))
+        for x in X[1:]:
+            patches = patchify(x, (8, 8), 8)
+            patches = np.reshape(patches, (1, 36, 8 * 8 * 1))
+            X_patches = np.concatenate(((np.array(X_patches)), patches), axis=0)
+
+    elif dataset == "RAF":
+        X_patches = patchify(
+            X[0], (25, 25), 25
+        )  # 100 for 10x10x3, step  100x100 -- 25x25 16
+        X_save = np.reshape(X_patches, (16, 25, 25, 1))
+        if not os.path.exists("outputs/image/patches/"):
+            os.makedirs("outputs/image/patches/")
+        for index, patch in enumerate(X_save):
+            cv2.imwrite(f"outputs/image/patches/{dataset}_{index}.JPG", patch)
+
+        X_patches = np.reshape(X_patches, (1, 16, 25 * 25 * 1))
+        for x in X[1:]:
+            patches = patchify(x, (25, 25), 25)
+            patches = np.reshape(patches, (1, 16, 25 * 25 * 1))
+            X_patches = np.concatenate(((np.array(X_patches)), patches), axis=0)
 
     return X_patches.astype(np.int64)
 
 
-def sample_ViT(X, y, n):
-    """
-    description: Due to large size of patches, this method is used for sampling from patches to
-    reduce dimensionality.
-    param {*} X: input data
-    param {*} y: input label
-    param {*} n: class name
-    return {*}: sampled data and label
-    """
-    ViT_index, ViT_label = [], []
-    for i in range(12):
-        class_index = [index for index, j in enumerate(y) if label_map[n[index]] == i]
-        ViT_index += random.sample(class_index, 100)
-    ViT_sample = [i for index, i in enumerate(X) if index in ViT_index]
-    ViT_label = [i for index, i in enumerate(y) if index in ViT_index]
-    return ViT_sample, ViT_label
+# def sample_ViT(X, y, n):
+#     """
+#     description: Due to large size of patches, this method is used for sampling from patches to
+#     reduce dimensionality.
+#     param {*} X: input data
+#     param {*} y: input label
+#     param {*} n: class name
+#     return {*}: sampled data and label
+#     """
+#     ViT_index, ViT_label = [], []
+#     for i in range(12):
+#         class_index = [index for index, j in enumerate(y) if label_map[n[index]] == i]
+#         ViT_index += random.sample(class_index, 100)
+#     ViT_sample = [i for index, i in enumerate(X) if index in ViT_index]
+#     ViT_label = [i for index, i in enumerate(y) if index in ViT_index]
+#     return ViT_sample, ViT_label
 
 
 """
@@ -4730,9 +4767,9 @@ def load_data(
             # Xval, yval = sample_ViT(Xval, yval, nval)
             # Xtest, ytest = sample_ViT(Xtest, ytest, ntest)
 
-            Xtrain = load_patches(Xtrain)
-            Xval = load_patches(Xval)
-            Xtest = load_patches(Xtest)
+            X_train = load_patches(X_train, dataset)
+            X_val = load_patches(X_val, dataset)
+            X_test = load_patches(X_test, dataset)
 
         if method in ["CNN", "Inception", "MLP"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
@@ -4986,7 +5023,16 @@ def load_model(
                 batch_size=batch_size,
             )
         elif method == "ViT":
-            pass
+            model = ViT(
+                task,
+                dataset,
+                method,
+                cc,
+                num_classes,
+                epochs=epochs,
+                lr=lr,
+                batch_size=batch_size,
+            )
 
     return model
 
@@ -5022,6 +5068,7 @@ def visual4cm(
     tune_val_pred=None,
     corpus=None,
     split=None,
+    landmark=False,
 ):
     # confusion matrix
     if cc != "finetune":
@@ -5063,18 +5110,29 @@ def visual4cm(
     if not os.path.exists(f"outputs/{task}/confusion_matrix/"):
         os.makedirs(f"outputs/{task}/confusion_matrix/")
 
-    if (corpus != None) and (split != None):
-        fig.savefig(
-            f"outputs/{task}/confusion_matrix/{method}_{features}_cross_{corpus[0]}_{corpus[1]}_{split}.png"
-        )
-    elif (corpus == None) and (split != None):
-        fig.savefig(
-            f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}_{split}.png"
-        )
-    else:
-        fig.savefig(
-            f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}.png"
-        )
+    if task == "speech":
+        if (corpus != None) and (split != None):
+            fig.savefig(
+                f"outputs/{task}/confusion_matrix/{method}_{features}_cross_{corpus[0]}_{corpus[1]}_{split}.png"
+            )
+        elif (corpus == None) and (split != None):
+            fig.savefig(
+                f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}_{split}.png"
+            )
+        else:
+            fig.savefig(
+                f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}.png"
+            )
+    elif task == "image":
+        if landmark == False:
+            fig.savefig(
+                f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}.png"
+            )
+        else:
+            fig.savefig(
+                f"outputs/{task}/confusion_matrix/{method}_landmarks_{cc}_{dataset}.png"
+            )
+
     plt.close()
 
 

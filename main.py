@@ -316,7 +316,7 @@ if __name__ == "__main__":
                 None,
                 batch_size=16,
                 # corpus=None,
-                landmark=args.landmark,
+                landmark=False,
             )
 
     # elif method in ["CNN", "MLP", "EnsembleNet"]:
@@ -403,7 +403,16 @@ if __name__ == "__main__":
                 h=h,
             )
         elif method == "ViT":
-            pass
+            model = load_model(
+                task,
+                method,
+                dataset=dataset,
+                cc=cc,
+                num_classes=num_classes,
+                epochs=args.epochs,
+                lr=args.lr,
+                batch_size=args.batch_size,
+            )
 
     print("Load model successfully.")
 
@@ -496,6 +505,11 @@ if __name__ == "__main__":
                     ytune_val,
                 )
             ytest, pred_test = model.test(Xtest, ytest)
+        elif method in ["ViT"]:
+            train_res, val_res, pred_train, ytrain, pred_val, yval = model.train(
+                Xtrain, ytrain, Xval, yval
+            )
+            test_res, pred_test, ytest = model.test(Xtest, ytest)
 
     # metrics and visualization
     # hyperparameters selection
@@ -569,6 +583,7 @@ if __name__ == "__main__":
                 pred_test,
                 corpus=corpus,
                 split=split,
+                landmark=args.landmark,
             )
 
     if method in ["LSTM", "CNN", "AlexNet"]:

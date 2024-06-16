@@ -14,6 +14,7 @@ from tensorflow.keras.layers import (
     Layer,
 )
 from tensorflow.keras.models import Model
+import time
 
 
 # this class is used for creating extra class token for all patches
@@ -39,18 +40,24 @@ class ClassToken(Layer):
 
 class ViT(Model):
     def __init__(
-        self, task, method, cc, h, num_classes, epochs=10, lr=0.001, batch_size=32
+        self, task, dataset, method, cc, num_classes, epochs=10, lr=0.001, batch_size=32
     ):
         super(ViT, self).__init__()
         # FER/CK
-        self.num_patches = 36  # 48x48x1 -- 8x8x1 patches
-        self.patch_size = 8  # 8x8x1
+        if dataset in ["CK", "FER"]:
+            self.num_patches = 36  # 48x48x1 -- 8x8x1 patches
+            self.patch_size = 8  # 8x8x1
+            self.inputs = Input((36, 8 * 8 * 1))  # (None,100 patches,300)
+        elif dataset == "RAF":
+            self.num_patches = 16  # 48x48x1 -- 8x8x1 patches
+            self.patch_size = 25  # 8x8x1
+            self.inputs = Input((16, 25 * 25 * 1))  # (None,100 patches,300)
+
         self.channel = 1
         self.hidden_dim = 768
         self.num_layers = num_classes  # num of layers for transformer
         self.mlp_dim = 300  # num of dimension for MLP
         self.num_heads = 12  # multihead
-        self.inputs = Input((36, 8 * 8 * 1))  # (None,100 patches,300)
 
         # patch + position embedding
         self.patch_embed = Dense(self.hidden_dim)(
@@ -79,7 +86,7 @@ class ViT(Model):
         # classification head
         self.hidden = LayerNormalization(epsilon=1e-7)(self.hidden)  # (None, 101, 768)
         self.hidden = self.hidden[:, 0, :]  # select the class token
-        self.outputs = Dense(12, activation="softmax")(self.hidden)
+        self.outputs = Dense(num_classes, activation="softmax")(self.hidden)
 
         self.model = Model(self.inputs, self.outputs)
         self.model.build((None, 36, 64))
@@ -93,7 +100,8 @@ class ViT(Model):
         self.epoch = epochs
         self.batch_size = batch_size
         self.method = method
-        self.optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=lr)
+        # self.optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=lr)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
     def mlp(self, x):
         """
@@ -138,6 +146,7 @@ class ViT(Model):
         return {*}: train and validation results
         """
         print(f"Start training for {self.method}......")
+        start_time_train = time.time()
         train_pred, val_pred = [], []  # label prediction
 
         self.model.compile(
@@ -147,10 +156,10 @@ class ViT(Model):
         )
         history = self.model.fit(
             Xtrain,
-            ytrain,
+            np.array(ytrain),
             batch_size=self.batch_size,
             epochs=self.epoch,
-            validation_data=(Xval, yval),
+            validation_data=(Xval, np.array(yval)),
         )
 
         # get predictions
@@ -162,7 +171,7 @@ class ViT(Model):
             "train_acc": history.history["accuracy"],
         }
 
-        val_prob = self.model.predict(x=Xtrain)  # softmax
+        val_prob = self.model.predict(x=Xval)  # softmax
         val_pred += np.argmax(val_prob, axis=1).tolist()
         val_pred = np.array(val_pred)
         val_res = {
@@ -170,7 +179,10 @@ class ViT(Model):
             "val_acc": history.history["val_accuracy"],
         }
 
+        end_time_train = time.time()
+        elapsed_time_train = end_time_train - start_time_train
         print(f"Finish training for {self.method}.")
+        print(f"Training time: {elapsed_time_train}s")
         return train_res, val_res, train_pred, ytrain, val_pred, yval
 
     def test(self, Xtest, ytest):
@@ -182,11 +194,17 @@ class ViT(Model):
         return {*}: test results
         """
         print("Start testing......")
+        start_time_test = time.time()
         test_pred = []
-        test_res = self.model.evaluate(x=Xtest, verbose=2)
-        test_prob = self.output_layer.predict(Xtest)
+        # print(Xtest)
+        # print(Xtest.shape)
+        test_res = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
+        test_prob = self.output_layer.predict(x=Xtest)
         test_pred += np.argmax(test_prob, axis=1).tolist()
         test_pred = np.array(test_pred)
-        print("Finish testing.")
 
+        end_time_test = time.time()
+        elapsed_time_test = end_time_test - start_time_test
+        print("Finish testing.")
+        print(f"Testing time: {elapsed_time_test}s")
         return test_res, test_pred, ytest
