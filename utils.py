@@ -4214,17 +4214,24 @@ def get_face_landmarks(image):
     # return image
 
 
-def load_CK(method, landmark=False):
+def load_CK(method, landmark=False, split=None):
     X, y = [], []
-    emotion_map = {
-        "anger": 0,
-        "contempt": 1,
-        "disgust": 2,
-        "fear": 3,
-        "happy": 4,
-        "sadness": 5,
-        "surprise": 6,
-    }
+    if split == None:
+        emotion_map = {
+            "anger": 0,
+            "contempt": 1,
+            "disgust": 2,
+            "fear": 3,
+            "happy": 4,
+            "sadness": 5,
+            "surprise": 6,
+        }
+    else:
+        emotion_map = {
+            ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
+            ("happy", "surprise", "4", "1"): 1,
+            ("contempt", "neutral", "7"): 2,
+        }
 
     for dirname, _, filenames in os.walk("datasets/image/CK"):
         for filename in filenames:
@@ -4237,11 +4244,15 @@ def load_CK(method, landmark=False):
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 X.append(img)  # grayscale
+                for k, i in enumerate(emotion_map.keys()):
+                    if label in i:  # tuple
+                        emotion = emotion_map[i]
+                y.append(emotion)
 
             else:  # MLP
                 face_landmarks = get_face_landmarks(img)
                 X.append(face_landmarks)
-            y.append(emotion_map[label])  # anger
+                y.append(emotion_map[label])  # anger
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
     num_classes = len(set(y))
@@ -4253,16 +4264,48 @@ def load_CK(method, landmark=False):
             h = h * w
     else:
         h = np.array(X).shape[1]
-    X_train, X_left, ytrain, yleft = train_test_split(
-        np.array(X),
-        y,
-        test_size=0.4,
-        random_state=9,
-    )  # 3:2
 
-    X_val, X_test, yval, ytest = train_test_split(
-        X_left, yleft, test_size=0.5, random_state=9
-    )  # 1:1
+    if split == None:
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X),
+            y,
+            test_size=0.4,
+            random_state=9,
+        )  # 3:2
+
+        X_val, X_test, yval, ytest = train_test_split(
+            X_left, yleft, test_size=0.5, random_state=9
+        )  # 1:1
+    else:
+        random.seed(123)
+        test_index = random.sample(
+            [i for i in range(np.array(X).shape[0])], 200  # 200 fixed for testing size
+        )  # 1440, 40
+        left_index = [i for i in range(np.array(X).shape[0]) if i not in test_index]
+        X_test = np.array(X)[test_index, :, :]
+        ytest = np.array(y)[test_index].tolist()
+        X_left = np.array(X)[left_index, :, :]
+        yleft = np.array(y)[left_index].tolist()
+
+        # train/val
+        random.seed(123)
+        if split == 4:
+            X_train, X_val, ytrain, yval = train_test_split(
+                X_left,
+                np.array(yleft).tolist(),
+                test_size=0.5,
+                random_state=9,
+            )  # 1:1 for train : val
+        else:
+            train_index = random.sample(
+                [i for i in range(np.array(X_left).shape[0])], int(split * 200)
+            )  # train + val
+            X_train, X_val, ytrain, yval = train_test_split(
+                X_left[train_index, :, :],
+                np.array(yleft)[train_index].tolist(),
+                test_size=0.5,
+                random_state=9,
+            )  # 1:1 for train : val
 
     # if landmark == False:
     #     # np.array() format for X now
@@ -4276,17 +4319,24 @@ def load_CK(method, landmark=False):
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
-def load_FER(method, landmark=False):
+def load_FER(method, landmark=False, split=None):
     X, y = [], []
-    emotion_map = {
-        "angry": 0,
-        "disgust": 1,
-        "fear": 2,
-        "happy": 3,
-        "neutral": 4,
-        "sad": 5,
-        "surprise": 6,
-    }
+    if split == None:
+        emotion_map = {
+            "angry": 0,
+            "disgust": 1,
+            "fear": 2,
+            "happy": 3,
+            "neutral": 4,
+            "sad": 5,
+            "surprise": 6,
+        }
+    else:
+        emotion_map = {
+            ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
+            ("happy", "surprise", "4", "1"): 1,
+            ("contempt", "neutral", "7"): 2,
+        }
     path = "datasets/image/FER"
     for firstdir in os.listdir(path):
         first_path = os.path.join(path, firstdir)
@@ -4297,7 +4347,10 @@ def load_FER(method, landmark=False):
                 if landmark == False:
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     X.append(img)  # grayscale
-                    y.append(emotion_map[secdir])  # anger
+                    for k, i in enumerate(emotion_map.keys()):
+                        if secdir in i:  # tuple
+                            emotion = emotion_map[i]
+                    y.append(emotion)
                 else:  # MLP
                     face_landmarks = get_face_landmarks(img)
                     if len(face_landmarks) == 1404:
@@ -4316,16 +4369,39 @@ def load_FER(method, landmark=False):
         # X = X[:, :1404]
         h = np.array(X).shape[1]
 
-    X_train, X_left, ytrain, yleft = train_test_split(
-        np.array(X),
-        y,
-        test_size=0.4,
-        random_state=9,
-    )  # 3:2
+    if split == None:
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X),
+            y,
+            test_size=0.4,
+            random_state=9,
+        )  # 3:2
 
-    X_val, X_test, yval, ytest = train_test_split(
-        X_left, yleft, test_size=0.5, random_state=9
-    )  # 1:1
+        X_val, X_test, yval, ytest = train_test_split(
+            X_left, yleft, test_size=0.5, random_state=9
+        )  # 1:1
+    else:
+        random.seed(123)
+        test_index = random.sample(
+            [i for i in range(np.array(X).shape[0])], 200  # 200 fixed for testing size
+        )  # 1440, 40
+        left_index = [i for i in range(np.array(X).shape[0]) if i not in test_index]
+        X_test = np.array(X)[test_index, :, :]
+        ytest = np.array(y)[test_index].tolist()
+        X_left = np.array(X)[left_index, :, :]
+        yleft = np.array(y)[left_index].tolist()
+
+        # train/val
+        random.seed(123)
+        train_index = random.sample(
+            [i for i in range(np.array(X_left).shape[0])], int(split * 200)
+        )  # train + val
+        X_train, X_val, ytrain, yval = train_test_split(
+            X_left[train_index, :, :],
+            np.array(yleft)[train_index].tolist(),
+            test_size=0.5,
+            random_state=9,
+        )  # 1:1 for train : val
 
     # if landmark == False:
     #     # np.array() format for X now
@@ -4339,17 +4415,25 @@ def load_FER(method, landmark=False):
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
-def load_RAF(method, landmark=False):
+def load_RAF(method, landmark=False, split=None):
     X, y = [], []
-    emotion_map = {
-        "1": 0,
-        "2": 1,
-        "3": 2,
-        "4": 3,
-        "5": 4,
-        "6": 5,
-        "7": 6,
-    }
+    if split == None:
+        emotion_map = {
+            "1": 0,
+            "2": 1,
+            "3": 2,
+            "4": 3,
+            "5": 4,
+            "6": 5,
+            "7": 6,
+        }
+    else:
+        emotion_map = {
+            ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
+            ("happy", "surprise", "4", "1"): 1,
+            ("contempt", "neutral", "7"): 2,
+        }
+
     path = "datasets/image/RAF"
     for firstdir in os.listdir(path):
         first_path = os.path.join(path, firstdir)
@@ -4360,7 +4444,10 @@ def load_RAF(method, landmark=False):
                 if landmark == False:
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     X.append(img)  # grayscale
-                    y.append(emotion_map[secdir])  # anger
+                    for k, i in enumerate(emotion_map.keys()):
+                        if secdir in i:  # tuple
+                            emotion = emotion_map[i]
+                    y.append(emotion)
                 else:  # MLP
                     face_landmarks = get_face_landmarks(img)
                     if len(face_landmarks) == 1404:
@@ -4379,16 +4466,39 @@ def load_RAF(method, landmark=False):
     else:
         h = np.array(X).shape[1]
 
-    X_train, X_left, ytrain, yleft = train_test_split(
-        np.array(X),
-        y,
-        test_size=0.4,
-        random_state=9,
-    )  # 3:2
+    if split == None:
+        X_train, X_left, ytrain, yleft = train_test_split(
+            np.array(X),
+            y,
+            test_size=0.4,
+            random_state=9,
+        )  # 3:2
 
-    X_val, X_test, yval, ytest = train_test_split(
-        X_left, yleft, test_size=0.5, random_state=9
-    )  # 1:1
+        X_val, X_test, yval, ytest = train_test_split(
+            X_left, yleft, test_size=0.5, random_state=9
+        )  # 1:1
+    else:
+        random.seed(123)
+        test_index = random.sample(
+            [i for i in range(np.array(X).shape[0])], 200  # 200 fixed for testing size
+        )  # 1440, 40
+        left_index = [i for i in range(np.array(X).shape[0]) if i not in test_index]
+        X_test = np.array(X)[test_index, :, :]
+        ytest = np.array(y)[test_index].tolist()
+        X_left = np.array(X)[left_index, :, :]
+        yleft = np.array(y)[left_index].tolist()
+
+        # train/val
+        random.seed(123)
+        train_index = random.sample(
+            [i for i in range(np.array(X_left).shape[0])], int(split * 200)
+        )  # train + val
+        X_train, X_val, ytrain, yval = train_test_split(
+            X_left[train_index, :, :],
+            np.array(yleft)[train_index].tolist(),
+            test_size=0.5,
+            random_state=9,
+        )  # 1:1 for train : val
 
     # if landmark == False:
     #     # np.array() format for X now
@@ -4398,6 +4508,103 @@ def load_RAF(method, landmark=False):
     #         "outputs/image/landmark_RAF.txt",
     #         np.asarray(X),
     #     )
+
+    return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
+
+
+def load_split_corpus_size_image(
+    method,
+    corpus=None,
+    split=None,  # split is the size of testing set within the mixture
+):  # cc: mix, corpus: with only one string as the testing set
+
+    # 900+300, 900 train 300 val, 300 test
+    # 900/5=180, 300/5=60, 1200/5=240
+    # 300
+    # datasets = ["RAVDESS", "TESS", "SAVEE", "CREMA-D", "EmoDB"]
+    emotion_map = {
+        ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
+        ("happy", "surprise", "4", "1"): 1,
+        ("contempt", "neutral", "7"): 2,
+    }
+
+    X_train, ytrain, X_val, yval, X_test, ytest = [], [], [], [], [], []
+
+    for index, cor in enumerate(corpus):
+        x, y = [], []  # for each dataset
+        if cor == "CK":
+            for dirname, _, filenames in os.walk("datasets/image/CK"):
+                for filename in filenames:
+                    img = cv2.imread(os.path.join(dirname, filename))
+                    label = dirname.split("/")[-1]
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    x.append(img)  # grayscale
+                    for k, i in enumerate(emotion_map.keys()):
+                        if label in i:  # tuple
+                            emotion = emotion_map[i]
+                    y.append(emotion)
+        else:
+            path = "datasets/image/RAF" if cor == "RAF" else "datasets/image/FER"
+            for firstdir in os.listdir(path):
+                first_path = os.path.join(path, firstdir)
+                for secdir in os.listdir(first_path):
+                    sec_path = os.path.join(first_path, secdir)
+                    for file in os.listdir(sec_path):
+                        img = cv2.imread(os.path.join(sec_path, file))
+                        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        if cor == "RAF":
+                            img = cv2.resize(img, (48, 48))
+                        x.append(img)  # grayscale
+                        for k, i in enumerate(emotion_map.keys()):
+                            if secdir in i:  # tuple
+                                emotion = emotion_map[i]
+                        y.append(emotion)
+
+        # first reverse for each dataset, then get
+        x, y = shuffle(x, y, random_state=42)  # shuffle
+        num_classes = len(set(y))
+        n, h, w = np.array(x).shape
+
+        random.seed(123)
+        if index == 0:  # train
+            sample_index = random.sample(
+                [i for i in range(np.array(x).shape[0])], int(1000 * (1 - split))
+            )  # 1440, 40
+        elif index == 1:  # test, split is test size
+            if (split == 0.8) and (cor == "CK"):  # CK is tested
+                sample_index = random.sample(
+                    [i for i in range(np.array(x).shape[0])], int(len(x) - 200)
+                )  # 1440, 40
+            else:
+                sample_index = random.sample(
+                    [i for i in range(np.array(x).shape[0])], int(1000 * split)
+                )  # 1440, 40
+
+        # 240, 40
+        X_train = (
+            np.array(x)[sample_index, :, :]
+            if len(X_train) == 0
+            else np.concatenate((X_train, np.array(x)[sample_index, :, :]), axis=0)
+        )
+        ytrain = (
+            np.array(y)[sample_index].tolist()
+            if len(ytrain) == 0
+            else (ytrain + np.array(y)[sample_index].tolist())
+        )
+
+        if cor == corpus[1]:  # testing set
+            # if dataset == corpus[0]:  # testing set
+            left_index = [
+                i for i in range(np.array(x).shape[0]) if i not in sample_index
+            ]
+            random.seed(123)
+            test_index = random.sample(left_index, 200)  # fixed 200 for testing set
+            X_test = np.array(x)[test_index, :, :]  # 300,40
+            ytest = np.array(y)[test_index].tolist()
+
+    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+        X_train, ytrain, test_size=0.5, random_state=9
+    )  # 3:1  # 1200, 40  # 300,4
 
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
@@ -4750,26 +4957,31 @@ def load_data(
                 return train_ds, val_ds, test_ds, shape, num_classes
 
     elif task == "image":
-        if dataset == "CK":
-            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_CK(
-                method, landmark
-            )
-        elif dataset == "FER":
-            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_FER(
-                method, landmark
-            )
-        elif dataset == "RAF":
-            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_RAF(
-                method, landmark
-            )
-        if method == "ViT":
-            # Xtrain, ytrain = sample_ViT(Xtrain, ytrain, ntrain)
-            # Xval, yval = sample_ViT(Xval, yval, nval)
-            # Xtest, ytest = sample_ViT(Xtest, ytest, ntest)
+        if corpus == None:
+            if dataset == "CK":
+                X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_CK(
+                    method, landmark, split
+                )
+            elif dataset == "FER":
+                X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_FER(
+                    method, landmark, split
+                )
+            elif dataset == "RAF":
+                X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_RAF(
+                    method, landmark, split
+                )
+            if method == "ViT":
+                # Xtrain, ytrain = sample_ViT(Xtrain, ytrain, ntrain)
+                # Xval, yval = sample_ViT(Xval, yval, nval)
+                # Xtest, ytest = sample_ViT(Xtest, ytest, ntest)
 
-            X_train = load_patches(X_train, dataset)
-            X_val = load_patches(X_val, dataset)
-            X_test = load_patches(X_test, dataset)
+                X_train = load_patches(X_train, dataset)
+                X_val = load_patches(X_val, dataset)
+                X_test = load_patches(X_test, dataset)
+        else:  # corpus != None
+            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = (
+                load_split_corpus_size_image(method, corpus, split)
+            )
 
         if method in ["CNN", "Inception", "MLP"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
@@ -5125,9 +5337,18 @@ def visual4cm(
             )
     elif task == "image":
         if landmark == False:
-            fig.savefig(
-                f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}.png"
-            )
+            if (corpus != None) and (split != None):
+                fig.savefig(
+                    f"outputs/{task}/confusion_matrix/{method}_raw_cross_{corpus[0]}_{corpus[1]}_{split}.png"
+                )
+            elif (corpus == None) and (split != None):
+                fig.savefig(
+                    f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}_{split}.png"
+                )
+            else:
+                fig.savefig(
+                    f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}.png"
+                )
         else:
             fig.savefig(
                 f"outputs/{task}/confusion_matrix/{method}_landmarks_{cc}_{dataset}.png"
@@ -5592,19 +5813,30 @@ def visual4corr3(dataset, file1, file2, emotion):
     data1 /= np.max(np.abs(data1))
     data2 /= np.max(np.abs(data2))
 
-    correlation = np.correlate(data1, data2, mode="full")
-    lags = np.arange(-len(data1) + 1, len(data2))
+    cross_correlation = np.correlate(
+        data1, data2, mode="full"
+    )  # the amplitude is sum of correlation multiplication
+    cross_lags = np.arange(-len(data1) + 1, len(data2))
+    auto_correlation1 = np.correlate(data1, data1, mode="full")
+    auto_lags1 = np.arange(-len(data1) + 1, len(data1))
+    auto_correlation2 = np.correlate(data2, data2, mode="full")
+    auto_lags2 = np.arange(-len(data2) + 1, len(data2))
 
     # Plot the cross-correlation
-    plt.figure(figsize=(10, 5))
-    fig, (ax1, ax2, ax_corr) = plt.subplots(3, 1, sharex=True)
+    plt.figure(figsize=(10, 16))
+    fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
     ax1.plot(data1)
     ax2.plot(data2)
-    plt.title(f"Cross-Correlation of {emotion} in {dataset}")
-    ax_corr.plot(lags, correlation)
+    ax3.plot(auto_lags1, auto_correlation1)
+    ax4.plot(auto_lags2, auto_correlation2)
+    # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
+    ax_corr.plot(cross_lags, cross_correlation)
     plt.xlabel("Lag")
     plt.ylabel("Correlation")
-    if not os.path.exists(f"outputs/speech/corr_signal2/"):
-        os.makedirs(f"outputs/speech/corr_signal2/")
-    fig.savefig(f"outputs/speech/corr_signal2/{dataset}_{emotion}.png")
+    if not os.path.exists(f"outputs/speech/corr_signal3/"):
+        os.makedirs(f"outputs/speech/corr_signal3/")
+    fig.savefig(f"outputs/speech/corr_signal3/{dataset}_{emotion}.png")
     plt.close()
+
+    # most artificially to most real
+    # (RAVDESS/TESS), (SAVEE, EmoDB, AESDD, CREMA-D), eNTERFACE05

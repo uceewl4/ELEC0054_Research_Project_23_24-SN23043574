@@ -13,13 +13,13 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--method","MLP",
+                "--method","CNN",
                 "--task","image",
                 // "--corpus","TESS","RAVDESS",
-                "--dataset","FER",
                 // "--split","4.0",
                 "--epochs","1",
-                "--landmark","True"
+                "--corpus","CK","FER",
+                "--split","0.8"
                 // "--cc","finetune"
                 // "--window","0","3"
 

@@ -306,6 +306,8 @@ if __name__ == "__main__":
                 batch_size=16,
                 # corpus=None,
                 landmark=args.landmark,
+                split=split,
+                corpus=corpus,
             )
         elif method in ["ViT"]:
             Xtrain, ytrain, Xval, yval, Xtest, ytest, num_classes = load_data(
