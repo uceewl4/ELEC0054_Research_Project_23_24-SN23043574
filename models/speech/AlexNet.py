@@ -269,9 +269,6 @@ class AlexNet(Model):
 
         if not os.path.exists("outputs/speech/models/"):
             os.makedirs("outputs/speech/models")
-        model_json = self.model.to_json()
-        with open("outputs/speech/models/AlexNet.json", "w") as json_file:
-            json_file.write(model_json)
-        self.model.save_weights("outputs/speech/models/AlexNet.weights.h5")
+        self.model.save("outputs/speech/models/AlexNet.h5")
 
         return ytest, test_pred

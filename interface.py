@@ -9,6 +9,9 @@ import streamlit as st
 from email.header import Header
 from email.mime.text import MIMEText
 from streamlit_option_menu import option_menu
+from keras.models import Sequential
+import tensorflow as tf
+from tensorflow.keras import Model
 import cv2
 import numpy as np
 from keras.models import model_from_json
@@ -135,13 +138,7 @@ if choose == "Speech":
         )
         feature = np.array(feature)
 
-        json_file = open("outputs/speech/models/AlexNet.json", "r")
-        loaded_model_json = json_file.read()
-        json_file.close()
-        emotion_model = model_from_json(loaded_model_json)
-
-        # load weights into new model
-        emotion_model.load_weights("outputs/speech/models/AlexNet.weights.h5")
+        emotion_model = tf.keras.models.load_model("outputs/speech/models/AlexNet.h5")
         print("Loaded model from disk")
 
         emotion_prediction = emotion_model.predict(feature)
@@ -166,13 +163,7 @@ elif choose == "Video":
     }
 
     # load json and create model
-    json_file = open("outputs/image/models/CNN.json", "r")
-    loaded_model_json = json_file.read()
-    json_file.close()
-    emotion_model = model_from_json(loaded_model_json)
-
-    # load weights into new model
-    emotion_model.load_weights("outputs/image/models/CNN.weights.h5")
+    emotion_model = tf.keras.models.load_model("outputs/image/models/CNN.h5")
     print("Loaded model from disk")
 
     uploaded_video = st.file_uploader(
@@ -256,13 +247,7 @@ elif choose == "Real-time capture":
     }
 
     # load json and create model
-    json_file = open("outputs/image/models/CNN.json", "r")
-    loaded_model_json = json_file.read()
-    json_file.close()
-    emotion_model = model_from_json(loaded_model_json)
-
-    # load weights into new model
-    emotion_model.load_weights("outputs/image/models/CNN.weights.h5")
+    emotion_model = tf.keras.models.load_model("outputs/image/models/CNN.h5")
     print("Loaded model from disk")
 
     cap = cv2.VideoCapture(1)
