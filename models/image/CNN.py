@@ -227,6 +227,6 @@ class CNN(Model):
         model_json = self.model.to_json()
         with open("outputs/image/models/CNN.json", "w") as json_file:
             json_file.write(model_json)
-        self.model.save_weights("outputs/image/models/CNN.h5")
+        self.model.save_weights("outputs/image/models/CNN.weights.h5")
 
         return ytest, test_pred

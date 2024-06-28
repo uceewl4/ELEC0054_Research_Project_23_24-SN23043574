@@ -272,6 +272,6 @@ class AlexNet(Model):
         model_json = self.model.to_json()
         with open("outputs/speech/models/AlexNet.json", "w") as json_file:
             json_file.write(model_json)
-        self.model.save_weights("outputs/image/models/AlexNet.h5")
+        self.model.save_weights("outputs/speech/models/AlexNet.weights.h5")
 
         return ytest, test_pred

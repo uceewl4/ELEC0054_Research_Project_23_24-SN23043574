@@ -141,7 +141,7 @@ if choose == "Speech":
         emotion_model = model_from_json(loaded_model_json)
 
         # load weights into new model
-        emotion_model.load_weights("outputs/speech/models/AlexNet.h5")
+        emotion_model.load_weights("outputs/speech/models/AlexNet.weights.h5")
         print("Loaded model from disk")
 
         emotion_prediction = emotion_model.predict(feature)
@@ -171,7 +171,7 @@ elif choose == "Video":
     emotion_model = model_from_json(loaded_model_json)
 
     # load weights into new model
-    emotion_model.load_weights("outputs/image/models/CNN.h5")
+    emotion_model.load_weights("outputs/image/models/CNN.weights.h5")
     print("Loaded model from disk")
 
     uploaded_video = st.file_uploader(
@@ -261,7 +261,7 @@ elif choose == "Real-world capture":
     emotion_model = model_from_json(loaded_model_json)
 
     # load weights into new model
-    emotion_model.load_weights("outputs/image/models/CNN.h5")
+    emotion_model.load_weights("outputs/image/models/CNN.weights.h5")
     print("Loaded model from disk")
 
     cap = cv2.VideoCapture(1)
