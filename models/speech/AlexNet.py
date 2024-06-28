@@ -267,8 +267,8 @@ class AlexNet(Model):
         print("Finish testing.")
         print(f"Testing time: {elapsed_time_test}s")
 
-        if not os.path.exists("outputs/speech/models/"):
-            os.makedirs("outputs/speech/models")
-        self.model.save("outputs/speech/models/AlexNet.h5")
+        # if not os.path.exists("outputs/speech/models/"):
+        #     os.makedirs("outputs/speech/models")
+        # self.model.save("outputs/speech/models/AlexNet.h5")
 
         return ytest, test_pred
