@@ -1,4 +1,3 @@
-
 # -*- encoding: utf-8 -*-
 """
 @File    :   utils.py
@@ -16,7 +15,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-from dtaidistance import dtw
+
+# from dtaidistance import dtw
 from scipy.stats import pearsonr
 import pandas as pd
 import math
@@ -549,7 +549,7 @@ def load_RAVDESS(
         [],
         [],
         [],
-        []
+        [],
     )
 
     # if we use original class for ranging split
@@ -679,7 +679,7 @@ def load_RAVDESS(
             similarities.append(similarity["score"])
 
     filename = f"outputs/speech/signal_similarity/RAVDESS_score.csv"
-    with open(filename, mode='w', newline='') as file:
+    with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
         writer.writeheader()
         for row in similarities:
@@ -840,7 +840,7 @@ def load_TESS(
         [],
         [],
         [],
-        []
+        [],
     )
 
     # original class of ranging split
@@ -958,9 +958,9 @@ def load_TESS(
 
         if len(y) == 2800:
             break
-    
+
     filename = f"outputs/speech/signal_similarity/TESS_score.csv"
-    with open(filename, mode='w', newline='') as file:
+    with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
         writer.writeheader()
         for row in similarities:
@@ -1120,7 +1120,7 @@ def load_SAVEE(
         [],
         [],
         [],
-        []
+        [],
     )
 
     # original class ranging split
@@ -1246,7 +1246,7 @@ def load_SAVEE(
             similarities.append(similarity["score"])
 
     filename = f"outputs/speech/signal_similarity/SAVEE_score.csv"
-    with open(filename, mode='w', newline='') as file:
+    with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
         writer.writeheader()
         for row in similarities:
@@ -1406,7 +1406,7 @@ def load_CREMA(
         [],
         [],
         [],
-        []
+        [],
     )
     # original class ranging split
     # emotion_map = {
@@ -1540,7 +1540,7 @@ def load_CREMA(
             similarities.append(similarity["score"])
 
     filename = f"outputs/speech/signal_similarity/CREMA-D_score.csv"
-    with open(filename, mode='w', newline='') as file:
+    with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
         writer.writeheader()
         for row in similarities:
@@ -1700,7 +1700,7 @@ def load_EmoDB(
         [],
         [],
         [],
-        []
+        [],
     )
     # original class ranging split
 
@@ -1824,9 +1824,9 @@ def load_EmoDB(
             )
             similarity["score"]["emotion"] = category_map[label]
             similarities.append(similarity["score"])
-    
+
     filename = f"outputs/speech/signal_similarity/EmoDB_score.csv"
-    with open(filename, mode='w', newline='') as file:
+    with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
         writer.writeheader()
         for row in similarities:
@@ -1986,7 +1986,7 @@ def load_eNTERFACE(
         [],
         [],
         [],
-        []
+        [],
     )
     # original class ranging split
     # emotion_map = {
@@ -2114,7 +2114,7 @@ def load_eNTERFACE(
             similarities.append(similarity["score"])
 
     filename = f"outputs/speech/signal_similarity/eNTERFACE_score.csv"
-    with open(filename, mode='w', newline='') as file:
+    with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
         writer.writeheader()
         for row in similarities:
@@ -2275,7 +2275,7 @@ def load_AESDD(
         [],
         [],
         [],
-        []
+        [],
     )
 
     # original class of ranging split
@@ -2394,7 +2394,7 @@ def load_AESDD(
         # if len(y) == 2800:
         #     break
     filename = f"outputs/speech/signal_similarity/AESDD_score.csv"
-    with open(filename, mode='w', newline='') as file:
+    with open(filename, mode="w", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
         writer.writeheader()
         for row in similarities:
@@ -5963,7 +5963,6 @@ def visual4corr3(dataset, file1, file2, emotion):
     # (RAVDESS/TESS), (SAVEE, EmoDB, AESDD, CREMA-D), eNTERFACE05
 
 
-
 def visual4corr4(dataset, file1, file2, emotion):
     sample_rate, data1 = wavfile.read(file1)
     sample_rate, data2 = wavfile.read(file2)
@@ -5974,10 +5973,10 @@ def visual4corr4(dataset, file1, file2, emotion):
 
     # low pass filter
     # Parameters
-    fs = 1000.0       # Sample rate (Hz)  # 500 
+    fs = 1000.0  # Sample rate (Hz)  # 500
     # t = np.arange(0, 1.0, 1.0/fs)  # Time vector
-    cutoff = 5.0    # Desired cutoff frequency of the filter (Hz)  # 10
-    order = 5        # Order of the filter
+    cutoff = 5.0  # Desired cutoff frequency of the filter (Hz)  # 10
+    order = 5  # Order of the filter
     # small cutoff can have a obvious difference between two signal
     # large cutoff will still have similar signal
     # frequency cannot be too small
@@ -5985,7 +5984,7 @@ def visual4corr4(dataset, file1, file2, emotion):
     # Generate the signal
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    b, a = butter(order, normal_cutoff, btype="low", analog=False)
     fdata1 = lfilter(b, a, data1)
     fdata2 = lfilter(b, a, data2)
 
@@ -6039,15 +6038,14 @@ def visual4corr4(dataset, file1, file2, emotion):
         os.makedirs(f"outputs/speech/corr_signal_filter/")
     plt.savefig(f"outputs/speech/corr_signal_filter/{dataset}_{emotion}_mels.png")
     plt.close()
-   
 
     # most artificially to most real
     # (RAVDESS/TESS), (SAVEE, EmoDB, AESDD, CREMA-D), eNTERFACE0
 
     # moving average
     window_size = 1000  # Window size for moving average
-    ma_data1 = np.convolve(data1, np.ones(window_size)/window_size, mode='valid')
-    ma_data2 = np.convolve(data2, np.ones(window_size)/window_size, mode='valid')
+    ma_data1 = np.convolve(data1, np.ones(window_size) / window_size, mode="valid")
+    ma_data2 = np.convolve(data2, np.ones(window_size) / window_size, mode="valid")
     # the larger the window size, the better
 
     ma_data1 = ma_data1.astype(float)
@@ -6080,8 +6078,6 @@ def visual4corr4(dataset, file1, file2, emotion):
     fig.savefig(f"outputs/speech/corr_signal_ma/{dataset}_{emotion}.png")
     plt.close()
 
-    
-
 
 def signal_similarity(dataset, file1, file2, emotion):
     sample_rate, data1 = wavfile.read(file1)
@@ -6092,17 +6088,19 @@ def signal_similarity(dataset, file1, file2, emotion):
     #     data2 = data2[:, 0]
 
     weights = {
-        'zcr_similarity': 0.2,
-        'rhythm_similarity': 0.2,
-        'chroma_similarity': 0.2,
-        'energy_envelope_similarity': 0.1,
-        'spectral_contrast_similarity': 0.1,
-        'perceptual_similarity': 0.2
+        "zcr_similarity": 0.2,
+        "rhythm_similarity": 0.2,
+        "chroma_similarity": 0.2,
+        "energy_envelope_similarity": 0.1,
+        "spectral_contrast_similarity": 0.1,
+        "perceptual_similarity": 0.2,
     }
 
     # Create an instance of the AudioSimilarity class
 
-    audio_similarity = AudioSimilarity(file1, file2, sample_rate, weights, verbose=True, sample_size=1)
+    audio_similarity = AudioSimilarity(
+        file1, file2, sample_rate, weights, verbose=True, sample_size=1
+    )
     similarity = {
         # "zcr":audio_similarity.zcr_similarity(),
         # "rhythm":audio_similarity.rhythm_similarity(),
@@ -6110,23 +6108,25 @@ def signal_similarity(dataset, file1, file2, emotion):
         # "energy":audio_similarity.energy_envelope_similarity(),
         # "spectral":audio_similarity.spectral_contrast_similarity(),
         # "perceptual":audio_similarity.perceptual_similarity(),
-        "score":audio_similarity.stent_weighted_audio_similarity(metrics='all')
+        "score": audio_similarity.stent_weighted_audio_similarity(metrics="all")
     }
     print(f"Stent Weighted Audio Similarity of {emotion}: {similarity}")
 
     # plt.figure(figsize=(10, 16))
-    audio_similarity.plot(metrics=None,
-                      option='all',
-                      figsize=(10, 7),
-                      color1='red',
-                      color2='green',
-                      dpi=600,
-                      savefig=False,
-                      fontsize=6,
-                      label_fontsize=8,
-                      title_fontsize=14, 
-                      alpha=0.5, 
-                      title='Audio Similarity Metrics')
+    audio_similarity.plot(
+        metrics=None,
+        option="all",
+        figsize=(10, 7),
+        color1="red",
+        color2="green",
+        dpi=600,
+        savefig=False,
+        fontsize=6,
+        label_fontsize=8,
+        title_fontsize=14,
+        alpha=0.5,
+        title="Audio Similarity Metrics",
+    )
     if not os.path.exists(f"outputs/speech/signal_similarity/"):
         os.makedirs(f"outputs/speech/signal_similarity/")
     plt.savefig(f"outputs/speech/signal_similarity/{dataset}_{emotion}.png")
@@ -6164,7 +6164,6 @@ def signal_similarity(dataset, file1, file2, emotion):
     # ax2.set_xlabel('Series A')
     # ax2.set_ylabel('Series B')
     # ax2.grid(True)
-
 
     # # Point-to-Point Comparison Plot
     # ax3 = plt.subplot2grid((2, 2), (1, 0), colspan=2)

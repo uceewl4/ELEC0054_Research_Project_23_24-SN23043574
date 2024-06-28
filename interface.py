@@ -95,19 +95,19 @@ def get_face_landmarks(image, draw=False, static_image_mode=True):
 
 
 if choose == "Speech":
+    st.title("Speech emotion detection")
     # Main Streamlit app code
     if st.button("Start Recording"):
         st.write("Recording started. Speak into your microphone...")
 
         # Record audio for 5 seconds (adjust duration as needed)
         duration = 5  # seconds
-        st.title("Speech emotion detection")
         fs = 24414  # Sample rate, as TESS
         recording = sd.rec(int(5 * fs), samplerate=fs, channels=1)
         sd.wait()  # Wait until recording is finished
 
         st.write("Recording finished.")
-        st.audio(recording, format="audio/wav")
+        st.audio(recording, format="audio/wav", sample_rate=fs)
 
         if not os.path.exists("outputs/interface/"):
             os.makedirs("outputs/interface/")
@@ -151,6 +151,7 @@ if choose == "Speech":
 
 
 elif choose == "Video":
+
     st.title("Video emotion detection")
 
     # use CK+
@@ -240,8 +241,8 @@ elif choose == "Video":
 
 
 # help
-elif choose == "Real-world capture":
-    st.title("Real-world capture")
+elif choose == "Real-time capture":
+    st.title("Real-time capture")
 
     # use CK+
     emotion_dict = {
