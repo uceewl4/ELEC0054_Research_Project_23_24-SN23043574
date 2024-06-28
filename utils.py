@@ -672,18 +672,18 @@ def load_RAVDESS(
             visual4corr4(
                 "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
             )
-            similarity = signal_similarity(
-                "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
-            )
-            similarity["score"]["emotion"] = category_map[file_name.split("-")[2]]
-            similarities.append(similarity["score"])
+    #         similarity = signal_similarity(
+    #             "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
+    #         )
+    #         similarity["score"]["emotion"] = category_map[file_name.split("-")[2]]
+    #         similarities.append(similarity["score"])
 
-    filename = f"outputs/speech/signal_similarity/RAVDESS_score.csv"
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
-        writer.writeheader()
-        for row in similarities:
-            writer.writerow(row)
+    # filename = f"outputs/speech/signal_similarity/RAVDESS_score.csv"
+    # with open(filename, mode="w", newline="") as file:
+    #     writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+    #     writer.writeheader()
+    #     for row in similarities:
+    #         writer.writerow(row)
 
     visual4corr2("RAVDESS", corr, corr_emo)
     visual4label("speech", "RAVDESS", category)
@@ -950,21 +950,21 @@ def load_TESS(
                 visual4corr4(
                     "TESS", path[index], os.path.join(dirname, filename), label.lower()
                 )
-                similarity = signal_similarity(
-                    "TESS", path[index], os.path.join(dirname, filename), label.lower()
-                )
-                similarity["score"]["emotion"] = label.lower()
-                similarities.append(similarity["score"])
+    #             similarity = signal_similarity(
+    #                 "TESS", path[index], os.path.join(dirname, filename), label.lower()
+    #             )
+    #             similarity["score"]["emotion"] = label.lower()
+    #             similarities.append(similarity["score"])
 
-        if len(y) == 2800:
-            break
+    #     if len(y) == 2800:
+    #         break
 
-    filename = f"outputs/speech/signal_similarity/TESS_score.csv"
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
-        writer.writeheader()
-        for row in similarities:
-            writer.writerow(row)
+    # filename = f"outputs/speech/signal_similarity/TESS_score.csv"
+    # with open(filename, mode="w", newline="") as file:
+    #     writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+    #     writer.writeheader()
+    #     for row in similarities:
+    #         writer.writerow(row)
 
     visual4corr2("TESS", corr, corr_emo)
     visual4label("speech", "TESS", category)
@@ -1239,18 +1239,18 @@ def load_SAVEE(
             visual4corr4(
                 "SAVEE", paths[index], os.path.join(path, file), category_map[label]
             )
-            similarity = signal_similarity(
-                "SAVEE", paths[index], os.path.join(path, file), category_map[label]
-            )
-            similarity["score"]["emotion"] = category_map[label]
-            similarities.append(similarity["score"])
+    #         similarity = signal_similarity(
+    #             "SAVEE", paths[index], os.path.join(path, file), category_map[label]
+    #         )
+    #         similarity["score"]["emotion"] = category_map[label]
+    #         similarities.append(similarity["score"])
 
-    filename = f"outputs/speech/signal_similarity/SAVEE_score.csv"
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
-        writer.writeheader()
-        for row in similarities:
-            writer.writerow(row)
+    # filename = f"outputs/speech/signal_similarity/SAVEE_score.csv"
+    # with open(filename, mode="w", newline="") as file:
+    #     writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+    #     writer.writeheader()
+    #     for row in similarities:
+    #         writer.writerow(row)
 
     visual4corr2("SAVEE", corr, corr_emo)
     visual4label("speech", "SAVEE", category)
@@ -1530,21 +1530,21 @@ def load_CREMA(
                 os.path.join(path, file),
                 category_map[label.lower()],
             )
-            similarity = signal_similarity(
-                "CREMA",
-                paths[index],
-                os.path.join(path, file),
-                category_map[label.lower()],
-            )
-            similarity["score"]["emotion"] = category_map[label.lower()]
-            similarities.append(similarity["score"])
+    #         similarity = signal_similarity(
+    #             "CREMA",
+    #             paths[index],
+    #             os.path.join(path, file),
+    #             category_map[label.lower()],
+    #         )
+    #         similarity["score"]["emotion"] = category_map[label.lower()]
+    #         similarities.append(similarity["score"])
 
-    filename = f"outputs/speech/signal_similarity/CREMA-D_score.csv"
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
-        writer.writeheader()
-        for row in similarities:
-            writer.writerow(row)
+    # filename = f"outputs/speech/signal_similarity/CREMA-D_score.csv"
+    # with open(filename, mode="w", newline="") as file:
+    #     writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+    #     writer.writeheader()
+    #     for row in similarities:
+    #         writer.writerow(row)
 
     visual4corr2("CREMA", corr, corr_emo)
     visual4label("speech", "CREMA", category)
@@ -1819,18 +1819,18 @@ def load_EmoDB(
             visual4corr4(
                 "EmoDB", paths[index], os.path.join(path, file), category_map[label]
             )
-            similarity = signal_similarity(
-                "EmoDB", paths[index], os.path.join(path, file), category_map[label]
-            )
-            similarity["score"]["emotion"] = category_map[label]
-            similarities.append(similarity["score"])
+    #         similarity = signal_similarity(
+    #             "EmoDB", paths[index], os.path.join(path, file), category_map[label]
+    #         )
+    #         similarity["score"]["emotion"] = category_map[label]
+    #         similarities.append(similarity["score"])
 
-    filename = f"outputs/speech/signal_similarity/EmoDB_score.csv"
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
-        writer.writeheader()
-        for row in similarities:
-            writer.writerow(row)
+    # filename = f"outputs/speech/signal_similarity/EmoDB_score.csv"
+    # with open(filename, mode="w", newline="") as file:
+    #     writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+    #     writer.writeheader()
+    #     for row in similarities:
+    #         writer.writerow(row)
 
     visual4corr2("EmoDB", corr, corr_emo)
     visual4label("speech", "EmoDB", category)
@@ -2107,18 +2107,18 @@ def load_eNTERFACE(
             visual4corr4(
                 "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
             )
-            similarity = signal_similarity(
-                "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
-            )
-            similarity["score"]["emotion"] = category_map[label]
-            similarities.append(similarity["score"])
+    #         similarity = signal_similarity(
+    #             "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
+    #         )
+    #         similarity["score"]["emotion"] = category_map[label]
+    #         similarities.append(similarity["score"])
 
-    filename = f"outputs/speech/signal_similarity/eNTERFACE_score.csv"
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
-        writer.writeheader()
-        for row in similarities:
-            writer.writerow(row)
+    # filename = f"outputs/speech/signal_similarity/eNTERFACE_score.csv"
+    # with open(filename, mode="w", newline="") as file:
+    #     writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+    #     writer.writeheader()
+    #     for row in similarities:
+    #         writer.writerow(row)
 
     visual4corr2("eNTERFACE", corr, corr_emo)
     visual4label("speech", "eNTERFACE05", category)
@@ -2386,19 +2386,19 @@ def load_AESDD(
                 visual4corr4(
                     "AESDD", path[index], os.path.join(dirname, filename), label
                 )
-                similarity = signal_similarity(
-                    "AESDD", path[index], os.path.join(dirname, filename), label
-                )
-                similarity["score"]["emotion"] = label
-                similarities.append(similarity["score"])
-        # if len(y) == 2800:
-        #     break
-    filename = f"outputs/speech/signal_similarity/AESDD_score.csv"
-    with open(filename, mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
-        writer.writeheader()
-        for row in similarities:
-            writer.writerow(row)
+    #             similarity = signal_similarity(
+    #                 "AESDD", path[index], os.path.join(dirname, filename), label
+    #             )
+    #             similarity["score"]["emotion"] = label
+    #             similarities.append(similarity["score"])
+    #     # if len(y) == 2800:
+    #     #     break
+    # filename = f"outputs/speech/signal_similarity/AESDD_score.csv"
+    # with open(filename, mode="w", newline="") as file:
+    #     writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+    #     writer.writeheader()
+    #     for row in similarities:
+    #         writer.writerow(row)
 
     visual4corr2("AESDD", corr, corr_emo)
     visual4label("speech", "AESDD", category)

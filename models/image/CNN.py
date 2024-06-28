@@ -225,13 +225,5 @@ class CNN(Model):
         if not os.path.exists("outputs/image/models/"):
             os.makedirs("outputs/image/models")
         self.model.save("outputs/image/models/CNN.h5")
-        # loaded_model = tf.keras.models.load_model("outputs/image/models/CNN.h5")
-        # a = loaded_model.predict(Xtest)
-        # a = tf.nn.softmax(a)  # probabilities
-        # t = []
-        # t += np.argmax(a, axis=1).tolist()
-        # t = np.array(t)
-        # print(t)
-        # print(ytest)
 
         return ytest, test_pred

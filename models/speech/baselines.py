@@ -20,6 +20,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB, CategoricalNB
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
+import os
 
 
 class Baselines:
@@ -40,7 +41,7 @@ class Baselines:
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
-            self.model = BernoulliNB()
+            self.model = GaussianNB()
         elif method == "RF":
             self.model = RandomForestClassifier(criterion="entropy", verbose=1)
 
@@ -128,5 +129,9 @@ class Baselines:
         elapsed_time_test = end_time_test - start_time_test
         print(f"Finish testing for {self.method}.")
         print(f"Testing time: {elapsed_time_test}s")
+
+        # if not os.path.exists("outputs/speech/models/"):
+        #     os.makedirs("outputs/speech/models")
+        # self.model.save("outputs/speech/models/NB.h5")
 
         return pred_train, pred_val, pred_test
