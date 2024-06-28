@@ -1,11 +1,3 @@
-"""
-Author: uceewl4 uceewl4@ucl.ac.uk
-Date: 2024-06-13 04:30:30
-LastEditors: uceewl4 uceewl4@ucl.ac.uk
-LastEditTime: 2024-06-13 04:30:53
-FilePath: /ELEC0054_Research_Project_23_24-SN23043574/utils.py
-Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
-"""
 
 # -*- encoding: utf-8 -*-
 """
@@ -21,8 +13,15 @@ Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查�
 # here put the import lib
 
 # here put the import lib
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+from dtaidistance import dtw
+from scipy.stats import pearsonr
+import pandas as pd
 import math
 from pydub import AudioSegment
+from audio_similarity import AudioSimilarity
 import cv2
 from patchify import patchify
 import seaborn as sns
@@ -31,6 +30,9 @@ from imblearn.metrics import geometric_mean_score
 from imblearn.metrics import sensitivity_score
 from imblearn.metrics import specificity_score
 from imblearn.metrics import classification_report_imbalanced
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import butter, lfilter
 
 import mediapipe as mp
 
@@ -125,6 +127,7 @@ def get_features(
         if dataset == "eNTERFACE" and len(X.shape) == 2:
             X = X[:, 1]
         sample_rate = sound_file.samplerate
+        # print(sample_rate)
         if sr != 16000:  # resample
             X = librosa.resample(X, orig_sr=sample_rate, target_sr=sr)
 
@@ -537,7 +540,7 @@ def load_RAVDESS(
     sr=16000,
     split=None,
 ):
-    x, y, category, path, audio, lengths, corr, corr_emo = (
+    x, y, category, path, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
         [],
@@ -546,6 +549,7 @@ def load_RAVDESS(
         [],
         [],
         [],
+        []
     )
 
     # if we use original class for ranging split
@@ -662,9 +666,24 @@ def load_RAVDESS(
             index = category.index(
                 category_map[file_name.split("-")[2]]
             )  # find the index of the first one
-            visual4corr3(
+            # visual4corr3(
+            #     "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
+            # )
+            visual4corr4(
                 "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
             )
+            similarity = signal_similarity(
+                "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
+            )
+            similarity["score"]["emotion"] = category_map[file_name.split("-")[2]]
+            similarities.append(similarity["score"])
+
+    filename = f"outputs/speech/signal_similarity/RAVDESS_score.csv"
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+        writer.writeheader()
+        for row in similarities:
+            writer.writerow(row)
 
     visual4corr2("RAVDESS", corr, corr_emo)
     visual4label("speech", "RAVDESS", category)
@@ -812,7 +831,7 @@ def load_TESS(
     sr=16000,
     split=None,
 ):
-    x, y, category, path, audio, lengths, corr, corr_emo = (
+    x, y, category, path, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
         [],
@@ -821,6 +840,7 @@ def load_TESS(
         [],
         [],
         [],
+        []
     )
 
     # original class of ranging split
@@ -924,12 +944,27 @@ def load_TESS(
                 corr_emo.append(label.lower())
             if category.count(label.lower()) == 2:
                 index = category.index(label.lower())  # find the index of the first one
-                visual4corr3(
+                # visual4corr3(
+                #     "TESS", path[index], os.path.join(dirname, filename), label.lower()
+                # )
+                visual4corr4(
                     "TESS", path[index], os.path.join(dirname, filename), label.lower()
                 )
+                similarity = signal_similarity(
+                    "TESS", path[index], os.path.join(dirname, filename), label.lower()
+                )
+                similarity["score"]["emotion"] = label.lower()
+                similarities.append(similarity["score"])
 
         if len(y) == 2800:
             break
+    
+    filename = f"outputs/speech/signal_similarity/TESS_score.csv"
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+        writer.writeheader()
+        for row in similarities:
+            writer.writerow(row)
 
     visual4corr2("TESS", corr, corr_emo)
     visual4label("speech", "TESS", category)
@@ -1076,7 +1111,7 @@ def load_SAVEE(
     sr=16000,
     split=None,
 ):
-    x, y, category, paths, audio, lengths, corr, corr_emo = (
+    x, y, category, paths, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
         [],
@@ -1085,6 +1120,7 @@ def load_SAVEE(
         [],
         [],
         [],
+        []
     )
 
     # original class ranging split
@@ -1197,9 +1233,24 @@ def load_SAVEE(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            visual4corr3(
+            # visual4corr3(
+            #     "SAVEE", paths[index], os.path.join(path, file), category_map[label]
+            # )
+            visual4corr4(
                 "SAVEE", paths[index], os.path.join(path, file), category_map[label]
             )
+            similarity = signal_similarity(
+                "SAVEE", paths[index], os.path.join(path, file), category_map[label]
+            )
+            similarity["score"]["emotion"] = category_map[label]
+            similarities.append(similarity["score"])
+
+    filename = f"outputs/speech/signal_similarity/SAVEE_score.csv"
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+        writer.writeheader()
+        for row in similarities:
+            writer.writerow(row)
 
     visual4corr2("SAVEE", corr, corr_emo)
     visual4label("speech", "SAVEE", category)
@@ -1346,7 +1397,7 @@ def load_CREMA(
     sr=16000,
     split=None,
 ):
-    x, y, category, paths, audio, lengths, corr, corr_emo = (
+    x, y, category, paths, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
         [],
@@ -1355,6 +1406,7 @@ def load_CREMA(
         [],
         [],
         [],
+        []
     )
     # original class ranging split
     # emotion_map = {
@@ -1466,12 +1518,33 @@ def load_CREMA(
             index = category.index(
                 category_map[label.lower()]
             )  # find the index of the first one
-            visual4corr3(
+            # visual4corr3(
+            #     "CREMA",
+            #     paths[index],
+            #     os.path.join(path, file),
+            #     category_map[label.lower()],
+            # )
+            visual4corr4(
                 "CREMA",
                 paths[index],
                 os.path.join(path, file),
                 category_map[label.lower()],
             )
+            similarity = signal_similarity(
+                "CREMA",
+                paths[index],
+                os.path.join(path, file),
+                category_map[label.lower()],
+            )
+            similarity["score"]["emotion"] = category_map[label.lower()]
+            similarities.append(similarity["score"])
+
+    filename = f"outputs/speech/signal_similarity/CREMA-D_score.csv"
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+        writer.writeheader()
+        for row in similarities:
+            writer.writerow(row)
 
     visual4corr2("CREMA", corr, corr_emo)
     visual4label("speech", "CREMA", category)
@@ -1618,7 +1691,7 @@ def load_EmoDB(
     sr=16000,
     split=None,
 ):
-    x, y, category, paths, audio, lengths, corr, corr_emo = (
+    x, y, category, paths, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
         [],
@@ -1627,6 +1700,7 @@ def load_EmoDB(
         [],
         [],
         [],
+        []
     )
     # original class ranging split
 
@@ -1739,9 +1813,24 @@ def load_EmoDB(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            visual4corr3(
+            # visual4corr3(
+            #     "EmoDB", paths[index], os.path.join(path, file), category_map[label]
+            # )
+            visual4corr4(
                 "EmoDB", paths[index], os.path.join(path, file), category_map[label]
             )
+            similarity = signal_similarity(
+                "EmoDB", paths[index], os.path.join(path, file), category_map[label]
+            )
+            similarity["score"]["emotion"] = category_map[label]
+            similarities.append(similarity["score"])
+    
+    filename = f"outputs/speech/signal_similarity/EmoDB_score.csv"
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+        writer.writeheader()
+        for row in similarities:
+            writer.writerow(row)
 
     visual4corr2("EmoDB", corr, corr_emo)
     visual4label("speech", "EmoDB", category)
@@ -1888,7 +1977,7 @@ def load_eNTERFACE(
     sr=16000,
     split=None,
 ):
-    x, y, category, paths, audio, lengths, corr, corr_emo = (
+    x, y, category, paths, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
         [],
@@ -1897,6 +1986,7 @@ def load_eNTERFACE(
         [],
         [],
         [],
+        []
     )
     # original class ranging split
     # emotion_map = {
@@ -2011,9 +2101,24 @@ def load_eNTERFACE(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            visual4corr3(
+            # visual4corr3(
+            #     "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
+            # )
+            visual4corr4(
                 "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
             )
+            similarity = signal_similarity(
+                "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
+            )
+            similarity["score"]["emotion"] = category_map[label]
+            similarities.append(similarity["score"])
+
+    filename = f"outputs/speech/signal_similarity/eNTERFACE_score.csv"
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+        writer.writeheader()
+        for row in similarities:
+            writer.writerow(row)
 
     visual4corr2("eNTERFACE", corr, corr_emo)
     visual4label("speech", "eNTERFACE05", category)
@@ -2161,7 +2266,7 @@ def load_AESDD(
     sr=16000,
     split=None,
 ):
-    x, y, category, path, audio, lengths, corr, corr_emo = (
+    x, y, category, path, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
         [],
@@ -2170,6 +2275,7 @@ def load_AESDD(
         [],
         [],
         [],
+        []
     )
 
     # original class of ranging split
@@ -2274,11 +2380,26 @@ def load_AESDD(
                 corr_emo.append(label)
             if category.count(label) == 2:
                 index = category.index(label)  # find the index of the first one
-                visual4corr3(
+                # visual4corr3(
+                #     "AESDD", path[index], os.path.join(dirname, filename), label
+                # )
+                visual4corr4(
                     "AESDD", path[index], os.path.join(dirname, filename), label
                 )
+                similarity = signal_similarity(
+                    "AESDD", path[index], os.path.join(dirname, filename), label
+                )
+                similarity["score"]["emotion"] = label
+                similarities.append(similarity["score"])
         # if len(y) == 2800:
         #     break
+    filename = f"outputs/speech/signal_similarity/AESDD_score.csv"
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=similarities[0].keys())
+        writer.writeheader()
+        for row in similarities:
+            writer.writerow(row)
+
     visual4corr2("AESDD", corr, corr_emo)
     visual4label("speech", "AESDD", category)
     print(np.array(x).shape)
@@ -5840,3 +5961,227 @@ def visual4corr3(dataset, file1, file2, emotion):
 
     # most artificially to most real
     # (RAVDESS/TESS), (SAVEE, EmoDB, AESDD, CREMA-D), eNTERFACE05
+
+
+
+def visual4corr4(dataset, file1, file2, emotion):
+    sample_rate, data1 = wavfile.read(file1)
+    sample_rate, data2 = wavfile.read(file2)
+    # print(sample_rate)
+    if dataset == "eNTERFACE":
+        data1 = data1[:, 0]
+        data2 = data2[:, 0]
+
+    # low pass filter
+    # Parameters
+    fs = 1000.0       # Sample rate (Hz)  # 500 
+    # t = np.arange(0, 1.0, 1.0/fs)  # Time vector
+    cutoff = 5.0    # Desired cutoff frequency of the filter (Hz)  # 10
+    order = 5        # Order of the filter
+    # small cutoff can have a obvious difference between two signal
+    # large cutoff will still have similar signal
+    # frequency cannot be too small
+
+    # Generate the signal
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    fdata1 = lfilter(b, a, data1)
+    fdata2 = lfilter(b, a, data2)
+
+    fdata1 = fdata1.astype(float)
+    fdata2 = fdata2.astype(float)
+    fdata1 /= np.max(np.abs(fdata1))
+    fdata2 /= np.max(np.abs(fdata2))
+
+    cross_correlation = np.correlate(
+        fdata1, fdata2, mode="full"
+    )  # the amplitude is sum of correlation multiplication
+    cross_lags = np.arange(-len(fdata1) + 1, len(fdata2))
+    auto_correlation1 = np.correlate(fdata1, fdata1, mode="full")
+    auto_lags1 = np.arange(-len(fdata1) + 1, len(fdata1))
+    auto_correlation2 = np.correlate(fdata2, fdata2, mode="full")
+    auto_lags2 = np.arange(-len(fdata2) + 1, len(fdata2))
+
+    # Plot the cross-correlation
+    plt.figure(figsize=(10, 16))
+    fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
+    ax1.plot(fdata1)
+    ax2.plot(fdata2)
+    ax3.plot(auto_lags1, auto_correlation1)
+    ax4.plot(auto_lags2, auto_correlation2)
+    # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
+    ax_corr.plot(cross_lags, cross_correlation)
+    plt.xlabel("Lag")
+    plt.ylabel("Correlation")
+    if not os.path.exists(f"outputs/speech/corr_signal_filter/"):
+        os.makedirs(f"outputs/speech/corr_signal_filter/")
+    fig.savefig(f"outputs/speech/corr_signal_filter/{dataset}_{emotion}.png")
+    plt.close()
+
+    # spectrogram of cross correlation
+    melspectrogram = librosa.feature.melspectrogram(
+        y=cross_correlation, sr=sample_rate, n_mels=128, fmax=8000
+    )
+    plt.figure(figsize=(10, 4))
+    librosa.display.specshow(
+        librosa.power_to_db(S=melspectrogram, ref=np.mean),
+        y_axis="mel",
+        fmax=8000,
+        x_axis="time",
+        norm=Normalize(vmin=-20, vmax=20),
+    )
+    plt.colorbar(format="%+2.0f dB", label="Amplitude")
+    plt.ylabel("Mels")
+    plt.title(f"{emotion} Mel spectrogram")
+    plt.tight_layout()
+    if not os.path.exists(f"outputs/speech/corr_signal_filter/"):
+        os.makedirs(f"outputs/speech/corr_signal_filter/")
+    plt.savefig(f"outputs/speech/corr_signal_filter/{dataset}_{emotion}_mels.png")
+    plt.close()
+   
+
+    # most artificially to most real
+    # (RAVDESS/TESS), (SAVEE, EmoDB, AESDD, CREMA-D), eNTERFACE0
+
+    # moving average
+    window_size = 1000  # Window size for moving average
+    ma_data1 = np.convolve(data1, np.ones(window_size)/window_size, mode='valid')
+    ma_data2 = np.convolve(data2, np.ones(window_size)/window_size, mode='valid')
+    # the larger the window size, the better
+
+    ma_data1 = ma_data1.astype(float)
+    ma_data2 = ma_data2.astype(float)
+    ma_data1 /= np.max(np.abs(ma_data1))
+    ma_data2 /= np.max(np.abs(ma_data2))
+
+    cross_correlation = np.correlate(
+        ma_data1, ma_data2, mode="full"
+    )  # the amplitude is sum of correlation multiplication
+    cross_lags = np.arange(-len(ma_data1) + 1, len(ma_data2))
+    auto_correlation1 = np.correlate(ma_data1, ma_data1, mode="full")
+    auto_lags1 = np.arange(-len(ma_data1) + 1, len(ma_data1))
+    auto_correlation2 = np.correlate(ma_data2, ma_data2, mode="full")
+    auto_lags2 = np.arange(-len(ma_data2) + 1, len(ma_data2))
+
+    # Plot the cross-correlation
+    plt.figure(figsize=(10, 16))
+    fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
+    ax1.plot(ma_data1)
+    ax2.plot(ma_data2)
+    ax3.plot(auto_lags1, auto_correlation1)
+    ax4.plot(auto_lags2, auto_correlation2)
+    # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
+    ax_corr.plot(cross_lags, cross_correlation)
+    plt.xlabel("Lag")
+    plt.ylabel("Correlation")
+    if not os.path.exists(f"outputs/speech/corr_signal_ma/"):
+        os.makedirs(f"outputs/speech/corr_signal_ma/")
+    fig.savefig(f"outputs/speech/corr_signal_ma/{dataset}_{emotion}.png")
+    plt.close()
+
+    
+
+
+def signal_similarity(dataset, file1, file2, emotion):
+    sample_rate, data1 = wavfile.read(file1)
+    sample_rate, data2 = wavfile.read(file2)
+    print(sample_rate)
+    # if dataset == "eNTERFACE":
+    #     data1 = data1[:, 0]
+    #     data2 = data2[:, 0]
+
+    weights = {
+        'zcr_similarity': 0.2,
+        'rhythm_similarity': 0.2,
+        'chroma_similarity': 0.2,
+        'energy_envelope_similarity': 0.1,
+        'spectral_contrast_similarity': 0.1,
+        'perceptual_similarity': 0.2
+    }
+
+    # Create an instance of the AudioSimilarity class
+
+    audio_similarity = AudioSimilarity(file1, file2, sample_rate, weights, verbose=True, sample_size=1)
+    similarity = {
+        # "zcr":audio_similarity.zcr_similarity(),
+        # "rhythm":audio_similarity.rhythm_similarity(),
+        # "chroma":audio_similarity.chroma_similarity(),
+        # "energy":audio_similarity.energy_envelope_similarity(),
+        # "spectral":audio_similarity.spectral_contrast_similarity(),
+        # "perceptual":audio_similarity.perceptual_similarity(),
+        "score":audio_similarity.stent_weighted_audio_similarity(metrics='all')
+    }
+    print(f"Stent Weighted Audio Similarity of {emotion}: {similarity}")
+
+    # plt.figure(figsize=(10, 16))
+    audio_similarity.plot(metrics=None,
+                      option='all',
+                      figsize=(10, 7),
+                      color1='red',
+                      color2='green',
+                      dpi=600,
+                      savefig=False,
+                      fontsize=6,
+                      label_fontsize=8,
+                      title_fontsize=14, 
+                      alpha=0.5, 
+                      title='Audio Similarity Metrics')
+    if not os.path.exists(f"outputs/speech/signal_similarity/"):
+        os.makedirs(f"outputs/speech/signal_similarity/")
+    plt.savefig(f"outputs/speech/signal_similarity/{dataset}_{emotion}.png")
+    plt.close()
+
+    return similarity
+
+    # # dwt, too long
+    # # Generate dummy data for the time series
+    # np.random.seed(0)
+    # time_series_a = np.cumsum(data1)
+    # time_series_b = np.cumsum(data2)
+
+    # # Calculate DTW distance and obtain the warping paths (no need for the C library)
+    # distance, paths = dtw.warping_paths(time_series_a, time_series_b, use_c=False)
+    # best_path = dtw.best_path(paths)
+
+    # dtw_score = distance / len(best_path)
+
+    # plt.figure(figsize=(12, 8))
+
+    # # Original Time Series Plot
+    # ax1 = plt.subplot2grid((2, 2), (0, 0))
+    # ax1.plot(time_series_a, label='Series A', color='blue')
+    # ax1.plot(time_series_b, label='Series B', linestyle='--',color='orange')
+    # ax1.set_title('Original Time Series')
+    # ax1.legend()
+
+    # # Shortest Path Plot (Cost Matrix with the path)
+    # # In this example, only the path is plotted, not the entire cost matrix.
+
+    # ax2 = plt.subplot2grid((2, 2), (0, 1))
+    # ax2.plot(np.array(best_path)[:, 0], np.array(best_path)[:, 1], 'green', marker='o', linestyle='-')
+    # ax2.set_title('Shortest Path (Best Path)')
+    # ax2.set_xlabel('Series A')
+    # ax2.set_ylabel('Series B')
+    # ax2.grid(True)
+
+
+    # # Point-to-Point Comparison Plot
+    # ax3 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
+    # ax3.plot(time_series_a, label='Series A', color='blue', marker='o')
+    # ax3.plot(time_series_b, label='Series B', color='orange', marker='x', linestyle='--')
+    # for a, b in best_path:
+    #     ax3.plot([a, b], [time_series_a[a], time_series_b[b]], color='grey', linestyle='-', linewidth=1, alpha = 0.5)
+    # ax3.set_title('Point-to-Point Comparison After DTW Alignment')
+    # ax3.legend()
+
+    # plt.tight_layout()
+    # if not os.path.exists(f"outputs/speech/signal_similarity/"):
+    #     os.makedirs(f"outputs/speech/signal_similarity/")
+    # plt.savefig(f"outputs/speech/signal_similarity/{dataset}_{emotion}_dtw.png")
+    # plt.close()
+
+    # # Create a DataFrame to display the similarity score and correlation coefficient
+    # print(f"DTW Similarity Score: {dtw_score}")
+
+    # lower score, greater similarity
