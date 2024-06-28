@@ -267,4 +267,11 @@ class AlexNet(Model):
         print("Finish testing.")
         print(f"Testing time: {elapsed_time_test}s")
 
+        if not os.path.exists("outputs/speech/models/"):
+            os.makedirs("outputs/speech/models")
+        model_json = self.model.to_json()
+        with open("outputs/speech/models/AlexNet.json", "w") as json_file:
+            json_file.write(model_json)
+        self.model.save_weights("outputs/image/models/AlexNet.h5")
+
         return ytest, test_pred

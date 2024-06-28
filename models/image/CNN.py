@@ -222,4 +222,11 @@ class CNN(Model):
         print("Finish testing.")
         print(f"Testing time: {elapsed_time_test}s")
 
+        if not os.path.exists("outputs/image/models/"):
+            os.makedirs("outputs/image/models")
+        model_json = self.model.to_json()
+        with open("outputs/image/models/CNN.json", "w") as json_file:
+            json_file.write(model_json)
+        self.model.save_weights("outputs/image/models/CNN.h5")
+
         return ytest, test_pred
