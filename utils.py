@@ -950,14 +950,14 @@ def load_TESS(
                 visual4corr4(
                     "TESS", path[index], os.path.join(dirname, filename), label.lower()
                 )
-    #             similarity = signal_similarity(
-    #                 "TESS", path[index], os.path.join(dirname, filename), label.lower()
-    #             )
-    #             similarity["score"]["emotion"] = label.lower()
-    #             similarities.append(similarity["score"])
+                # similarity = signal_similarity(
+                #     "TESS", path[index], os.path.join(dirname, filename), label.lower()
+                # )
+                # similarity["score"]["emotion"] = label.lower()
+                # similarities.append(similarity["score"])
 
-    #     if len(y) == 2800:
-    #         break
+        if len(y) == 2800:
+            break
 
     # filename = f"outputs/speech/signal_similarity/TESS_score.csv"
     # with open(filename, mode="w", newline="") as file:
