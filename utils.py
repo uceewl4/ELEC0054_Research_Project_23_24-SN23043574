@@ -4730,6 +4730,89 @@ def load_split_corpus_size_image(
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
+def load_mix3_corpus_image(
+    method,
+    corpus=None,
+):  # cc: mix, corpus: with only one string as the testing set
+
+    # 900+300, 900 train 300 val, 300 test
+    # 900/5=180, 300/5=60, 1200/5=240
+    # 300
+    datasets = ["CK", "FER", "RAF"]
+    emotion_map = {
+        ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
+        ("happy", "surprise", "4", "1"): 1,
+        ("contempt", "neutral", "7"): 2,
+    }
+
+    X_train, ytrain, X_val, yval, X_test, ytest = [], [], [], [], [], []
+
+    for index, dataset in enumerate(datasets):
+        x, y = [], []  # for each dataset
+        if dataset == "CK":
+            for dirname, _, filenames in os.walk("datasets/image/CK"):
+                for filename in filenames:
+                    img = cv2.imread(os.path.join(dirname, filename))
+                    label = dirname.split("/")[-1]
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    x.append(img)  # grayscale
+                    for k, i in enumerate(emotion_map.keys()):
+                        if label in i:  # tuple
+                            emotion = emotion_map[i]
+                    y.append(emotion)
+        else:
+            path = "datasets/image/RAF" if dataset == "RAF" else "datasets/image/FER"
+            for firstdir in os.listdir(path):
+                first_path = os.path.join(path, firstdir)
+                for secdir in os.listdir(first_path):
+                    sec_path = os.path.join(first_path, secdir)
+                    for file in os.listdir(sec_path):
+                        img = cv2.imread(os.path.join(sec_path, file))
+                        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        if dataset == "RAF":
+                            img = cv2.resize(img, (48, 48))
+                        x.append(img)  # grayscale
+                        for k, i in enumerate(emotion_map.keys()):
+                            if secdir in i:  # tuple
+                                emotion = emotion_map[i]
+                        y.append(emotion)
+
+        # first reverse for each dataset, then get
+        x, y = shuffle(x, y, random_state=42)  # shuffle
+        num_classes = len(set(y))
+        n, h, w = np.array(x).shape
+
+        random.seed(123)
+        sample_index = random.sample([i for i in range(np.array(x).shape[0])], 200)
+
+        X_train = (
+            np.array(x)[sample_index, :]
+            if len(X_train) == 0
+            else np.concatenate((X_train, np.array(x)[sample_index, :]), axis=0)
+        )
+        ytrain = (
+            np.array(y)[sample_index].tolist()
+            if len(ytrain) == 0
+            else (ytrain + np.array(y)[sample_index].tolist())
+        )
+
+        # if (dataset == corpus[0]) or (corpus[0] == "eNTERFACE"):  # testing set
+        if dataset == corpus[0]:  # testing set
+            left_index = [
+                i for i in range(np.array(x).shape[0]) if i not in sample_index
+            ]
+            random.seed(123)
+            test_index = random.sample(left_index, 200)  # 200:200:200  -- 200
+            X_test = np.array(x)[test_index, :]  # 300,40
+            ytest = np.array(y)[test_index].tolist()
+
+    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+        X_train, ytrain, test_size=0.5, random_state=9
+    )  # 3:1  # 1200, 40  # 300,4
+
+    return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
+
+
 def load_patches(X, dataset):
     """
     description: This method is used for ViT to get image patches.
@@ -5100,117 +5183,20 @@ def load_data(
                 X_val = load_patches(X_val, dataset)
                 X_test = load_patches(X_test, dataset)
         else:  # corpus != None
-            X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = (
-                load_split_corpus_size_image(method, corpus, split)
-            )
+            if split == None:
+                if cc == "mix":
+                    X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = (
+                        load_mix3_corpus_image(method, corpus)
+                    )
+            else:
+                X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = (
+                    load_split_corpus_size_image(method, corpus, split)
+                )
 
         if method in ["CNN", "Inception", "MLP"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
         elif method in ["ViT"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
-
-    # dataset: CK/FER/RAF
-    # file = os.listdir(path)
-    # Xtest, ytest, Xtrain, ytrain, Xval, yval = [], [], [], [], [], []
-
-    # # divide into train/validation/test dataset
-    # for index, f in enumerate(file):
-    #     if not os.path.isfile(os.path.join(path, f)):
-    #         continue
-    #     else:
-    #         img = cv2.imread(os.path.join(path, f))
-    #         if task == "A" and method in [
-    #             "LR",
-    #             "KNN",
-    #             "SVM",
-    #             "DT",
-    #             "NB",
-    #             "RF",
-    #             "ABC",
-    #             "KMeans",
-    #         ]:
-    #             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    #         if "test" in f:
-    #             Xtest.append(img)
-    #             ytest.append(f.split("_")[1][0])
-    #         elif "train" in f:
-    #             Xtrain.append(img)
-    #             ytrain.append(f.split("_")[1][0])
-    #         elif "val" in f:
-    #             Xval.append(img)
-    #             yval.append(f.split("_")[1][0])
-
-    # if method in ["LR", "KNN", "SVM", "DT", "NB", "RF", "ABC", "KMeans"]:  # baselines
-    #     if task == "A":
-    #         n, h, w = np.array(Xtrain).shape
-    #         Xtrain = np.array(Xtrain).reshape(
-    #             n, h * w
-    #         )  # need to reshape gray picture into two-dimensional ones
-    #         Xval = np.array(Xval).reshape(len(Xval), h * w)
-    #         Xtest = np.array(Xtest).reshape(len(Xtest), h * w)
-    #     elif task == "B":
-    #         n, h, w, c = np.array(Xtrain).shape
-    #         Xtrain = np.array(Xtrain).reshape(n, h * w * c)
-    #         Xval = np.array(Xval).reshape(len(Xval), h * w * c)
-    #         Xtest = np.array(Xtest).reshape(len(Xtest), h * w * c)
-
-    #         # shuffle dataset
-    #         Xtrain, ytrain = shuffle(Xtrain, ytrain, random_state=42)
-    #         Xval, yval = shuffle(Xval, yval, random_state=42)
-    #         Xtest, ytest = shuffle(Xtest, ytest, random_state=42)
-
-    #         # use PCA for task B to reduce dimensionality
-    #         pca = PCA(n_components=64)
-    #         Xtrain = pca.fit_transform(Xtrain)
-    #         Xval = pca.fit_transform(Xval)
-    #         Xtest = pca.fit_transform(Xtest)
-
-    #     return Xtrain, ytrain, Xtest, ytest, Xval, yval
-
-    # else:  # pretrained or customized
-    #     n, h, w, c = np.array(Xtrain).shape
-    #     Xtrain = np.array(Xtrain)
-    #     Xval = np.array(Xval)
-    #     Xtest = np.array(Xtest)
-
-    #     """
-    #         Notice that due to large size of task B dataset, part of train and validation data is sampled for
-    #         pretrained network. However, all test data are used for performance measurement in testing procedure.
-    #     """
-    #     if task == "B":
-    #         sample_index = random.sample([i for i in range(Xtrain.shape[0])], 40000)
-    #         Xtrain = Xtrain[sample_index, :, :, :]
-    #         ytrain = np.array(ytrain)[sample_index].tolist()
-
-    #         sample_index_val = random.sample([i for i in range(Xval.shape[0])], 5000)
-    #         Xval = Xval[sample_index_val, :]
-    #         yval = np.array(yval)[sample_index_val].tolist()
-
-    #         sample_index_test = random.sample([i for i in range(Xtest.shape[0])], 7180)
-    #         Xtest = Xtest[sample_index_test, :]
-    #         ytest = np.array(ytest)[sample_index_test].tolist()
-
-    #     if method in [
-    #         "CNN",
-    #         "MLP",
-    #         "EnsembleNet",
-    #     ]:  # customized, loaded data with batches
-    #         train_ds = tf.data.Dataset.from_tensor_slices(
-    #             (Xtrain, np.array(ytrain).astype(int))
-    #         ).batch(batch_size)
-    #         val_ds = tf.data.Dataset.from_tensor_slices(
-    #             (Xval, np.array(yval).astype(int))
-    #         ).batch(batch_size)
-    #         test_ds = tf.data.Dataset.from_tensor_slices(
-    #             (Xtest, np.array(ytest).astype(int))
-    #         ).batch(batch_size)
-    #         normalization_layer = tf.keras.layers.Rescaling(1.0 / 255)  # normalization
-    #         train_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
-    #         val_ds = val_ds.map(lambda x, y: (normalization_layer(x), y))
-    #         test_ds = test_ds.map(lambda x, y: (normalization_layer(x), y))
-    #         return train_ds, val_ds, test_ds
-    #     else:
-    #         return Xtrain, ytrain, Xtest, ytest, Xval, yval
 
 
 """
@@ -5458,15 +5444,19 @@ def visual4cm(
             )
     elif task == "image":
         if landmark == False:
-            if (corpus != None) and (split != None):
+            if (corpus != None) and (split != None):  # split cross
                 fig.savefig(
                     f"outputs/{task}/confusion_matrix/{method}_raw_cross_{corpus[0]}_{corpus[1]}_{split}.png"
                 )
-            elif (corpus == None) and (split != None):
+            elif (corpus == None) and (split != None):  # split single
                 fig.savefig(
                     f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}_{split}.png"
                 )
-            else:
+            elif (corpus != None) and (split == None):  # mix3
+                fig.savefig(
+                    f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{corpus[0]}.png"
+                )
+            else:  # general
                 fig.savefig(
                     f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}.png"
                 )

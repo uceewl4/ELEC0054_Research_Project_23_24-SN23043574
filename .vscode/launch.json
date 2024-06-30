@@ -18,8 +18,9 @@
                 // "--corpus","TESS","RAVDESS",
                 // "--split","4.0",
                 "--epochs","1",
-                "--corpus","CK","FER",
-                "--split","0.8"
+                "--corpus","CK",
+                // "--split","0.8"
+                "--cc","mix"
                 // "--cc","finetune"
                 // "--window","0","3"
 
