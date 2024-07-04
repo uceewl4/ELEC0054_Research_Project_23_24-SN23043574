@@ -669,9 +669,13 @@ def load_RAVDESS(
             # visual4corr3(
             #     "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
             # )
-            visual4corr4(
+            # visual4corr4(
+            #     "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
+            # )
+            visual4corrMAV(
                 "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
             )
+
     #         similarity = signal_similarity(
     #             "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
     #         )
@@ -947,7 +951,10 @@ def load_TESS(
                 # visual4corr3(
                 #     "TESS", path[index], os.path.join(dirname, filename), label.lower()
                 # )
-                visual4corr4(
+                # visual4corr4(
+                #     "TESS", path[index], os.path.join(dirname, filename), label.lower()
+                # )
+                visual4corrMAV(
                     "TESS", path[index], os.path.join(dirname, filename), label.lower()
                 )
                 # similarity = signal_similarity(
@@ -1236,7 +1243,10 @@ def load_SAVEE(
             # visual4corr3(
             #     "SAVEE", paths[index], os.path.join(path, file), category_map[label]
             # )
-            visual4corr4(
+            # visual4corr4(
+            #     "SAVEE", paths[index], os.path.join(path, file), category_map[label]
+            # )
+            visual4corrMAV(
                 "SAVEE", paths[index], os.path.join(path, file), category_map[label]
             )
     #         similarity = signal_similarity(
@@ -1524,7 +1534,13 @@ def load_CREMA(
             #     os.path.join(path, file),
             #     category_map[label.lower()],
             # )
-            visual4corr4(
+            # visual4corr4(
+            #     "CREMA",
+            #     paths[index],
+            #     os.path.join(path, file),
+            #     category_map[label.lower()],
+            # )
+            visual4corrMAV(
                 "CREMA",
                 paths[index],
                 os.path.join(path, file),
@@ -1816,7 +1832,10 @@ def load_EmoDB(
             # visual4corr3(
             #     "EmoDB", paths[index], os.path.join(path, file), category_map[label]
             # )
-            visual4corr4(
+            # visual4corr4(
+            #     "EmoDB", paths[index], os.path.join(path, file), category_map[label]
+            # )
+            visual4corrMAV(
                 "EmoDB", paths[index], os.path.join(path, file), category_map[label]
             )
     #         similarity = signal_similarity(
@@ -2104,7 +2123,10 @@ def load_eNTERFACE(
             # visual4corr3(
             #     "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
             # )
-            visual4corr4(
+            # visual4corr4(
+            #     "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
+            # )
+            visual4corrMAV(
                 "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
             )
     #         similarity = signal_similarity(
@@ -2383,7 +2405,10 @@ def load_AESDD(
                 # visual4corr3(
                 #     "AESDD", path[index], os.path.join(dirname, filename), label
                 # )
-                visual4corr4(
+                # visual4corr4(
+                #     "AESDD", path[index], os.path.join(dirname, filename), label
+                # )
+                visual4corrMAV(
                     "AESDD", path[index], os.path.join(dirname, filename), label
                 )
     #             similarity = signal_similarity(
@@ -6174,3 +6199,79 @@ def signal_similarity(dataset, file1, file2, emotion):
     # print(f"DTW Similarity Score: {dtw_score}")
 
     # lower score, greater similarity
+
+
+def visual4corrMAV(dataset, file1, file2, emotion):
+    sample_rate, data1 = wavfile.read(file1)
+    sample_rate, data2 = wavfile.read(file2)
+    # print(sample_rate)
+    if dataset == "eNTERFACE":
+        data1 = data1[:, 0]
+        data2 = data2[:, 0]
+
+    # first calculate for envelope absolute
+    # Compute the analytic signal using the Hilbert transform
+    data1 = signal.hilbert(data1)
+    data1 = np.abs(data1)
+    data2 = signal.hilbert(data2)
+    data2 = np.abs(data2)
+
+    # then moving average
+    window_size = 1000  # Window size for moving average
+    ma_data1 = np.convolve(data1, np.ones(window_size) / window_size, mode="valid")
+    ma_data2 = np.convolve(data2, np.ones(window_size) / window_size, mode="valid")
+    # the larger the window size, the better
+
+    # then low pass filter
+    # low pass filter
+    # Parameters
+    fs = 1000.0  # Sample rate (Hz)  # 500
+    # t = np.arange(0, 1.0, 1.0/fs)  # Time vector
+    cutoff = 5.0  # Desired cutoff frequency of the filter (Hz)  # 10
+    order = 5  # Order of the filter
+    # small cutoff can have a obvious difference between two signal
+    # large cutoff will still have similar signal
+    # frequency cannot be too small
+
+    # Generate the signal
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype="low", analog=False)
+    fdata1 = lfilter(b, a, ma_data1)
+    fdata2 = lfilter(b, a, ma_data2)
+
+    fdata1 = fdata1.astype(float)
+    fdata2 = fdata2.astype(float)
+    fdata1 /= np.max(np.abs(fdata1))
+    fdata2 /= np.max(np.abs(fdata2))
+
+    cross_correlation = np.correlate(
+        fdata1, fdata2, mode="full"
+    )  # the amplitude is sum of correlation multiplication
+    cross_lags = np.arange(-len(fdata1) + 1, len(fdata2))
+    auto_correlation1 = np.correlate(fdata1, fdata1, mode="full")
+    auto_lags1 = np.arange(-len(fdata1) + 1, len(fdata1))
+    auto_correlation2 = np.correlate(fdata2, fdata2, mode="full")
+    auto_lags2 = np.arange(-len(fdata2) + 1, len(fdata2))
+    print(
+        emotion,
+        np.max(auto_correlation1),
+        np.max(auto_correlation2),
+        np.max(cross_correlation),
+    )
+
+    # Plot the cross-correlation
+    plt.figure(figsize=(10, 16))
+    fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
+    ax1.plot(fdata1)
+    ax2.plot(fdata2)
+    ax3.plot(auto_lags1, auto_correlation1)
+    ax4.plot(auto_lags2, auto_correlation2)
+    # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
+    ax_corr.plot(cross_lags, cross_correlation)
+    plt.xlabel("Lag")
+    plt.ylabel("Correlation")
+    if not os.path.exists(f"outputs/speech/corr_signal_MAV/"):
+        os.makedirs(f"outputs/speech/corr_signal_MAV/")
+    fig.savefig(f"outputs/speech/corr_signal_MAV/{dataset}_{emotion}.png")
+    plt.close()
