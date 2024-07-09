@@ -124,6 +124,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--split", type=float, default=None, help="play the audio by denoising"
     )  # 0.2, 0.4, 0.5, 0.6, 0.8
+    parser.add_argument("--process", type=str, default=None, help="blur/noise/filter")
     args = parser.parse_args()
     task = args.task
     method = args.method
@@ -133,6 +134,7 @@ if __name__ == "__main__":
     corpus = args.corpus
     sr = args.sr
     split = args.split
+    process = args.process
 
     if task == "speech":
         print(
@@ -308,6 +310,7 @@ if __name__ == "__main__":
                 landmark=args.landmark,
                 split=split,
                 corpus=corpus,
+                process=process,
             )
         elif method in ["ViT"]:
             Xtrain, ytrain, Xval, yval, Xtest, ytest, num_classes = load_data(
@@ -586,6 +589,7 @@ if __name__ == "__main__":
                 corpus=corpus,
                 split=split,
                 landmark=args.landmark,
+                process=process,
             )
 
     if method in ["LSTM", "CNN", "AlexNet"]:

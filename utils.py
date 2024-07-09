@@ -32,8 +32,10 @@ from imblearn.metrics import specificity_score
 from imblearn.metrics import classification_report_imbalanced
 import numpy as np
 import matplotlib.pyplot as plt
+from skimage.util import random_noise
 from scipy.signal import butter, lfilter
 
+from scipy.signal import wiener
 import mediapipe as mp
 
 from transformers import AutoFeatureExtractor
@@ -666,9 +668,9 @@ def load_RAVDESS(
             index = category.index(
                 category_map[file_name.split("-")[2]]
             )  # find the index of the first one
-            # visual4corr3(
-            #     "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
-            # )
+            visual4corr3(
+                "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
+            )
             # visual4corr4(
             #     "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
             # )
@@ -948,9 +950,9 @@ def load_TESS(
                 corr_emo.append(label.lower())
             if category.count(label.lower()) == 2:
                 index = category.index(label.lower())  # find the index of the first one
-                # visual4corr3(
-                #     "TESS", path[index], os.path.join(dirname, filename), label.lower()
-                # )
+                visual4corr3(
+                    "TESS", path[index], os.path.join(dirname, filename), label.lower()
+                )
                 # visual4corr4(
                 #     "TESS", path[index], os.path.join(dirname, filename), label.lower()
                 # )
@@ -1240,9 +1242,9 @@ def load_SAVEE(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            # visual4corr3(
-            #     "SAVEE", paths[index], os.path.join(path, file), category_map[label]
-            # )
+            visual4corr3(
+                "SAVEE", paths[index], os.path.join(path, file), category_map[label]
+            )
             # visual4corr4(
             #     "SAVEE", paths[index], os.path.join(path, file), category_map[label]
             # )
@@ -1528,12 +1530,12 @@ def load_CREMA(
             index = category.index(
                 category_map[label.lower()]
             )  # find the index of the first one
-            # visual4corr3(
-            #     "CREMA",
-            #     paths[index],
-            #     os.path.join(path, file),
-            #     category_map[label.lower()],
-            # )
+            visual4corr3(
+                "CREMA",
+                paths[index],
+                os.path.join(path, file),
+                category_map[label.lower()],
+            )
             # visual4corr4(
             #     "CREMA",
             #     paths[index],
@@ -1829,9 +1831,9 @@ def load_EmoDB(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            # visual4corr3(
-            #     "EmoDB", paths[index], os.path.join(path, file), category_map[label]
-            # )
+            visual4corr3(
+                "EmoDB", paths[index], os.path.join(path, file), category_map[label]
+            )
             # visual4corr4(
             #     "EmoDB", paths[index], os.path.join(path, file), category_map[label]
             # )
@@ -2120,9 +2122,9 @@ def load_eNTERFACE(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            # visual4corr3(
-            #     "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
-            # )
+            visual4corr3(
+                "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
+            )
             # visual4corr4(
             #     "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
             # )
@@ -2402,9 +2404,9 @@ def load_AESDD(
                 corr_emo.append(label)
             if category.count(label) == 2:
                 index = category.index(label)  # find the index of the first one
-                # visual4corr3(
-                #     "AESDD", path[index], os.path.join(dirname, filename), label
-                # )
+                visual4corr3(
+                    "AESDD", path[index], os.path.join(dirname, filename), label
+                )
                 # visual4corr4(
                 #     "AESDD", path[index], os.path.join(dirname, filename), label
                 # )
@@ -4360,7 +4362,7 @@ def get_face_landmarks(image):
     # return image
 
 
-def load_CK(method, landmark=False, split=None):
+def load_CK(method, landmark=False, split=None, process=None):
     X, y = [], []
     if split == None:
         emotion_map = {
@@ -4389,7 +4391,33 @@ def load_CK(method, landmark=False, split=None):
             if landmark == False:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                if len(X) == 0:
+                    if not os.path.exists("outputs/image/process/"):
+                        os.makedirs("outputs/image/process/")
+                    cv2.imwrite(f"outputs/image/process/CK_ori.JPG", img)
+
+                if process == "blur":  # gaussian blur
+                    img = cv2.GaussianBlur(img, (7, 7), 0)
+                elif process == "noise":  # salt & pepper
+                    img = random_noise(img, mode="s&p")
+                    img = (255 * img).astype(np.uint8)
+                elif process == "sobel":
+                    sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                    sobelx = cv2.convertScaleAbs(sobelx)
+                    sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                    sobely = cv2.convertScaleAbs(sobely)
+                    img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                    # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+                elif process == "equal":
+                    img = cv2.equalizeHist(img)
+                elif process == "filter":
+                    img = wiener(img, mysize=(15, 15))
+                    img = np.clip(img, 0, 255).astype(np.uint8)
+
                 X.append(img)  # grayscale
+                if len(X) == 1:
+                    cv2.imwrite(f"outputs/image/process/CK_{process}.JPG", img)
+
                 for k, i in enumerate(emotion_map.keys()):
                     if label in i:  # tuple
                         emotion = emotion_map[i]
@@ -4465,7 +4493,7 @@ def load_CK(method, landmark=False, split=None):
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
-def load_FER(method, landmark=False, split=None):
+def load_FER(method, landmark=False, split=None, process=None):
     X, y = [], []
     if split == None:
         emotion_map = {
@@ -4492,7 +4520,33 @@ def load_FER(method, landmark=False, split=None):
                 img = cv2.imread(os.path.join(sec_path, file))
                 if landmark == False:
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    if len(X) == 0:
+                        if not os.path.exists("outputs/image/process/"):
+                            os.makedirs("outputs/image/process/")
+                        cv2.imwrite(f"outputs/image/process/FER_ori.JPG", img)
+
+                    if process == "blur":  # gaussian blur
+                        img = cv2.GaussianBlur(img, (7, 7), 0)
+                    elif process == "noise":  # salt & pepper
+                        img = random_noise(img, mode="s&p")
+                        img = (255 * img).astype(np.uint8)
+                    elif process == "sobel":
+                        sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                        sobelx = cv2.convertScaleAbs(sobelx)
+                        sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                        sobely = cv2.convertScaleAbs(sobely)
+                        img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                        # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+                    elif process == "equal":
+                        img = cv2.equalizeHist(img)
+                    elif process == "filter":
+                        img = wiener(img, mysize=(15, 15))
+                        img = np.clip(img, 0, 255).astype(np.uint8)
+
                     X.append(img)  # grayscale
+                    if len(X) == 1:
+                        cv2.imwrite(f"outputs/image/process/FER_{process}.JPG", img)
                     for k, i in enumerate(emotion_map.keys()):
                         if secdir in i:  # tuple
                             emotion = emotion_map[i]
@@ -4561,7 +4615,7 @@ def load_FER(method, landmark=False, split=None):
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
-def load_RAF(method, landmark=False, split=None):
+def load_RAF(method, landmark=False, split=None, process=None):
     X, y = [], []
     if split == None:
         emotion_map = {
@@ -4589,7 +4643,33 @@ def load_RAF(method, landmark=False, split=None):
                 img = cv2.imread(os.path.join(sec_path, file))
                 if landmark == False:
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    if len(X) == 0:
+                        if not os.path.exists("outputs/image/process/"):
+                            os.makedirs("outputs/image/process/")
+                        cv2.imwrite(f"outputs/image/process/RAF_ori.JPG", img)
+
+                    if process == "blur":  # gaussian blur
+                        img = cv2.GaussianBlur(img, (7, 7), 0)
+                    elif process == "noise":  # salt & pepper
+                        img = random_noise(img, mode="s&p")
+                        img = (255 * img).astype(np.uint8)
+                    elif process == "sobel":
+                        sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                        sobelx = cv2.convertScaleAbs(sobelx)
+                        sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                        sobely = cv2.convertScaleAbs(sobely)
+                        img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                        # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+                    elif process == "equal":
+                        img = cv2.equalizeHist(img)
+                    elif process == "filter":
+                        img = wiener(img, mysize=(15, 15))
+                        img = np.clip(img, 0, 255).astype(np.uint8)
+
                     X.append(img)  # grayscale
+                    if len(X) == 1:
+                        cv2.imwrite(f"outputs/image/process/RAF_{process}.JPG", img)
                     for k, i in enumerate(emotion_map.keys()):
                         if secdir in i:  # tuple
                             emotion = emotion_map[i]
@@ -4662,6 +4742,7 @@ def load_split_corpus_size_image(
     method,
     corpus=None,
     split=None,  # split is the size of testing set within the mixture
+    process=None,
 ):  # cc: mix, corpus: with only one string as the testing set
 
     # 900+300, 900 train 300 val, 300 test
@@ -4684,7 +4765,28 @@ def load_split_corpus_size_image(
                     img = cv2.imread(os.path.join(dirname, filename))
                     label = dirname.split("/")[-1]
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+                    if index == 0:  # only train
+                        if process == "blur":  # gaussian blur
+                            img = cv2.GaussianBlur(img, (7, 7), 0)
+                        elif process == "noise":  # salt & pepper
+                            img = random_noise(img, mode="s&p")
+                            img = (255 * img).astype(np.uint8)
+                        elif process == "sobel":
+                            sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                            sobelx = cv2.convertScaleAbs(sobelx)
+                            sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                            sobely = cv2.convertScaleAbs(sobely)
+                            img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                            # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+                        elif process == "equal":
+                            img = cv2.equalizeHist(img)
+                        elif process == "filter":
+                            img = wiener(img, mysize=(15, 15))
+                            img = np.clip(img, 0, 255).astype(np.uint8)
+
                     x.append(img)  # grayscale
+
                     for k, i in enumerate(emotion_map.keys()):
                         if label in i:  # tuple
                             emotion = emotion_map[i]
@@ -4700,6 +4802,24 @@ def load_split_corpus_size_image(
                         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                         if cor == "RAF":
                             img = cv2.resize(img, (48, 48))
+                        if index == 0:  # only
+                            if process == "blur":  # gaussian blur
+                                img = cv2.GaussianBlur(img, (7, 7), 0)
+                            elif process == "noise":  # salt & pepper
+                                img = random_noise(img, mode="s&p")
+                                img = (255 * img).astype(np.uint8)
+                            elif process == "sobel":
+                                sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                                sobelx = cv2.convertScaleAbs(sobelx)
+                                sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                                sobely = cv2.convertScaleAbs(sobely)
+                                img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                                # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+                            elif process == "equal":
+                                img = cv2.equalizeHist(img)
+                            elif process == "filter":
+                                img = wiener(img, mysize=(15, 15))
+                                img = np.clip(img, 0, 255).astype(np.uint8)
                         x.append(img)  # grayscale
                         for k, i in enumerate(emotion_map.keys()):
                             if secdir in i:  # tuple
@@ -4924,6 +5044,7 @@ def load_data(
     sr=16000,
     landmark=False,
     split=None,
+    process=None,
 ):
     if task == "speech":
         if corpus == None:
@@ -5189,15 +5310,15 @@ def load_data(
         if corpus == None:
             if dataset == "CK":
                 X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_CK(
-                    method, landmark, split
+                    method, landmark, split, process
                 )
             elif dataset == "FER":
                 X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_FER(
-                    method, landmark, split
+                    method, landmark, split, process
                 )
             elif dataset == "RAF":
                 X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_RAF(
-                    method, landmark, split
+                    method, landmark, split, process
                 )
             if method == "ViT":
                 # Xtrain, ytrain = sample_ViT(Xtrain, ytrain, ntrain)
@@ -5215,7 +5336,7 @@ def load_data(
                     )
             else:
                 X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = (
-                    load_split_corpus_size_image(method, corpus, split)
+                    load_split_corpus_size_image(method, corpus, split, process)
                 )
 
         if method in ["CNN", "Inception", "MLP"]:
@@ -5413,6 +5534,7 @@ def visual4cm(
     corpus=None,
     split=None,
     landmark=False,
+    process=None,
 ):
     # confusion matrix
     if cc != "finetune":
@@ -5470,9 +5592,14 @@ def visual4cm(
     elif task == "image":
         if landmark == False:
             if (corpus != None) and (split != None):  # split cross
-                fig.savefig(
-                    f"outputs/{task}/confusion_matrix/{method}_raw_cross_{corpus[0]}_{corpus[1]}_{split}.png"
-                )
+                if process == None:
+                    fig.savefig(
+                        f"outputs/{task}/confusion_matrix/{method}_raw_cross_{corpus[0]}_{corpus[1]}_{split}.png"
+                    )
+                else:
+                    fig.savefig(
+                        f"outputs/{task}/confusion_matrix/{method}_raw_cross_{corpus[0]}_{corpus[1]}_{split}_{process}.png"
+                    )
             elif (corpus == None) and (split != None):  # split single
                 fig.savefig(
                     f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}_{split}.png"
@@ -5482,9 +5609,14 @@ def visual4cm(
                     f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{corpus[0]}.png"
                 )
             else:  # general
-                fig.savefig(
-                    f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}.png"
-                )
+                if process == None:
+                    fig.savefig(
+                        f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}.png"
+                    )
+                else:
+                    fig.savefig(
+                        f"outputs/{task}/confusion_matrix/{method}_raw_{cc}_{dataset}_{process}.png"
+                    )
         else:
             fig.savefig(
                 f"outputs/{task}/confusion_matrix/{method}_landmarks_{cc}_{dataset}.png"
@@ -5958,6 +6090,13 @@ def visual4corr3(dataset, file1, file2, emotion):
     auto_correlation2 = np.correlate(data2, data2, mode="full")
     auto_lags2 = np.arange(-len(data2) + 1, len(data2))
 
+    print(
+        emotion,
+        np.max(auto_correlation1),
+        np.max(auto_correlation2),
+        np.max(cross_correlation),
+    )
+
     # Plot the cross-correlation
     plt.figure(figsize=(10, 16))
     fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
@@ -6058,7 +6197,7 @@ def visual4corr4(dataset, file1, file2, emotion):
     # (RAVDESS/TESS), (SAVEE, EmoDB, AESDD, CREMA-D), eNTERFACE0
 
     # moving average
-    window_size = 1000  # Window size for moving average
+    window_size = 100  # Window size for moving average
     ma_data1 = np.convolve(data1, np.ones(window_size) / window_size, mode="valid")
     ma_data2 = np.convolve(data2, np.ones(window_size) / window_size, mode="valid")
     # the larger the window size, the better
@@ -6209,6 +6348,8 @@ def visual4corrMAV(dataset, file1, file2, emotion):
         data1 = data1[:, 0]
         data2 = data2[:, 0]
 
+    ori_data1 = data1
+    ori_data2 = data2
     # first calculate for envelope absolute
     # Compute the analytic signal using the Hilbert transform
     data1 = signal.hilbert(data1)
@@ -6217,7 +6358,7 @@ def visual4corrMAV(dataset, file1, file2, emotion):
     data2 = np.abs(data2)
 
     # then moving average
-    window_size = 1000  # Window size for moving average
+    window_size = 1000  # Window size for moving average  # 1000, smaller window, better describe the shape
     ma_data1 = np.convolve(data1, np.ones(window_size) / window_size, mode="valid")
     ma_data2 = np.convolve(data2, np.ones(window_size) / window_size, mode="valid")
     # the larger the window size, the better
@@ -6253,20 +6394,22 @@ def visual4corrMAV(dataset, file1, file2, emotion):
     auto_lags1 = np.arange(-len(fdata1) + 1, len(fdata1))
     auto_correlation2 = np.correlate(fdata2, fdata2, mode="full")
     auto_lags2 = np.arange(-len(fdata2) + 1, len(fdata2))
-    print(
-        emotion,
-        np.max(auto_correlation1),
-        np.max(auto_correlation2),
-        np.max(cross_correlation),
-    )
+    # print(
+    #     emotion,
+    #     np.max(auto_correlation1),
+    #     np.max(auto_correlation2),
+    #     np.max(cross_correlation),
+    # )
 
     # Plot the cross-correlation
     plt.figure(figsize=(10, 16))
-    fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
-    ax1.plot(fdata1)
-    ax2.plot(fdata2)
-    ax3.plot(auto_lags1, auto_correlation1)
-    ax4.plot(auto_lags2, auto_correlation2)
+    fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax_corr) = plt.subplots(7, 1, sharex=True)
+    ax1.plot(ori_data1)
+    ax2.plot(ori_data2)
+    ax3.plot(fdata1)
+    ax4.plot(fdata2)
+    ax5.plot(auto_lags1, auto_correlation1)
+    ax6.plot(auto_lags2, auto_correlation2)
     # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
     ax_corr.plot(cross_lags, cross_correlation)
     plt.xlabel("Lag")
