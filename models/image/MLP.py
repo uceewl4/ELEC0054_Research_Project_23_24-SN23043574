@@ -33,7 +33,16 @@ class MLP(Model):
     """
 
     def __init__(
-        self, task, method, cc, h, num_classes, epochs=10, lr=0.001, batch_size=32
+        self,
+        task,
+        method,
+        cc,
+        h,
+        num_classes,
+        epochs=10,
+        lr=0.001,
+        batch_size=32,
+        landmark=None,
     ):
         super(MLP, self).__init__()
         self.num_classes = num_classes

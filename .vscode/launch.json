@@ -4,6 +4,13 @@
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
+
+
+
+
+    
+
     
 
         {
@@ -18,9 +25,13 @@
                 // "--corpus","TESS","RAVDESS",
                 // "--split","4.0",
                 "--epochs","1",
-                "--corpus","CK",
+                "--dataset","CK",
+                // "--task","image",
+                // "--landmark","5"
                 // "--split","0.8"
-                "--cc","mix"
+                // "--cc","mix"
+                // "--split","0.8",
+                // "--process","assi"
                 // "--cc","finetune"
                 // "--window","0","3"
 

@@ -88,7 +88,7 @@ if __name__ == "__main__":
         "--denoise", type=bool, default=False, help="play the audio by denoising"
     )
     parser.add_argument(
-        "--landmark", type=bool, default=False, help="play the audio by denoising"
+        "--landmark", type=str, default=None, help="play the audio by denoising"
     )
     parser.add_argument("--window", nargs="+", type=int, help="An array of integers")
     # python script.py --integers 1 2 3 4 5
@@ -321,7 +321,7 @@ if __name__ == "__main__":
                 None,
                 batch_size=16,
                 # corpus=None,
-                landmark=False,
+                landmark=None,
             )
 
     # elif method in ["CNN", "MLP", "EnsembleNet"]:
@@ -406,6 +406,7 @@ if __name__ == "__main__":
                 lr=args.lr,
                 batch_size=args.batch_size,
                 h=h,
+                landmark=args.landmark,
             )
         elif method == "ViT":
             model = load_model(

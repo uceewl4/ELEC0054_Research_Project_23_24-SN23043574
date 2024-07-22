@@ -37,8 +37,9 @@ from scipy.signal import butter, lfilter
 
 from scipy.signal import wiener
 import mediapipe as mp
+import dlib
 
-from transformers import AutoFeatureExtractor
+# from transformers import AutoFeatureExtractor
 import noisereduce as nr
 import cv2
 import os
@@ -98,7 +99,6 @@ import numpy as np
 import scipy.signal as signal
 import soundfile as sf
 
-from models.speech.wav2vec import Wav2Vec
 
 random.seed(123)
 
@@ -763,19 +763,20 @@ def load_RAVDESS(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
-            feature_extractor = AutoFeatureExtractor.from_pretrained(
-                "facebook/wav2vec2-base", return_attention_mask=True
-            )
-            X = feature_extractor(
-                audio,
-                sampling_rate=feature_extractor.sampling_rate,
-                max_length=length,
-                truncation=True,
-                padding=True,
-            )
-            X_train, X_left, ytrain, yleft = train_test_split(  # 54988
-                np.array(X["input_values"]), y, test_size=0.4, random_state=9
-            )  # 3:2
+            # feature_extractor = AutoFeatureExtractor.from_pretrained(
+            #     "facebook/wav2vec2-base", return_attention_mask=True
+            # )
+            # X = feature_extractor(
+            #     audio,
+            #     sampling_rate=feature_extractor.sampling_rate,
+            #     max_length=length,
+            #     truncation=True,
+            #     padding=True,
+            # )
+            # X_train, X_left, ytrain, yleft = train_test_split(  # 54988
+            #     np.array(X["input_values"]), y, test_size=0.4, random_state=9
+            # )  # 3:2
+            pass
 
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
@@ -1047,19 +1048,20 @@ def load_TESS(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
-            feature_extractor = AutoFeatureExtractor.from_pretrained(
-                "facebook/wav2vec2-base", return_attention_mask=True
-            )
-            X = feature_extractor(
-                audio,
-                sampling_rate=feature_extractor.sampling_rate,
-                max_length=length,
-                truncation=True,
-                padding=True,
-            )  # (1440, 84351)
-            X_train, X_left, ytrain, yleft = train_test_split(
-                np.array(X["input_values"]), y, test_size=0.4, random_state=9
-            )  # 3:2
+            # feature_extractor = AutoFeatureExtractor.from_pretrained(
+            #     "facebook/wav2vec2-base", return_attention_mask=True
+            # )
+            # X = feature_extractor(
+            #     audio,
+            #     sampling_rate=feature_extractor.sampling_rate,
+            #     max_length=length,
+            #     truncation=True,
+            #     padding=True,
+            # )  # (1440, 84351)
+            # X_train, X_left, ytrain, yleft = train_test_split(
+            #     np.array(X["input_values"]), y, test_size=0.4, random_state=9
+            # )  # 3:2
+            pass
 
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
@@ -1336,19 +1338,20 @@ def load_SAVEE(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
-            feature_extractor = AutoFeatureExtractor.from_pretrained(
-                "facebook/wav2vec2-base", return_attention_mask=True
-            )
-            X = feature_extractor(
-                audio,
-                sampling_rate=feature_extractor.sampling_rate,
-                max_length=length,
-                truncation=True,
-                padding=True,
-            )
-            X_train, X_left, ytrain, yleft = train_test_split(
-                np.array(X["input_values"]), y, test_size=0.4, random_state=9
-            )  # 3:2
+            # feature_extractor = AutoFeatureExtractor.from_pretrained(
+            #     "facebook/wav2vec2-base", return_attention_mask=True
+            # )
+            # X = feature_extractor(
+            #     audio,
+            #     sampling_rate=feature_extractor.sampling_rate,
+            #     max_length=length,
+            #     truncation=True,
+            #     padding=True,
+            # )
+            # X_train, X_left, ytrain, yleft = train_test_split(
+            #     np.array(X["input_values"]), y, test_size=0.4, random_state=9
+            # )  # 3:2
+            pass
 
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
@@ -1636,19 +1639,20 @@ def load_CREMA(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
-            feature_extractor = AutoFeatureExtractor.from_pretrained(
-                "facebook/wav2vec2-base", return_attention_mask=True
-            )
-            X = feature_extractor(
-                audio,
-                sampling_rate=feature_extractor.sampling_rate,
-                max_length=length,
-                truncation=True,
-                padding=True,
-            )
-            X_train, X_left, ytrain, yleft = train_test_split(
-                np.array(X["input_values"]), y, test_size=0.4, random_state=9
-            )  # 3:2
+            # feature_extractor = AutoFeatureExtractor.from_pretrained(
+            #     "facebook/wav2vec2-base", return_attention_mask=True
+            # )
+            # X = feature_extractor(
+            #     audio,
+            #     sampling_rate=feature_extractor.sampling_rate,
+            #     max_length=length,
+            #     truncation=True,
+            #     padding=True,
+            # )
+            # X_train, X_left, ytrain, yleft = train_test_split(
+            #     np.array(X["input_values"]), y, test_size=0.4, random_state=9
+            # )  # 3:2
+            pass
 
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
@@ -1925,19 +1929,20 @@ def load_EmoDB(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
-            feature_extractor = AutoFeatureExtractor.from_pretrained(
-                "facebook/wav2vec2-base", return_attention_mask=True
-            )
-            X = feature_extractor(
-                audio,
-                sampling_rate=feature_extractor.sampling_rate,
-                max_length=length,
-                truncation=True,
-                padding=True,
-            )
-            X_train, X_left, ytrain, yleft = train_test_split(
-                np.array(X["input_values"]), y, test_size=0.4, random_state=9
-            )  # 3:2
+            # feature_extractor = AutoFeatureExtractor.from_pretrained(
+            #     "facebook/wav2vec2-base", return_attention_mask=True
+            # )
+            # X = feature_extractor(
+            #     audio,
+            #     sampling_rate=feature_extractor.sampling_rate,
+            #     max_length=length,
+            #     truncation=True,
+            #     padding=True,
+            # )
+            # X_train, X_left, ytrain, yleft = train_test_split(
+            #     np.array(X["input_values"]), y, test_size=0.4, random_state=9
+            # )  # 3:2
+            pass
 
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
@@ -2216,20 +2221,21 @@ def load_eNTERFACE(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
-            feature_extractor = AutoFeatureExtractor.from_pretrained(
-                "facebook/wav2vec2-base", return_attention_mask=True
-            )
-            X = feature_extractor(
-                audio,
-                sampling_rate=feature_extractor.sampling_rate,
-                max_length=length,
-                truncation=True,
-                padding=True,
-            )
+            # feature_extractor = AutoFeatureExtractor.from_pretrained(
+            #     "facebook/wav2vec2-base", return_attention_mask=True
+            # )
+            # X = feature_extractor(
+            #     audio,
+            #     sampling_rate=feature_extractor.sampling_rate,
+            #     max_length=length,
+            #     truncation=True,
+            #     padding=True,
+            # )
 
-            X_train, X_left, ytrain, yleft = train_test_split(
-                np.array(X), y, test_size=0.4, random_state=9
-            )  # 3:2
+            # X_train, X_left, ytrain, yleft = train_test_split(
+            #     np.array(X), y, test_size=0.4, random_state=9
+            # )  # 3:2
+            pass
 
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
@@ -2499,19 +2505,20 @@ def load_AESDD(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
-            feature_extractor = AutoFeatureExtractor.from_pretrained(
-                "facebook/wav2vec2-base", return_attention_mask=True
-            )
-            X = feature_extractor(
-                audio,
-                sampling_rate=feature_extractor.sampling_rate,
-                max_length=length,
-                truncation=True,
-                padding=True,
-            )  # (1440, 84351)
-            X_train, X_left, ytrain, yleft = train_test_split(
-                np.array(X["input_values"]), y, test_size=0.4, random_state=9
-            )  # 3:2
+            # feature_extractor = AutoFeatureExtractor.from_pretrained(
+            #     "facebook/wav2vec2-base", return_attention_mask=True
+            # )
+            # X = feature_extractor(
+            #     audio,
+            #     sampling_rate=feature_extractor.sampling_rate,
+            #     max_length=length,
+            #     truncation=True,
+            #     padding=True,
+            # )  # (1440, 84351)
+            # X_train, X_left, ytrain, yleft = train_test_split(
+            #     np.array(X["input_values"]), y, test_size=0.4, random_state=9
+            # )  # 3:2
+            pass
 
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
@@ -2802,40 +2809,40 @@ def load_cross_corpus(
                 y_test_corpus = y
 
     length = None
-    if method == "wav2vec":
-        length = max(lengths)
-        feature_extractor = AutoFeatureExtractor.from_pretrained(
-            "facebook/wav2vec2-base", return_attention_mask=True
-        )
-        X_train_corpus = feature_extractor(
-            train_corpus_audio,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        random.seed(123)
-        sample_index = random.sample([i for i in range(np.array(x).shape[0])], 1200)
-        X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
-            np.array(X_train_corpus["input_values"])[sample_index, :],
-            y_train_corpus,
-            test_size=0.25,
-            random_state=9,
-        )  # 3:1
+    # if method == "wav2vec":
+    #     length = max(lengths)
+    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
+    #         "facebook/wav2vec2-base", return_attention_mask=True
+    #     )
+    #     X_train_corpus = feature_extractor(
+    #         train_corpus_audio,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     random.seed(123)
+    #     sample_index = random.sample([i for i in range(np.array(x).shape[0])], 1200)
+    #     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+    #         np.array(X_train_corpus["input_values"])[sample_index, :],
+    #         y_train_corpus,
+    #         test_size=0.25,
+    #         random_state=9,
+    #     )  # 3:1
 
-        X_test_corpus = feature_extractor(
-            test_corpus_audio,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        random.seed(123)
-        # sample_index = random.sample([i for i in range(np.array(x).shape[0])], 300)
-        # X_test = np.array(X_test_corpus["input_values"])[sample_index, :]
-        # ytest = np.array(y_test_corpus)[sample_index, :].tolist()
-        X_test = np.array(X_test_corpus["input_values"])
-        ytest = y_test_corpus.tolist()
+    #     X_test_corpus = feature_extractor(
+    #         test_corpus_audio,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     random.seed(123)
+    #     # sample_index = random.sample([i for i in range(np.array(x).shape[0])], 300)
+    #     # X_test = np.array(X_test_corpus["input_values"])[sample_index, :]
+    #     # ytest = np.array(y_test_corpus)[sample_index, :].tolist()
+    #     X_test = np.array(X_test_corpus["input_values"])
+    #     ytest = y_test_corpus.tolist()
 
     return X_train, ytrain, X_val, yval, X_test, ytest, length
     # 900, 300, 300, train_corpus 1200, test_corpus 300
@@ -3075,26 +3082,26 @@ def load_mix_corpus(
 
     # after traversing all dataset
     length = None
-    if method == "wav2vec":
-        length = max(lengths)
-        feature_extractor = AutoFeatureExtractor.from_pretrained(
-            "facebook/wav2vec2-base", return_attention_mask=True
-        )
-        X_train = feature_extractor(
-            X_train,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        X_test = feature_extractor(
-            X_test,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        X_test = np.array(X_test["input_values"])
+    # if method == "wav2vec":
+    #     length = max(lengths)
+    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
+    #         "facebook/wav2vec2-base", return_attention_mask=True
+    #     )
+    #     X_train = feature_extractor(
+    #         X_train,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     X_test = feature_extractor(
+    #         X_test,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     X_test = np.array(X_test["input_values"])
 
     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
         X_train, ytrain, test_size=0.25, random_state=9
@@ -3336,26 +3343,26 @@ def load_mix3_corpus(
 
     # after traversing all dataset
     length = None
-    if method == "wav2vec":
-        length = max(lengths)
-        feature_extractor = AutoFeatureExtractor.from_pretrained(
-            "facebook/wav2vec2-base", return_attention_mask=True
-        )
-        X_train = feature_extractor(
-            X_train,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        X_test = feature_extractor(
-            X_test,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        X_test = np.array(X_test["input_values"])
+    # if method == "wav2vec":
+    #     length = max(lengths)
+    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
+    #         "facebook/wav2vec2-base", return_attention_mask=True
+    #     )
+    #     X_train = feature_extractor(
+    #         X_train,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     X_test = feature_extractor(
+    #         X_test,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     X_test = np.array(X_test["input_values"])
 
     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
         X_train, ytrain, test_size=0.5, random_state=9
@@ -3611,26 +3618,26 @@ def load_split_corpus(
 
     # after traversing all dataset
     length = None
-    if method == "wav2vec":
-        length = max(lengths)
-        feature_extractor = AutoFeatureExtractor.from_pretrained(
-            "facebook/wav2vec2-base", return_attention_mask=True
-        )
-        X_train = feature_extractor(
-            X_train,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        X_test = feature_extractor(
-            X_test,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        X_test = np.array(X_test["input_values"])
+    # if method == "wav2vec":
+    #     length = max(lengths)
+    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
+    #         "facebook/wav2vec2-base", return_attention_mask=True
+    #     )
+    #     X_train = feature_extractor(
+    #         X_train,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     X_test = feature_extractor(
+    #         X_test,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     X_test = np.array(X_test["input_values"])
 
     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
         X_train, ytrain, test_size=0.5, random_state=9
@@ -3968,26 +3975,26 @@ def load_split_corpus_size(
 
     # after traversing all dataset
     length = None
-    if method == "wav2vec":
-        length = max(lengths)
-        feature_extractor = AutoFeatureExtractor.from_pretrained(
-            "facebook/wav2vec2-base", return_attention_mask=True
-        )
-        X_train = feature_extractor(
-            X_train,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        X_test = feature_extractor(
-            X_test,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
-        X_test = np.array(X_test["input_values"])
+    # if method == "wav2vec":
+    #     length = max(lengths)
+    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
+    #         "facebook/wav2vec2-base", return_attention_mask=True
+    #     )
+    #     X_train = feature_extractor(
+    #         X_train,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     X_test = feature_extractor(
+    #         X_test,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
+    #     X_test = np.array(X_test["input_values"])
 
     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
         X_train, ytrain, test_size=0.5, random_state=9
@@ -4250,51 +4257,51 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 finetune_corpus_audio = audio
 
     length = None
-    if method == "wav2vec":
-        length = max(lengths)
-        feature_extractor = AutoFeatureExtractor.from_pretrained(
-            "facebook/wav2vec2-base", return_attention_mask=True
-        )
-        X_train_corpus = feature_extractor(
-            train_corpus_audio,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
+    # if method == "wav2vec":
+    #     length = max(lengths)
+    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
+    #         "facebook/wav2vec2-base", return_attention_mask=True
+    #     )
+    #     X_train_corpus = feature_extractor(
+    #         train_corpus_audio,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
 
-        random.seed(123)
-        sample_index = random.sample([i for i in range(np.array(x).shape[0])], 1200)
-        X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
-            np.array(X_train_corpus["input_values"])[sample_index, :],
-            y,
-            test_size=0.25,
-            random_state=9,
-        )  # 3:1  # train + val
+    #     random.seed(123)
+    #     sample_index = random.sample([i for i in range(np.array(x).shape[0])], 1200)
+    #     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+    #         np.array(X_train_corpus["input_values"])[sample_index, :],
+    #         y,
+    #         test_size=0.25,
+    #         random_state=9,
+    #     )  # 3:1  # train + val
 
-        X_finetune_corpus = feature_extractor(
-            finetune_corpus_audio,
-            sampling_rate=feature_extractor.sampling_rate,
-            max_length=length,
-            truncation=True,
-            padding=True,
-        )
+    #     X_finetune_corpus = feature_extractor(
+    #         finetune_corpus_audio,
+    #         sampling_rate=feature_extractor.sampling_rate,
+    #         max_length=length,
+    #         truncation=True,
+    #         padding=True,
+    #     )
 
-        random.seed(123)
-        # sample_index = random.sample(
-        #     [i for i in range(np.array(X_finetune_corpus).shape[0])], 1000
-        # )
-        Xtune_train, X_left, ytune_train, yleft = train_test_split(
-            # np.array(X_finetune_corpus["input_values"])[sample_index, :],
-            np.array(X_finetune_corpus["input_values"]),
-            y,
-            test_size=0.4,
-            random_state=9,
-        )  # 3:2
+    #     random.seed(123)
+    #     # sample_index = random.sample(
+    #     #     [i for i in range(np.array(X_finetune_corpus).shape[0])], 1000
+    #     # )
+    #     Xtune_train, X_left, ytune_train, yleft = train_test_split(
+    #         # np.array(X_finetune_corpus["input_values"])[sample_index, :],
+    #         np.array(X_finetune_corpus["input_values"]),
+    #         y,
+    #         test_size=0.4,
+    #         random_state=9,
+    #     )  # 3:2
 
-        Xtune_val, X_test, ytune_val, ytest = train_test_split(
-            X_left, yleft, test_size=0.5, random_state=9
-        )  # 1:1
+    #     Xtune_val, X_test, ytune_val, ytest = train_test_split(
+    #         X_left, yleft, test_size=0.5, random_state=9
+    #     )  # 1:1
 
     return (
         X_train,
@@ -4313,57 +4320,152 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
 
 
 # def get_face_landmarks(image, draw=False, static_image_mode=True):
-def get_face_landmarks(image):
+def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
+    if landmark == "xyz":
+        image_input_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        face_mesh = mp.solutions.face_mesh.FaceMesh(
+            static_image_mode=True,
+            max_num_faces=1,
+            min_detection_confidence=0.5,
+        )
+        image_rows, image_cols, _ = image.shape
+        results = face_mesh.process(image_input_rgb)
+        image_landmarks = []
 
-    # Read the input image
-    image_input_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        if results.multi_face_landmarks:
+            ls_single_face = results.multi_face_landmarks[0].landmark
+            xs_ = []
+            ys_ = []
+            zs_ = []
+            for (
+                idx
+            ) in ls_single_face:  # every single landmark get three coordinates xyz
+                xs_.append(idx.x)
+                ys_.append(idx.y)
+                zs_.append(idx.z)
+                x = int(idx.x * image.shape[1])
+                y = int(idx.y * image.shape[0])
+                cv2.circle(image, (x, y), 1, (0, 255, 0), -1)  # 468x2
+            for j in range(len(xs_)):  # get landmarks of the face
+                image_landmarks.append(xs_[j] - min(xs_))
+                image_landmarks.append(ys_[j] - min(ys_))
+                image_landmarks.append(zs_[j] - min(zs_))
 
-    face_mesh = mp.solutions.face_mesh.FaceMesh(
-        static_image_mode=True,
-        max_num_faces=1,
-        min_detection_confidence=0.5,
-    )
-    image_rows, image_cols, _ = image.shape
-    results = face_mesh.process(image_input_rgb)
+        if write != None:
+            if not os.path.exists(f"outputs/image/landmarks/"):
+                os.makedirs(f"outputs/image/landmarks/")
+            cv2.imwrite(f"outputs/image/landmarks/{dataset}_468_{write}.JPG", image)
+        face_mesh.close()
+        res = image_landmarks
 
-    image_landmarks = []
+    elif landmark == "5":
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        res = []
+        detector = dlib.get_frontal_face_detector()
+        faces = detector(image, 1)
+        predictor_5 = dlib.shape_predictor(
+            "models/image/shape_predictor_5_face_landmarks.dat"
+        )
+        for face in faces:
+            # Get the landmarks/parts for the face
+            image_landmarks = predictor_5(image, face)
 
-    if results.multi_face_landmarks:
+            # Loop over the landmark points
+            tmp_x = []
+            tmp_y = []
+            for n in range(0, 5):  # 5 landmarks with x,y, 134 features in total
+                x = image_landmarks.part(n).x
+                y = image_landmarks.part(n).y
+                tmp_x.append(x)
+                tmp_y.append(y)
+            for n in range(0, 5):
+                res.append(tmp_x[n] - min(tmp_x))
+                res.append(tmp_y[n] - min(tmp_y))
+                cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
 
-        # if draw:
+        if (write != None) and (len(faces) != 0):
+            if not os.path.exists(f"outputs/image/landmarks/"):
+                os.makedirs(f"outputs/image/landmarks/")
+            cv2.imwrite(
+                f"outputs/image/landmarks/{dataset}_{landmark}_{write}.JPG", image
+            )
 
-        #     mp_drawing = mp.solutions.drawing_utils
-        #     mp_drawing_styles = mp.solutions.drawing_styles
-        #     drawing_spec = mp_drawing.DrawingSpec(thickness=2, circle_radius=1)
+    elif landmark == "68":
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        res = []
+        detector = dlib.get_frontal_face_detector()
+        faces = detector(image, 1)
+        predictor_68 = dlib.shape_predictor(
+            "models/image/shape_predictor_68_face_landmarks.dat"
+        )
+        for face in faces:
+            # Get the landmarks/parts for the face
+            image_landmarks = predictor_68(image, face)
 
-        #     mp_drawing.draw_landmarks(
-        #         image=image,
-        #         landmark_list=results.multi_face_landmarks[0],
-        #         connections=mp.solutions.face_mesh.FACEMESH_CONTOURS,
-        #         landmark_drawing_spec=drawing_spec,
-        #         connection_drawing_spec=drawing_spec,
-        #     )
+            # Loop over the landmark points
+            tmp_x = []
+            tmp_y = []
+            for n in range(0, 68):  # 5 landmarks with x,y, 134 features in total
+                x = image_landmarks.part(n).x
+                y = image_landmarks.part(n).y
+                tmp_x.append(x)
+                tmp_y.append(y)
+            for n in range(0, 68):
+                res.append(tmp_x[n] - min(tmp_x))
+                res.append(tmp_y[n] - min(tmp_y))
+                cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
+        if (write != None) and (len(faces) != 0):
+            if not os.path.exists(f"outputs/image/landmarks/"):
+                os.makedirs(f"outputs/image/landmarks/")
+            cv2.imwrite(
+                f"outputs/image/landmarks/{dataset}_{landmark}_{write}.JPG", image
+            )
 
-        ls_single_face = results.multi_face_landmarks[0].landmark
-        xs_ = []
-        ys_ = []
-        zs_ = []
-        for idx in ls_single_face:  # every single landmark get three coordinates xyz
-            xs_.append(idx.x)
-            ys_.append(idx.y)
-            zs_.append(idx.z)
-        for j in range(len(xs_)):  # get landmarks of the face
-            image_landmarks.append(xs_[j] - min(xs_))
-            image_landmarks.append(ys_[j] - min(ys_))
-            image_landmarks.append(zs_[j] - min(zs_))
-    face_mesh.close()
+    # elif landmark == "468":
+    #     res = []
+    #     mp_face_mesh = mp.solutions.face_mesh
+    #     face_mesh = mp_face_mesh.FaceMesh(
+    #         static_image_mode=True, max_num_faces=1, min_detection_confidence=0.5
+    #     )
+    #     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    return image_landmarks
-    # return image
+    #     results = face_mesh.process(rgb_image)
+    #     if results.multi_face_landmarks:
+    #         for face_landmarks in results.multi_face_landmarks:
+    #             for landmark in face_landmarks.landmark:
+    #                 x = int(landmark.x * image.shape[1])
+    #                 y = int(landmark.y * image.shape[0])
+    #                 res.append(x)
+    #                 res.append(y)
+    #                 cv2.circle(image, (x, y), 1, (0, 255, 0), -1)  # 468x2
+
+    #     if write != None:
+    #         if not os.path.exists(f"outputs/image/landmarks/"):
+    #             os.makedirs(f"outputs/image/landmarks/")
+    #         cv2.imwrite(f"outputs/image/landmarks/CK_468_{write}.JPG", image)
+    #     face_mesh.close()
+
+    # elif landmark == "facenet":
+    #     # model = VGGFace(
+    #     #     model="resnet50",
+    #     #     include_top=False,
+    #     #     input_shape=(224, 224, 3),
+    #     #     pooling="avg",
+    #     # )
+    #     # img = cv2.resize(image, (224, 224))
+    #     # img_array = image_process.img_to_array(img)
+    #     # img_array = np.expand_dims(img_array, axis=0)
+    #     # img_array = preprocess_input(img_array)
+    #     # image_landmarks = model.predict(img_array)
+    #     # # print(features.shape)  # Should print (1, 2048)
+    #     result = DeepFace.represent(img_path=image, model_name='Facenet',enforce_detection=False)
+    #     print(result)
+
+    return res
 
 
-def load_CK(method, landmark=False, split=None, process=None):
-    X, y = [], []
+def load_CK(method, landmark=None, split=None, process=None):
+    X, y, category = [], [], []
     if split == None:
         emotion_map = {
             "anger": 0,
@@ -4388,7 +4490,7 @@ def load_CK(method, landmark=False, split=None, process=None):
             # print(filename)
             # print(dirname)
             label = dirname.split("/")[-1]
-            if landmark == False:
+            if landmark == None:
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 if len(X) == 0:
@@ -4418,19 +4520,28 @@ def load_CK(method, landmark=False, split=None, process=None):
                 if len(X) == 1:
                     cv2.imwrite(f"outputs/image/process/CK_{process}.JPG", img)
 
-                for k, i in enumerate(emotion_map.keys()):
-                    if label in i:  # tuple
-                        emotion = emotion_map[i]
-                y.append(emotion)
+                if split != None:
+                    for k, i in enumerate(emotion_map.keys()):
+                        if label in i:  # tuple
+                            emotion = emotion_map[i]
+                    y.append(emotion)
+                else:
+                    category.append(label)
+                    y.append(emotion_map[label])
 
             else:  # MLP
-                face_landmarks = get_face_landmarks(img)
-                X.append(face_landmarks)
+                write = len(X) if len(X) <= 5 else None
+                face_landmarks = get_face_landmarks(
+                    img, landmark=landmark, write=write, dataset="CK"
+                )
+                X.append(face_landmarks)  # 136 for 68
                 y.append(emotion_map[label])  # anger
 
+    visual4label("image", "CK", category)
     X, y = shuffle(X, y, random_state=42)  # shuffle
+    print(len(X))
     num_classes = len(set(y))
-    if landmark == False:
+    if landmark == None:
         n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
         # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
         if method == "MLP":
@@ -4493,8 +4604,8 @@ def load_CK(method, landmark=False, split=None, process=None):
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
-def load_FER(method, landmark=False, split=None, process=None):
-    X, y = [], []
+def load_FER(method, landmark=None, split=None, process=None):
+    X, y, category = [], [], []
     if split == None:
         emotion_map = {
             "angry": 0,
@@ -4518,7 +4629,7 @@ def load_FER(method, landmark=False, split=None, process=None):
             sec_path = os.path.join(first_path, secdir)
             for file in os.listdir(sec_path):
                 img = cv2.imread(os.path.join(sec_path, file))
-                if landmark == False:
+                if landmark == None:
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     if len(X) == 0:
@@ -4547,19 +4658,34 @@ def load_FER(method, landmark=False, split=None, process=None):
                     X.append(img)  # grayscale
                     if len(X) == 1:
                         cv2.imwrite(f"outputs/image/process/FER_{process}.JPG", img)
-                    for k, i in enumerate(emotion_map.keys()):
-                        if secdir in i:  # tuple
-                            emotion = emotion_map[i]
-                    y.append(emotion)
+
+                    if split != None:
+                        for k, i in enumerate(emotion_map.keys()):
+                            if secdir in i:  # tuple
+                                emotion = emotion_map[i]
+                        y.append(emotion)
+                    else:
+                        category.append(secdir)
+                        y.append(emotion_map[secdir])
                 else:  # MLP
-                    face_landmarks = get_face_landmarks(img)
-                    if len(face_landmarks) == 1404:
-                        X.append(face_landmarks)
-                        y.append(emotion_map[secdir])  # anger
+                    write = len(X) if len(X) <= 5 else None
+                    face_landmarks = get_face_landmarks(
+                        img, landmark=landmark, write=write, dataset="FER"
+                    )
+                    if landmark == "xyz":
+                        if len(face_landmarks) == 1404:  # 468 x 3 = 1404
+                            X.append(face_landmarks)
+                            y.append(emotion_map[secdir])  # anger
+                    else:
+                        if len(face_landmarks) != 0:
+                            X.append(face_landmarks)  # 136 for 68
+                            y.append(emotion_map[secdir])  # anger
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
+    print(len(X))
+    visual4label("image", "FER", category)
     num_classes = len(set(y))
-    if landmark == False:
+    if landmark == None:
         n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
         # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
         if method == "MLP":
@@ -4615,8 +4741,8 @@ def load_FER(method, landmark=False, split=None, process=None):
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
-def load_RAF(method, landmark=False, split=None, process=None):
-    X, y = [], []
+def load_RAF(method, landmark=None, split=None, process=None):
+    X, y, category = [], [], []
     if split == None:
         emotion_map = {
             "1": 0,
@@ -4626,6 +4752,15 @@ def load_RAF(method, landmark=False, split=None, process=None):
             "5": 4,
             "6": 5,
             "7": 6,
+        }
+        category_map = {
+            "1": "surpised",
+            "2": "fearful",
+            "3": "disgusted",
+            "4": "happy",
+            "5": "sad",
+            "6": "angry",
+            "7": "neutral",
         }
     else:
         emotion_map = {
@@ -4641,7 +4776,7 @@ def load_RAF(method, landmark=False, split=None, process=None):
             sec_path = os.path.join(first_path, secdir)
             for file in os.listdir(sec_path):
                 img = cv2.imread(os.path.join(sec_path, file))
-                if landmark == False:
+                if landmark == None:
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     if len(X) == 0:
@@ -4670,19 +4805,33 @@ def load_RAF(method, landmark=False, split=None, process=None):
                     X.append(img)  # grayscale
                     if len(X) == 1:
                         cv2.imwrite(f"outputs/image/process/RAF_{process}.JPG", img)
-                    for k, i in enumerate(emotion_map.keys()):
-                        if secdir in i:  # tuple
-                            emotion = emotion_map[i]
-                    y.append(emotion)
+                    if split != None:
+                        for k, i in enumerate(emotion_map.keys()):
+                            if secdir in i:  # tuple
+                                emotion = emotion_map[i]
+                        y.append(emotion)
+                    else:
+                        category.append(category_map[secdir])
+                        y.append(emotion_map[secdir])
                 else:  # MLP
-                    face_landmarks = get_face_landmarks(img)
-                    if len(face_landmarks) == 1404:
-                        X.append(face_landmarks)
-                        y.append(emotion_map[secdir])  # anger
+                    write = len(X) if len(X) <= 5 else None
+                    face_landmarks = get_face_landmarks(
+                        img, landmark=landmark, write=write, dataset="RAF"
+                    )
+                    if landmark == "xyz":
+                        if len(face_landmarks) == 1404:  # 468 x 3 = 1404
+                            X.append(face_landmarks)
+                            y.append(emotion_map[secdir])  # anger
+                    else:
+                        if len(face_landmarks) != 0:
+                            X.append(face_landmarks)  # 136 for 68
+                            y.append(emotion_map[secdir])  # anger
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
     num_classes = len(set(y))
-    if landmark == False:
+    print(len(X))
+    visual4label("image", "RAF", category)
+    if landmark == None:
         n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
         # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
         print(n, h, w)
@@ -4785,6 +4934,28 @@ def load_split_corpus_size_image(
                             img = wiener(img, mysize=(15, 15))
                             img = np.clip(img, 0, 255).astype(np.uint8)
 
+                        elif (
+                            process == "assi"
+                        ):  # which means to assimilate both as common image
+                            img = cv2.equalizeHist(img)
+                            img = cv2.GaussianBlur(img, (3, 3), 0)
+                            # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                            # sobelx = cv2.convertScaleAbs(sobelx)
+                            # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                            # sobely = cv2.convertScaleAbs(sobely)
+                            # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                            # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+                    if index == 1:
+                        if process == "assi":
+                            img = cv2.equalizeHist(img)
+                            img = cv2.GaussianBlur(img, (3, 3), 0)
+                            # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                            # sobelx = cv2.convertScaleAbs(sobelx)
+                            # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                            # sobely = cv2.convertScaleAbs(sobely)
+                            # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                            # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+
                     x.append(img)  # grayscale
 
                     for k, i in enumerate(emotion_map.keys()):
@@ -4820,6 +4991,29 @@ def load_split_corpus_size_image(
                             elif process == "filter":
                                 img = wiener(img, mysize=(15, 15))
                                 img = np.clip(img, 0, 255).astype(np.uint8)
+                            elif (
+                                process == "assi"
+                            ):  # which means to assimilate both as common image
+                                img = cv2.equalizeHist(img)
+                                img = cv2.GaussianBlur(img, (3, 3), 0)
+                                # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                                # sobelx = cv2.convertScaleAbs(sobelx)
+                                # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                                # sobely = cv2.convertScaleAbs(sobely)
+                                # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                                # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+
+                        if index == 1:
+                            if process == "assi":
+                                img = cv2.equalizeHist(img)
+                                img = cv2.GaussianBlur(img, (3, 3), 0)
+                                # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                                # sobelx = cv2.convertScaleAbs(sobelx)
+                                # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                                # sobely = cv2.convertScaleAbs(sobely)
+                                # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                                # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+
                         x.append(img)  # grayscale
                         for k, i in enumerate(emotion_map.keys()):
                             if secdir in i:  # tuple
@@ -5042,7 +5236,7 @@ def load_data(
     window=None,
     corpus=None,
     sr=16000,
-    landmark=False,
+    landmark=None,
     split=None,
     process=None,
 ):
@@ -5370,6 +5564,7 @@ def load_model(
     batch_size=16,
     cv=False,
     h=None,
+    landmark=None,
 ):
     if task == "speech":
         if method in ["SVM", "DT", "RF", "NB", "KNN"]:
@@ -5441,18 +5636,19 @@ def load_model(
         elif method == "KMeans":
             model = KMeans(task, method, features, cc, dataset, num_classes)
         elif method == "wav2vec":
-            model = Wav2Vec(
-                task,
-                method,
-                features,
-                cc,
-                num_classes,
-                dataset,
-                max_length,
-                epochs=epochs,
-                lr=lr,
-                batch_size=batch_size,
-            )
+            # model = Wav2Vec(
+            #     task,
+            #     method,
+            #     features,
+            #     cc,
+            #     num_classes,
+            #     dataset,
+            #     max_length,
+            #     epochs=epochs,
+            #     lr=lr,
+            #     batch_size=batch_size,
+            # )
+            pass
     elif task == "image":
         if method == "MLP":
             model = image_MLP(
@@ -5464,6 +5660,7 @@ def load_model(
                 epochs=epochs,
                 lr=lr,
                 batch_size=batch_size,
+                landmark=landmark,
             )
         elif method == "CNN":
             model = image_CNN(
@@ -5533,7 +5730,7 @@ def visual4cm(
     tune_val_pred=None,
     corpus=None,
     split=None,
-    landmark=False,
+    landmark=None,
     process=None,
 ):
     # confusion matrix
@@ -5590,7 +5787,7 @@ def visual4cm(
                 f"outputs/{task}/confusion_matrix/{method}_{features}_{cc}_{dataset}.png"
             )
     elif task == "image":
-        if landmark == False:
+        if landmark == None:
             if (corpus != None) and (split != None):  # split cross
                 if process == None:
                     fig.savefig(

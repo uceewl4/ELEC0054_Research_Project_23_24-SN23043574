@@ -864,92 +864,122 @@ from io import BytesIO
 import streamlit as st
 from email.header import Header
 from email.mime.text import MIMEText
-from streamlit_option_menu import option_menu
-from keras.models import Sequential
-import tensorflow as tf
-from tensorflow.keras import Model
+
+# from streamlit_option_menu import option_menu
+# from keras.models import Sequential
+# import tensorflow as tf
+# from tensorflow.keras import Model
 import cv2
 import numpy as np
 from keras.models import model_from_json
 
-from utils import get_features, load_data, load_model
-import cv2
-import mediapipe as mp
-import streamlit as st
-import sounddevice as sd
-import numpy as np
-import scipy.io.wavfile as wav
+# from utils import get_features, load_data, load_model
+# import cv2
+# import mediapipe as mp
+# import streamlit as st
+# import sounddevice as sd
+# import numpy as np
+# import scipy.io.wavfile as wav
 
 
-emotion_dict = {
-    0: "Anger",
-    1: "Contempt",
-    2: "Disgust",
-    3: "Fear",
-    4: "Happy",
-    5: "Sadness",
-    6: "Surprise",
-}
+# emotion_dict = {
+#     0: "Anger",
+#     1: "Contempt",
+#     2: "Disgust",
+#     3: "Fear",
+#     4: "Happy",
+#     5: "Sadness",
+#     6: "Surprise",
+# }
 
-emotion_model = tf.keras.models.load_model("outputs/image/models/CNN.h5")
-print("Loaded model from disk")
+# emotion_model = tf.keras.models.load_model("outputs/image/models/CNN.h5")
+# print("Loaded model from disk")
 
-# start the webcam feed
-# cap = cv2.VideoCapture(0)
+# # start the webcam feed
+# # cap = cv2.VideoCapture(0)
 
-# pass here your video path
-# you may download one from here : https://www.pexels.com/video/three-girls-laughing-5273028/
-cap = cv2.VideoCapture(
-    "/Users/anlly/Desktop/ucl/Final_Project/Automatic_Emotion_Detection_Trials/Emotion_detection_with_CNN-main/tmp.mp4"
-)
-while True:
-    # Find haar cascade to draw bounding box around face
-    ret, frame = cap.read()
-    frame = cv2.resize(frame, (1280, 720))
+# # pass here your video path
+# # you may download one from here : https://www.pexels.com/video/three-girls-laughing-5273028/
+# cap = cv2.VideoCapture(
+#     "/Users/anlly/Desktop/ucl/Final_Project/Automatic_Emotion_Detection_Trials/Emotion_detection_with_CNN-main/tmp.mp4"
+# )
+# while True:
+#     # Find haar cascade to draw bounding box around face
+#     ret, frame = cap.read()
+#     frame = cv2.resize(frame, (1280, 720))
 
-    if not ret:
-        break
-    face_detector = cv2.CascadeClassifier(
-        "/Users/anlly/Desktop/ucl/Final_Project/ELEC0054_Research_Project_23_24-SN23043574/outputs/image/models/haarcascades/haarcascade_frontalface_default.xml",
-    )  # crop the face
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#     if not ret:
+#         break
+#     face_detector = cv2.CascadeClassifier(
+#         "/Users/anlly/Desktop/ucl/Final_Project/ELEC0054_Research_Project_23_24-SN23043574/outputs/image/models/haarcascades/haarcascade_frontalface_default.xml",
+#     )  # crop the face
+#     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # detect faces available on camera
-    num_faces = face_detector.detectMultiScale(
-        gray_frame, scaleFactor=1.3, minNeighbors=5
-    )
+#     # detect faces available on camera
+#     num_faces = face_detector.detectMultiScale(
+#         gray_frame, scaleFactor=1.3, minNeighbors=5
+#     )
 
-    print(num_faces)
-    # take each face available on the camera and Preprocess it
-    for x, y, w, h in num_faces:  # face bounding boxes, rectangle
-        cv2.rectangle(frame, (x, y - 50), (x + w, y + h + 10), (0, 255, 0), 4)
-        roi_gray_frame = gray_frame[
-            y : y + h, x : x + w
-        ]  # crop each face into one gray frame
-        cropped_img = np.expand_dims(
-            np.expand_dims(cv2.resize(roi_gray_frame, (48, 48)), -1), 0
-        )  # resize into the images
+#     print(num_faces)
+#     # take each face available on the camera and Preprocess it
+#     for x, y, w, h in num_faces:  # face bounding boxes, rectangle
+#         cv2.rectangle(frame, (x, y - 50), (x + w, y + h + 10), (0, 255, 0), 4)
+#         roi_gray_frame = gray_frame[
+#             y : y + h, x : x + w
+#         ]  # crop each face into one gray frame
+#         cropped_img = np.expand_dims(
+#             np.expand_dims(cv2.resize(roi_gray_frame, (48, 48)), -1), 0
+#         )  # resize into the images
 
-        # predict the emotions
-        emotion_prediction = emotion_model.predict(cropped_img)
-        maxindex = int(np.argmax(emotion_prediction))
-        print(maxindex)
-        cv2.putText(
-            frame,
-            emotion_dict[maxindex],
-            (x + 5, y - 20),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (255, 0, 0),
-            2,
-            cv2.LINE_AA,
-        )
+#         # predict the emotions
+#         emotion_prediction = emotion_model.predict(cropped_img)
+#         maxindex = int(np.argmax(emotion_prediction))
+#         print(maxindex)
+#         cv2.putText(
+#             frame,
+#             emotion_dict[maxindex],
+#             (x + 5, y - 20),
+#             cv2.FONT_HERSHEY_SIMPLEX,
+#             1,
+#             (255, 0, 0),
+#             2,
+#             cv2.LINE_AA,
+#         )
 
-        face_landmarks = get_face_landmarks(frame, draw=True, static_image_mode=False)
+#         face_landmarks = get_face_landmarks(frame, draw=True, static_image_mode=False)
 
-    cv2.imshow("Emotion Detection", frame)
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+#     cv2.imshow("Emotion Detection", frame)
+#     if cv2.waitKey(1) & 0xFF == ord("q"):
+#         break
 
-cap.release()
-cv2.destroyAllWindows()
+# cap.release()
+# cv2.destroyAllWindows()
+
+
+def process(file):
+    img = cv2.imread(file)
+    cv2.imwrite(f"outputs/{file.split(".")[0].split("/")[-1]}.png", img)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.equalizeHist(img)
+    img = cv2.GaussianBlur(img, (3, 3), 0)
+
+    # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+    # sobelx = cv2.convertScaleAbs(sobelx)
+    # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+    # sobely = cv2.convertScaleAbs(sobely)
+    # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+    # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+
+    # img = cv2.equalizeHist(img)
+    print(file.split(".")[0])
+    print(file.split(".")[0].split("/")[-1])
+    cv2.imwrite(f"outputs/{file.split(".")[0].split("/")[-1]}_assi.png", img)
+    
+
+
+img = process("datasets/image/CK/anger/S011_004_00000020.png")
+img = process("datasets/image/FER/train/angry/Training_364963.jpg")
+img = process("datasets/image/RAF/train/1/train_00852_aligned.jpg")
+img = process("datasets/image/CK/contempt/S147_002_00000012.png")
+img = process("datasets/image/FER/train/fear/Training_737388.jpg")
+img = process("datasets/image/RAF/train/5/train_00199_aligned.jpg")
