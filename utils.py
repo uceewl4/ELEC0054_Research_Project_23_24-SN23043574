@@ -4381,7 +4381,7 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
             for n in range(0, 5):
                 res.append(tmp_x[n] - min(tmp_x))
                 res.append(tmp_y[n] - min(tmp_y))
-                cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
+                cv2.circle(image, (tmp_x[n], tmp_y[n]), 1, (255, 0, 0), -1)
 
         if (write != None) and (len(faces) != 0):
             if not os.path.exists(f"outputs/image/landmarks/"):
@@ -4413,7 +4413,7 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
             for n in range(0, 68):
                 res.append(tmp_x[n] - min(tmp_x))
                 res.append(tmp_y[n] - min(tmp_y))
-                cv2.circle(image, (x, y), 1, (255, 0, 0), -1)
+                cv2.circle(image, (tmp_x[n], tmp_y[n]), 1, (255, 0, 0), -1)
         if (write != None) and (len(faces) != 0):
             if not os.path.exists(f"outputs/image/landmarks/"):
                 os.makedirs(f"outputs/image/landmarks/")
@@ -6467,14 +6467,14 @@ def signal_similarity(dataset, file1, file2, emotion):
     audio_similarity.plot(
         metrics=None,
         option="all",
-        figsize=(10, 7),
+        figsize=(20, 8),
         color1="red",
         color2="green",
-        dpi=600,
+        dpi=1000,
         savefig=False,
-        fontsize=6,
-        label_fontsize=8,
-        title_fontsize=14,
+        fontsize=20,
+        label_fontsize=20,
+        title_fontsize=20,
         alpha=0.5,
         title="Audio Similarity Metrics",
     )
