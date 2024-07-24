@@ -1,7 +1,22 @@
+# -*- encoding: utf-8 -*-
+"""
+@File    :   ViT.py
+@Time    :   2024/07/24 05:18:55
+@Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
+@Module : ELEC0054: Research Project
+@SN :   23043574
+@Contact :   uceewl4@ucl.ac.uk
+@Desc    :   This file encapsulates all implementation process for ViT in image emotion detection.
+            The code refers to https://github.com/nikhilroxtomar/Flower-Image-Classification-using-Vision-Transformer/tree/main.
+"""
+
+# here put the import lib
+
+import time
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import Model, models
 from keras.models import Sequential
+from tensorflow.keras import Model, models
 from tensorflow.keras.layers import (
     Input,
     Dense,
@@ -13,11 +28,9 @@ from tensorflow.keras.layers import (
     MultiHeadAttention,
     Layer,
 )
-from tensorflow.keras.models import Model
-import time
 
 
-# this class is used for creating extra class token for all patches
+# create extra class token as global prediction for all patches
 class ClassToken(Layer):
     def __init__(self):
         super().__init__()
@@ -43,65 +56,63 @@ class ViT(Model):
         self, task, dataset, method, cc, num_classes, epochs=10, lr=0.001, batch_size=32
     ):
         super(ViT, self).__init__()
-        # FER/CK
+
         if dataset in ["CK", "FER"]:
-            self.num_patches = 36  # 48x48x1 -- 8x8x1 patches
+            self.num_patches = 36  # 48x48x1 -- 8x8x1 -- 36 patches
             self.patch_size = 8  # 8x8x1
-            self.inputs = Input((36, 8 * 8 * 1))  # (None,100 patches,300)
+            self.inputs = Input((36, 8 * 8 * 1))
         elif dataset == "RAF":
-            self.num_patches = 16  # 48x48x1 -- 8x8x1 patches
-            self.patch_size = 25  # 8x8x1
-            self.inputs = Input((16, 25 * 25 * 1))  # (None,100 patches,300)
+            self.num_patches = 16  # 100x100x1 -- 25x25x1 -- 16 patches
+            self.patch_size = 25  # 25x25x1
+            self.inputs = Input((16, 25 * 25 * 1))
 
         self.channel = 1
         self.hidden_dim = 768
         self.num_layers = num_classes  # num of layers for transformer
         self.mlp_dim = 300  # num of dimension for MLP
         self.num_heads = 12  # multihead
+        self.lr = lr
+        self.epoch = epochs
+        self.batch_size = batch_size
+        self.method = method
 
         # patch + position embedding
         self.patch_embed = Dense(self.hidden_dim)(
             self.inputs
-        )  # (None, 100, 768)  dimension for embedding
+        )  # (None, 36, 768)  dimension for embedding
         self.positions = tf.range(start=0, limit=self.num_patches, delta=1)
         self.pos_embed = Embedding(
             input_dim=self.num_patches, output_dim=self.hidden_dim
         )(
             self.positions
-        )  # (100, 768)
-        self.embed = self.patch_embed + self.pos_embed  # (None, 100, 768)
+        )  # (36, 768)
+        self.embed = self.patch_embed + self.pos_embed  # (None, 36, 768)
 
         # class token
         self.token = ClassToken()(
             self.embed
         )  # the individual one for all patches to reduce bias
-        self.hidden = Concatenate(axis=1)(
-            [self.token, self.embed]
-        )  # (None, 100+1, 768)
+        self.hidden = Concatenate(axis=1)([self.token, self.embed])  # (None, 36+1, 768)
 
         # transformer block
-        for _ in range(self.num_layers):  # 101,768
+        for _ in range(self.num_layers):  # 37,768
             self.hidden = self.transformer_encoder(self.hidden)
 
         # classification head
-        self.hidden = LayerNormalization(epsilon=1e-7)(self.hidden)  # (None, 101, 768)
+        self.hidden = LayerNormalization(epsilon=1e-7)(self.hidden)  # (None, 37, 768)
         self.hidden = self.hidden[:, 0, :]  # select the class token
         self.outputs = Dense(num_classes, activation="softmax")(self.hidden)
 
+        # build the model
         self.model = Model(self.inputs, self.outputs)
         self.model.build((None, 36, 64))
         self.model.summary()
+
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.input, outputs=self.model.layers[-1].output
         )
-
-        self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-        self.lr = lr
-        self.epoch = epochs
-        self.batch_size = batch_size
-        self.method = method
-        # self.optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=lr)
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy()  # loss
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)  # optimizer
 
     def mlp(self, x):
         """
@@ -137,18 +148,19 @@ class ViT(Model):
 
     def train(self, Xtrain, ytrain, Xval, yval):
         """
-        description: This function includes entire training and validation process for the method.
+        description: This function includes entire training and validation process for ViT.
         param {*} self
-        param {*} Xtrain: train images
-        param {*} ytrain: train ground truth labels
-        param {*} Xval: validation images
-        param {*} yval: validation ground truth labels
-        return {*}: train and validation results
+        param {*} Xtrain: features of train set
+        param {*} ytrain: labels of train set
+        param {*} Xval: features of validation set
+        param {*} yval: labels of validation set
+        return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
         """
         print(f"Start training for {self.method}......")
         start_time_train = time.time()
-        train_pred, val_pred = [], []  # label prediction
+        train_pred, val_pred = [], []
 
+        # compile and fit
         self.model.compile(
             optimizer=self.optimizer,
             loss=self.loss_object,
@@ -163,7 +175,7 @@ class ViT(Model):
         )
 
         # get predictions
-        train_prob = self.model.predict(x=Xtrain)  # softmax
+        train_prob = self.model.predict(x=Xtrain)
         train_pred += np.argmax(train_prob, axis=1).tolist()
         train_pred = np.array(train_pred)
         train_res = {
@@ -171,7 +183,7 @@ class ViT(Model):
             "train_acc": history.history["accuracy"],
         }
 
-        val_prob = self.model.predict(x=Xval)  # softmax
+        val_prob = self.model.predict(x=Xval)
         val_pred += np.argmax(val_prob, axis=1).tolist()
         val_pred = np.array(val_pred)
         val_res = {
@@ -183,21 +195,21 @@ class ViT(Model):
         elapsed_time_train = end_time_train - start_time_train
         print(f"Finish training for {self.method}.")
         print(f"Training time: {elapsed_time_train}s")
+
         return train_res, val_res, train_pred, ytrain, val_pred, yval
 
     def test(self, Xtest, ytest):
         """
         description: This function is used for the entire process of testing.
         param {*} self
-        param {*} Xtest: test images
-        param {*} ytest: test ground truth labels
-        return {*}: test results
+        param {*} Xtest: features of test set
+        param {*} ytest: labels of test set
+        return {*}: predicted labels and ground truth of test dataset
         """
         print("Start testing......")
         start_time_test = time.time()
         test_pred = []
-        # print(Xtest)
-        # print(Xtest.shape)
+
         test_res = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
         test_prob = self.output_layer.predict(x=Xtest)
         test_pred += np.argmax(test_prob, axis=1).tolist()
@@ -207,4 +219,5 @@ class ViT(Model):
         elapsed_time_test = end_time_test - start_time_test
         print("Finish testing.")
         print(f"Testing time: {elapsed_time_test}s")
+
         return test_res, test_pred, ytest

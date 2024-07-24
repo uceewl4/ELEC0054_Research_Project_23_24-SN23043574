@@ -1,22 +1,22 @@
 # -*- encoding: utf-8 -*-
 """
 @File    :   CNN.py
-@Time    :   2024/02/24 21:47:03
+@Time    :   2024/07/24 04:36:27
 @Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
-@Module : ELEC0135: Applied Machine Learning Systems II
+@Module : ELEC0054: Research Project
 @SN :   23043574
 @Contact :   uceewl4@ucl.ac.uk
-@Desc    : This file includes all implementation process of CNN and multilabel setting.
+@Desc    :   This file encapsulates all implementation process for CNN in image emotion detection.
 """
+
 
 # here put the import lib
 import os
 import time
 import numpy as np
-from keras.models import Sequential
 import tensorflow as tf
 from tensorflow.keras import Model
-from tensorboardX import SummaryWriter  # used for nn curves visualization
+from keras.models import Sequential
 from tensorflow.keras.layers import (
     Dense,
     Flatten,
@@ -39,15 +39,17 @@ class CNN(Model):
         lr=0.001,
         batch_size=16,
     ):
-
         super(CNN, self).__init__()
-        self.num_classes = num_classes
+        self.num_classes = num_classes  # num of classes
         self.cc = cc
         self.method = method
         self.task = task
         self.batch_size = batch_size
         self.finetune = True if cc == "finetune" else False
+        self.lr = lr
+        self.epoch = epochs
 
+        # network architecture
         self.model = Sequential(
             [
                 Conv2D(32, 3, padding="same", activation="relu", input_shape=(h, h, 1)),
@@ -71,28 +73,23 @@ class CNN(Model):
                 Flatten(),
                 Dense(256, activation="relu"),
                 Dense(64, activation="relu"),
-                Dense(num_classes, name="outputs"),  # 12-class
+                Dense(num_classes, name="outputs"),
             ]
         )
+
+        # build the model
         self.model.build((None, h, h, 1))
         self.model.summary()
-        # self.model.build((None, shape, length, 1))  # change
+        # self.model.build((None, shape, length, 1))
 
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.layers[0].input,
             outputs=self.model.get_layer("outputs").output,
         )
-
-        # objective function: sparse categorical cross entropy for mutliclass classification
-        # notice that here the loss is calculated from logits, no need to set activation function for the output layer
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True
-        )
-        self.lr = lr
-        self.epoch = epochs
-        self.batch_size = batch_size
-        self.method = method
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        )  # loss calculated from logits
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)  # optimizer
 
     def train(
         self,
@@ -105,10 +102,25 @@ class CNN(Model):
         Xtune_val=None,
         ytune_val=None,
     ):
+        """
+        description: This function is used for the entire process of training.
+        param {*} self
+        param {*} Xtrain: features of train set
+        param {*} ytrain: labels of train set
+        param {*} Xval: features of validation set
+        param {*} yval: labels of validation set
+        param {*} Xtune_train: features of train set for finetuning
+        param {*} ytune_train: labels of train set for finetuning
+        param {*} Xtune_val: features of validation set for finetuning
+        param {*} ytune_val: labels of validation set for finetuning
+        return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
+        """
+
         print("Start training......")
         start_time_train = time.time()
         train_pred, val_pred, tune_train_pred, tune_val_pred = [], [], [], []
 
+        # compile and fit
         self.model.compile(
             optimizer=self.optimizer,
             loss=self.loss_object,
@@ -123,10 +135,10 @@ class CNN(Model):
         )
 
         # get predictions
-        train_predictions = self.output_layer.predict(x=Xtrain)
-        train_prob = tf.nn.softmax(train_predictions)
-        train_pred += np.argmax(train_prob, axis=1).tolist()
-        train_pred = np.array(train_pred)
+        train_predictions = self.output_layer.predict(x=Xtrain)  # prediction
+        train_prob = tf.nn.softmax(train_predictions)  # softmax probability
+        train_pred += np.argmax(train_prob, axis=1).tolist()  # max probability
+        train_pred = np.array(train_pred)  # predicted label
         train_res = {
             "train_loss": history.history["loss"],
             "train_acc": history.history["accuracy"],
@@ -146,9 +158,12 @@ class CNN(Model):
         print(f"Finish training for {self.method}.")
         print(f"Training time: {elapsed_time_train}s")
 
+        # finetuning
         if self.finetune == True:
             print("Start fine-tuning......")
             start_time_tune = time.time()
+
+            # freezing
             for layer in self.model.layers[:-4]:
                 layer.trainable = False
             for layer in self.model.layers[-3:]:
@@ -198,18 +213,17 @@ class CNN(Model):
 
         return train_res, val_res, train_pred, val_pred, ytrain, yval
 
-    """
-  description: This function is used for the entire process of testing. 
-    Notice that loss of testing is not backward propagated.
-  param {*} self
-  param {*} model: customized network constructed
-  param {*} test_ds: loaded test dataset as batches
-  return {*}: accuracy and loss result, predicted labels and ground truth of test dataset
-  """
-
     def test(self, Xtest, ytest):
+        """
+        description: This function is used for the entire process of testing.
+        param {*} self
+        param {*} Xtest: features of test set
+        param {*} ytest: labels of test set
+        return {*}: predicted labels and ground truth of test dataset
+        """
         print("Start testing......")
         start_time_test = time.time()
+
         test_pred = []
         test_loss, test_acc = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
         test_predictions = self.output_layer.predict(x=Xtest)
@@ -222,6 +236,7 @@ class CNN(Model):
         print("Finish testing.")
         print(f"Testing time: {elapsed_time_test}s")
 
+        # save the model
         if not os.path.exists("outputs/image/models/"):
             os.makedirs("outputs/image/models")
         self.model.save("outputs/image/models/CNN.h5")

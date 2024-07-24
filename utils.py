@@ -1,113 +1,103 @@
 # -*- encoding: utf-8 -*-
 """
 @File    :   utils.py
-@Time    :   2024/03/24 19:09:23
+@Time    :   2024/07/24 07:07:34
 @Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
 @Module : ELEC0054: Research Project
 @SN :   23043574
 @Contact :   uceewl4@ucl.ac.uk
-@Desc    :   None
+@Desc    :  This file includes all utility functions for this project including data loading, 
+            model loading, visualization and experimental setups.
 """
 
 # here put the import lib
-
-# here put the import lib
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
-
-# from dtaidistance import dtw
-from scipy.stats import pearsonr
-import pandas as pd
-import math
-from pydub import AudioSegment
-from audio_similarity import AudioSimilarity
-import cv2
-from patchify import patchify
-import seaborn as sns
-import csv
-from imblearn.metrics import geometric_mean_score
-from imblearn.metrics import sensitivity_score
-from imblearn.metrics import specificity_score
-from imblearn.metrics import classification_report_imbalanced
-import numpy as np
-import matplotlib.pyplot as plt
-from skimage.util import random_noise
-from scipy.signal import butter, lfilter
-
-from scipy.signal import wiener
-import mediapipe as mp
-import dlib
-
-# from transformers import AutoFeatureExtractor
-import noisereduce as nr
-import cv2
 import os
+import csv
+import cv2
+import math
+import dlib
+import glob
+import pickle
 import random
+import librosa
+import soundfile
 import numpy as np
-from matplotlib.colors import Normalize
-from sklearn.discriminant_analysis import StandardScaler
-from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
+import seaborn as sns
+import soundfile as sf
+import mediapipe as mp
 import tensorflow as tf
+import noisereduce as nr
 from sklearn import tree
+from scipy.io import wavfile
+import scipy.signal as signal
+from patchify import patchify
+from pydub import AudioSegment
+from scipy.signal import wiener
 import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
 from sklearn.utils import shuffle
 import matplotlib.colors as mcolors
-from sklearn.metrics import (
-    balanced_accuracy_score,
-    class_likelihood_ratios,
-    cohen_kappa_score,
-    confusion_matrix,
-    matthews_corrcoef,
-    roc_curve,
-    silhouette_score,
-    accuracy_score,
-    f1_score,
-    precision_score,
-    recall_score,
-    ConfusionMatrixDisplay,
-    auc,
-)
-import librosa
-from scipy.io import wavfile
-import soundfile
-import os, glob, pickle
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPClassifier
+from skimage.util import random_noise
+from scipy.interpolate import interp1d
+from matplotlib.colors import Normalize
+from scipy.signal import butter, lfilter
 from sklearn.metrics import accuracy_score
-from models.speech.AlexNet import AlexNet
-from models.speech.CNN import CNN as speech_CNN
-from models.speech.baselines import Baselines as SpeechBase
-from models.speech.MLP import MLP as speech_MLP
+from audio_similarity import AudioSimilarity
+from sklearn.preprocessing import MinMaxScaler
+from imblearn.metrics import sensitivity_score
+from imblearn.metrics import specificity_score
+
+# from transformers import AutoFeatureExtractor
+from sklearn.neural_network import MLPClassifier
+from imblearn.metrics import geometric_mean_score
+from sklearn.model_selection import train_test_split
+from sklearn.discriminant_analysis import StandardScaler
+from imblearn.metrics import classification_report_imbalanced
+
+from models.image.ViT import ViT
 from models.speech.RNN import RNN
-from models.speech.LSTM import LSTM
 from models.speech.GMM import GMM
+from models.speech.LSTM import LSTM
 from models.speech.KMeans import KMeans
+from models.speech.DBSCAN import DBSCAN
+from models.speech.AlexNet import AlexNet
+from models.image.Xception import Xception
 from models.image.CNN import CNN as image_CNN
 from models.image.MLP import MLP as image_MLP
-from models.image.Inception import Inception
-from models.image.ViT import ViT
-import numpy as np
-from scipy.io import wavfile
-import soundfile
-import librosa
-import numpy as np
-import librosa
-import soundfile as sf
-import numpy as np
-import scipy.signal as signal
-import soundfile as sf
-
+from models.speech.CNN import CNN as speech_CNN
+from models.speech.MLP import MLP as speech_MLP
+from models.speech.baselines import Baselines as SpeechBase
+from sklearn.metrics import (
+    auc,
+    roc_curve,
+    f1_score,
+    recall_score,
+    accuracy_score,
+    precision_score,
+    silhouette_score,
+    confusion_matrix,
+    matthews_corrcoef,
+    cohen_kappa_score,
+    ConfusionMatrixDisplay,
+    balanced_accuracy_score,
+    class_likelihood_ratios,
+)
 
 random.seed(123)
 
 
 def get_padding(data, max_length):
-    if max_length > data.shape[1]:
+    """
+    description: This function pads the audio length as consistent length for CNN scenario.
+    param {*} data: audio
+    param {*} max_length: length needed to be padded
+    return {*}: padded audio
+    """
+    if max_length > data.shape[1]:  # pad
         pad_width = max_length - data.shape[1]
         data = np.pad(data, pad_width=((0, 0), (0, pad_width)), mode="constant")
-    else:
+    else:  # truncate
         data = data[:, :max_length]
 
     return data
@@ -124,19 +114,32 @@ def get_features(
     window=None,
     sr=16000,
 ):
+    """
+    description: This function gets features for an individual audio.
+    param {*} dataset: name of dataset
+    param {*} method: name of model selected
+    param {*} filename: path for audio file
+    param {*} features: feature selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mels features
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    return {*}: features and original audio loaded
+    """
     with soundfile.SoundFile(filename) as sound_file:
-        X = sound_file.read(dtype="float32")  # 121715,2    # 62462  # 58124  # 45456,
+        X = sound_file.read(dtype="float32")  # 121715,2 (eNTERFACE-05)
         if dataset == "eNTERFACE" and len(X.shape) == 2:
-            X = X[:, 1]
+            X = X[:, 1]  # use first channel
         sample_rate = sound_file.samplerate
         # print(sample_rate)
         if sr != 16000:  # resample
             X = librosa.resample(X, orig_sr=sample_rate, target_sr=sr)
 
+        # window
         if window != None:
             X = X[
                 int(window[0] * sample_rate) : int(window[1] * sample_rate)
-            ]  # 0,3 48000  # RAVDESS 59793
+            ]  # 0, 3 -- 48000
 
         result = np.array([])
 
@@ -144,31 +147,32 @@ def get_features(
             mfccs = librosa.feature.mfcc(
                 y=X, sr=sample_rate, n_mfcc=n_mfcc
             )  # 40,122 length=122
-            print(mfccs.shape[1])
+            # print(mfccs.shape[1])
             mfccs = get_padding(mfccs, max_length)
             stft = np.abs(librosa.stft(X))  # spectrum
             chroma = librosa.feature.chroma_stft(S=stft, sr=sample_rate)
             chroma = get_padding(chroma, max_length)
             mel = librosa.feature.melspectrogram(
                 y=X, sr=sample_rate, n_mels=n_mels, fmax=8000
-            )  # 12,109
+            )
             mel = get_padding(mel, max_length)
 
         else:
             mfccs = np.mean(
                 librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=n_mfcc).T, axis=0
-            )  # (40,121715)  # 40
+            )  # (40, 121715)  # 40
             stft = np.abs(librosa.stft(X))  # spectrum
             chroma = np.mean(
                 librosa.feature.chroma_stft(S=stft, sr=sample_rate).T, axis=0
-            )  # 12, 121715
+            )  # (12, 121715)
             mel = np.mean(
                 librosa.feature.melspectrogram(
                     y=X, sr=sample_rate, n_mels=n_mels, fmax=8000
                 ).T,
                 axis=0,
-            )  # 128,121715
+            )  # (128, 121715)
 
+        # concate features involved
         if method in ["CNN", "AlexNet"]:
             if features == "mfcc":
                 result = mfccs
@@ -181,7 +185,7 @@ def get_features(
                 result = np.vstack((result, mel))
         else:
             if features == "mfcc":
-                result = np.hstack((result, mfccs))  # 40,89954
+                result = np.hstack((result, mfccs))
             elif features == "chroma":
                 result = np.hstack((result, chroma))
             elif features == "mel":
@@ -191,16 +195,23 @@ def get_features(
                 result = np.hstack((result, chroma))
                 result = np.hstack((result, mel))
     sound_file.close()
-    return result, X  # 40,
+
+    return result, X
 
 
 def print_features(data, features, n_mfcc, n_mels):
+    """
+    description: This function is used for print statistics for features of audio like min, max, mean, std, etc.
+    param {*} data: features extracted
+    param {*} features: name of feature selected
+    param {*} n_mfcc: number of mfcc
+    param {*} n_mels: number of mels
+    """
     if features in ["all", "mfcc"]:
-        # Check chromagram feature values
-        mfcc_features = np.array(data)[:, :n_mfcc]  # 1440,180  (2798,40)  (1440,40,150)
+        # Check mfcc feature values
+        mfcc_features = np.array(data)[:, :n_mfcc]
         mfcc_min = np.min(mfcc_features)
         mfcc_max = np.max(mfcc_features)
-        # stack all features into a single series so we don't get a mean of means or stdev of stdevs
         mfcc_mean = mfcc_features.mean()
         mfcc_stdev = mfcc_features.std()
         print(
@@ -216,7 +227,6 @@ def print_features(data, features, n_mfcc, n_mels):
         chroma_features = np.array(data)[:, n_mfcc : n_mfcc + 12]
         chroma_min = np.min(chroma_features)
         chroma_max = np.max(chroma_features)
-        # stack all features into a single series so we don't get a mean of means or stdev of stdevs
         chroma_mean = chroma_features.mean()
         chroma_stdev = chroma_features.std()
         print(
@@ -232,7 +242,6 @@ def print_features(data, features, n_mfcc, n_mels):
         mel_features = np.array(data)[:, n_mfcc + 12 :]
         mel_min = np.min(mel_features)
         mel_max = np.max(mel_features)
-        # stack all features into a single series so we don't get a mean of means or stdev of stdevs
         mel_mean = mel_features.mean()
         mel_stdev = mel_features.std()
         print(
@@ -245,7 +254,17 @@ def print_features(data, features, n_mfcc, n_mels):
 
 
 def transform_feature(method, x, features, n_mfcc, n_mels, scaled):
-    print_features(x, features, n_mfcc, n_mels)
+    """
+    description: This function transforms features as standardization or min-max normalization.
+    param {*} method: name of method
+    param {*} x: features extracted
+    param {*} features: name of feature selected
+    param {*} n_mfcc: number of mfcc feature
+    param {*} n_mels: number of mel feature
+    param {*} scaled: min-max normalization or standardization
+    return {*}: scaled features
+    """
+    print_features(x, features, n_mfcc, n_mels)  # print statistics
     if method in ["AlexNet", "CNN"]:
         n, f, a = np.array(x).shape
         x = np.array(x).reshape(n, -1)
@@ -276,16 +295,40 @@ def get_reverse(
     window,
     sr,
 ):
-    sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
+    """
+    description: This function produces reversed audio.
+    param {*} x: array of features
+    param {*} y: array of labels
+    param {*} audio: array of audio
+    param {*} lengths: array of audio length
+    param {*} path: array of audio path
+    param {*} dataset: dataset name
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} max_length: max length for CNN
+    param {*} sample: number of samples
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    return {*}: sampled reversed features, labels, audios and audio lengths
+    """
+    sample_index = random.sample(
+        [i for i in range(np.array(x).shape[0])], sample
+    )  # sampling audio for reverse
     for i in sample_index:
         sound = AudioSegment.from_file(path[i], format="wav")
-        reversed_sound = sound.reverse()
+        reversed_sound = sound.reverse()  # reverse
+
+        # save the reversed audio
         name = path[i].split(".")[0].split("/")[-1]
         if not os.path.exists(f"datasets/speech/{dataset}_reverse/"):
             os.makedirs(f"datasets/speech/{dataset}_reverse/")
         reversed_sound.export(
             f"datasets/speech/{dataset}_reverse/{name}_reverse.wav", format="wav"
         )
+
+        # get features for reverse audio
         feature, X = get_features(
             dataset,
             method,
@@ -297,10 +340,12 @@ def get_reverse(
             window=window,
             sr=sr,
         )
+
         x.append(feature)
         y.append(y[i])
         audio.append(X)
         lengths.append(len(X))
+
     return x, y, audio, lengths
 
 
@@ -321,8 +366,30 @@ def get_noise(
     sr,
     noise,
 ):
-    sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
-    if noise == "white":
+    """
+    description: This function produces audio with noise.
+    param {*} x: array of features
+    param {*} y: array of labels
+    param {*} audio: array of audio
+    param {*} lengths: array of audio length
+    param {*} path: array of audio path
+    param {*} dataset: dataset name
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} max_length: max length for CNN
+    param {*} sample: number of samples
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    param {*} noise: type of noise produced
+    return {*}: sampled noisy features, labels, audios and audio lengths
+    """
+    sample_index = random.sample(
+        [i for i in range(np.array(x).shape[0])], sample
+    )  # sample
+
+    if noise == "white":  # white noise
         avg_snr = 0
         for i in sample_index:
             with soundfile.SoundFile(path[i]) as sound_file:
@@ -342,8 +409,7 @@ def get_noise(
             avg_snr += snr
         avg_snr /= len(sample_index)
         print("Average Signal-to-Noise Ratio (SNR):", avg_snr, "dB")
-
-    elif noise == "buzz":
+    elif noise == "buzz":  # buzzing noise
         avg_snr = 0
         for i in sample_index:
             ori_audio = AudioSegment.from_file(path[i])
@@ -358,35 +424,31 @@ def get_noise(
                 channels=1,
             )
             audio_with_noise = ori_audio.overlay(buzzing_noise)
+
             signal_power = np.mean(np.array(ori_audio.get_array_of_samples()) ** 2)
             noise_power = np.mean(np.array(buzzing_noise.get_array_of_samples()) ** 2)
             if noise_power > 0:
                 snr = 10 * np.log10(signal_power / noise_power)
                 avg_snr += snr
             else:
-                snr = float("-inf")  # Set SNR to negative infinity
+                snr = float("-inf")
         avg_snr = avg_snr / len(sample_index)
         print("Average Signal-to-Noise Ratio (SNR):", avg_snr, "dB")
-    elif noise == "bubble":
+    elif noise == "bubble":  # bubble noise
         avg_snr = 0
         for i in sample_index:
-            # Load original audio file
             original_audio, sr = librosa.load(path[i], sr=None)
-            # Generate bubble noise with the same duration and sample rate as the original audio
             duration = len(original_audio) / sr
             bubble_frequency_range = (1000, 5000)
             bubble_duration_range = (0.05, 0.5)
             amplitude_range = (0.05, 0.1)
-            # Generate random parameters for each bubble
-            num_bubbles = int(
-                duration * np.random.uniform(1, 10)
-            )  # Adjust number of bubbles based on duration
+            num_bubbles = int(duration * np.random.uniform(1, 10))
             frequencies = np.random.uniform(*bubble_frequency_range, size=num_bubbles)
             durations = np.random.uniform(*bubble_duration_range, size=num_bubbles)
             amplitudes = np.random.uniform(*amplitude_range, size=num_bubbles)
-            # Generate bubble noise signal
             t = np.linspace(0, duration, int(duration * sample_rate), endpoint=False)
             bubble_noise = np.zeros_like(t)
+
             for freq, dur, amp in zip(frequencies, durations, amplitudes):
                 envelope = signal.gaussian(
                     int(dur * sample_rate), int(dur * sample_rate / 4)
@@ -398,23 +460,20 @@ def get_noise(
                 bubble_noise[start_idx : start_idx + len(bubble)] += bubble * envelope
             noisy_audio = original_audio + bubble_noise
 
-            # Calculate SNR
             signal_power = np.sum(original_audio**2) / len(original_audio)
             noise_power = np.sum(bubble_noise**2) / len(bubble_noise)
             snr = 10 * np.log10(signal_power / noise_power)
             avg_anr += snr
         avg_snr = avg_snr / len(sample_index)
         print("Average Signal-to-Noise Ratio (SNR): {:.2f} dB".format(avg_snr))
-    elif noise == "cocktail":
+    elif noise == "cocktail":  # cocktail effect
         for i in sample_index:
             original_audio, sample_rate = librosa.load(path[i], sr=None)
-            reversed_audio = original_audio[::-1]  # mix the audio with its reverse
+            reversed_audio = original_audio[::-1]
             mixed_audio = original_audio + reversed_audio
             mixed_audio /= np.max(np.abs(mixed_audio))
-            # # Save the mixed audio
-            # mixed_audio_path = "mixed_audio_with_reverse.wav"
-            # sf.write(mixed_audio_path, mixed_audio, sample_rate)
 
+    # save noisy audio
     name = path[i].split(".")[0].split("/")[-1]
     if not os.path.exists(f"datasets/speech/{dataset}_noise/"):
         os.makedirs(f"datasets/speech/{dataset}_noise/")
@@ -437,6 +496,7 @@ def get_noise(
             sample_rate,
         )
 
+    # get features for noisy audio
     feature, X = get_features(
         dataset,
         method,
@@ -448,10 +508,12 @@ def get_noise(
         window=window,
         sr=sr,
     )
+
     x.append(feature)
     y.append(y[i])
     audio.append(X)
     lengths.append(len(X))
+
     return x, y, audio, lengths
 
 
@@ -470,10 +532,26 @@ def get_denoise(
     window,
     sr,
 ):
-    # sample_index = random.sample([i for i in range(np.array(x).shape[0])], sample)
-    # for i in sample_index:
+    """
+    description: This function produces audio with noise.
+    param {*} x: array of features
+    param {*} y: array of labels
+    param {*} audio: array of audio
+    param {*} lengths: array of audio length
+    param {*} emotion_map: mapping between emotion and label
+    param {*} dataset: dataset name
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} max_length: max length for CNN
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    return {*}: reconstructed features, labels, audios and audio lengths
+    """
+
     for i in os.listdir(f"datasets/speech/{dataset}_noise/"):
-        # audio = AudioSegment.from_file(path[i], format="wav")
+        # open noisy audio
         au = AudioSegment.from_file(
             os.path.join(f"datasets/speech/{dataset}_noise/", i), format="wav"
         )
@@ -485,7 +563,8 @@ def get_denoise(
             sample_width=au.sample_width,
             channels=au.channels,
         )
-        # name = path[i].split(".")[0].split("/")[-1]
+
+        # save reconstructed audio
         name = i.split(".")[0][:-6]
         if not os.path.exists(f"datasets/speech/{dataset}_denoise/"):
             os.makedirs(f"datasets/speech/{dataset}_denoise/")
@@ -493,6 +572,7 @@ def get_denoise(
             f"datasets/speech/{dataset}_denoise/{name}_denoise.wav", format="wav"
         )
 
+        # get reconstructed features
         feature, X = get_features(
             dataset,
             method,
@@ -525,6 +605,7 @@ def get_denoise(
         y.append(emotion)
         audio.append(X)
         lengths.append(len(X))
+
     return x, y, audio, lengths
 
 
@@ -542,6 +623,22 @@ def load_RAVDESS(
     sr=16000,
     split=None,
 ):
+    """
+    description: This function load dataset for RAVDESS.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    param {*} split: single-corpus split for 4/3/2.5/2/1
+    return {*}: training, validation and testing set, audio length
+    """
     x, y, category, path, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
@@ -554,20 +651,7 @@ def load_RAVDESS(
         [],
     )
 
-    # if we use original class for ranging split
-    # emotion_map = {
-    #     "01": 0,  # 'neutral'
-    #     "02": 1,  # 'calm'
-    #     "03": 2,  # 'happy'
-    #     "04": 3,  # 'sad'
-    #     "05": 4,  # 'angry'
-    #     "06": 5,  # 'fearful'
-    #     "07": 6,  # 'disgust'
-    #     "08": 7,  # 'surprised'
-    # }
-
-    # this is for ranging split with 3 classes
-    if split == None:
+    if split == None:  # single-corpus emotion mapping
         emotion_map = {
             "01": 0,  # 'neutral'
             "02": 1,  # 'calm'
@@ -578,7 +662,7 @@ def load_RAVDESS(
             "07": 6,  # 'disgust'
             "08": 7,  # 'surprised'
         }
-    else:
+    else:  # three-class cross-corpus emotion mapping
         emotion_map = {
             ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
             (
@@ -621,7 +705,7 @@ def load_RAVDESS(
                 "sa",
                 "anger",
                 "sadness",
-            ): 2,
+            ): 2,  # negative
         }
 
     category_map = {
@@ -634,8 +718,9 @@ def load_RAVDESS(
         "07": "disgust",
         "08": "surprised",
     }
+
+    # load dataset
     for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
-        # print(file)
         file_name = os.path.basename(file)
         if split == None:
             emotion = emotion_map[file_name.split("-")[2]]
@@ -643,6 +728,8 @@ def load_RAVDESS(
             for k, i in enumerate(emotion_map.keys()):
                 if file_name.split("-")[2] in i:
                     emotion = emotion_map[i]
+
+        # get features
         feature, X = get_features(
             "RAVDESS",
             method,
@@ -654,12 +741,15 @@ def load_RAVDESS(
             window=window,
             sr=sr,
         )
+
         x.append(feature)
         y.append(emotion)
         path.append(file)
         category.append(category_map[file_name.split("-")[2]])
         audio.append(X)
         lengths.append(len(X))
+
+        # visualization
         if category.count(category_map[file_name.split("-")[2]]) == 1:
             visual4feature(file, "RAVDESS", category_map[file_name.split("-")[2]])
             corr.append(file)
@@ -668,10 +758,10 @@ def load_RAVDESS(
             index = category.index(
                 category_map[file_name.split("-")[2]]
             )  # find the index of the first one
-            visual4corr3(
+            visual4corr_signal(
                 "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
             )
-            # visual4corr4(
+            # visual4corr_filter_ma(
             #     "RAVDESS", path[index], file, category_map[file_name.split("-")[2]]
             # )
             visual4corrMAV(
@@ -691,16 +781,17 @@ def load_RAVDESS(
     #     for row in similarities:
     #         writer.writerow(row)
 
-    visual4corr2("RAVDESS", corr, corr_emo)
     visual4label("speech", "RAVDESS", category)
-    print(np.array(x).shape)  # (864,40), (288,40), (288,40)
+    print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
-        visual4corr(x, "RAVDESS")
+        visual4corrmatrix(x, "RAVDESS")
 
+    # scaled
     if method != "wav2vec":
         if scaled != None:
             x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+    # reverse
     if reverse == True:
         x, y, audio, lengths = get_reverse(
             x,
@@ -719,6 +810,7 @@ def load_RAVDESS(
             sr,
         )
 
+    # noise
     if noise != None:
         x, y, audio, lengths = get_noise(
             x,
@@ -738,6 +830,7 @@ def load_RAVDESS(
             noise,
         )
 
+    # denoise
     if denoise == True:
         x, y, audio, lengths = get_denoise(
             x,
@@ -756,8 +849,7 @@ def load_RAVDESS(
         )
 
     length = None if method != "wav2vec" else max(lengths)
-
-    if split == None:
+    if split == None:  # single-corpus
         if method != "wav2vec":
             X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
                 np.array(x), y, test_size=0.4, random_state=9
@@ -780,9 +872,8 @@ def load_RAVDESS(
 
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
-        )  # 1:1
-        # (1680, 40), (560, 40), (560, 40), (1680,)
-    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+        )
+    else:  # cross-corpus corresponding single-corpus setup
         """
         # this one is used for original ranging split of proportion
         X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
@@ -801,7 +892,7 @@ def load_RAVDESS(
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
         X_test = np.array(x)[test_index, :]
         ytest = np.array(y)[test_index].tolist()
@@ -821,7 +912,6 @@ def load_RAVDESS(
         )  # 1:1 for train : val
 
     return X_train, ytrain, X_val, yval, X_test, ytest, length
-    # 864, 84351; 864
 
 
 def load_TESS(
@@ -838,6 +928,22 @@ def load_TESS(
     sr=16000,
     split=None,
 ):
+    """
+    description: This function load dataset for TESS.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    param {*} split: single-corpus split for 4/3/2.5/2/1
+    return {*}: training, validation and testing set, audio length
+    """
     x, y, category, path, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
@@ -850,18 +956,7 @@ def load_TESS(
         [],
     )
 
-    # original class of ranging split
-    # emotion_map = {
-    #     "angry": 0,
-    #     "disgust": 1,
-    #     "fear": 2,
-    #     "happy": 3,
-    #     "neutral": 4,
-    #     "ps": 5,
-    #     "sad": 6,
-    # }
-
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "angry": 0,
             "disgust": 1,
@@ -871,7 +966,7 @@ def load_TESS(
             "ps": 5,
             "sad": 6,
         }
-    else:
+    else:  # 3-class single-corpus
         emotion_map = {
             ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
             (
@@ -914,11 +1009,12 @@ def load_TESS(
                 "sa",
                 "anger",
                 "sadness",
-            ): 2,
+            ): 2,  # negatiive
         }
 
     for dirname, _, filenames in os.walk("datasets/speech/TESS"):
         for filename in filenames:
+            # get features
             feature, X = get_features(
                 "TESS",
                 method,
@@ -945,16 +1041,18 @@ def load_TESS(
             category.append(label.lower())
             audio.append(X)
             lengths.append(len(X))
+
+            # visualization
             if category.count(label.lower()) == 1:
                 visual4feature(os.path.join(dirname, filename), "TESS", label.lower())
                 corr.append(os.path.join(dirname, filename))
                 corr_emo.append(label.lower())
             if category.count(label.lower()) == 2:
                 index = category.index(label.lower())  # find the index of the first one
-                visual4corr3(
+                visual4corr_signal(
                     "TESS", path[index], os.path.join(dirname, filename), label.lower()
                 )
-                # visual4corr4(
+                # visual4corr_filter_ma(
                 #     "TESS", path[index], os.path.join(dirname, filename), label.lower()
                 # )
                 visual4corrMAV(
@@ -976,16 +1074,17 @@ def load_TESS(
     #     for row in similarities:
     #         writer.writerow(row)
 
-    visual4corr2("TESS", corr, corr_emo)
     visual4label("speech", "TESS", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
-        visual4corr(x, "TESS")
+        visual4corrmatrix(x, "TESS")
 
+    # scaled
     if method != "wav2vec":
         if scaled != None:
             x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+    # reverse
     if reverse == True:
         x, y, audio, lengths = get_reverse(
             x,
@@ -1004,6 +1103,7 @@ def load_TESS(
             sr,
         )
 
+    # noise
     if noise != None:
         x, y, audio, lengths = get_noise(
             x,
@@ -1023,6 +1123,7 @@ def load_TESS(
             noise,
         )
 
+    # denoise
     if denoise == True:
         x, y, audio, lengths = get_denoise(
             x,
@@ -1042,11 +1143,11 @@ def load_TESS(
 
     length = None if method != "wav2vec" else max(lengths)
 
-    if split == None:
+    if split == None:  # single-corpus
         if method != "wav2vec":
-            X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            X_train, X_left, ytrain, yleft = train_test_split(
                 np.array(x), y, test_size=0.4, random_state=9
-            )  # 3:2
+            )
         else:
             # feature_extractor = AutoFeatureExtractor.from_pretrained(
             #     "facebook/wav2vec2-base", return_attention_mask=True
@@ -1066,8 +1167,8 @@ def load_TESS(
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-        # (1680, 40), (560, 40), (560, 40), (1680,)
-    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+
+    else:  # cross-corpus corresponding single-corpus cases
         """
         # this one is used for original ranging split of proportion
         X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
@@ -1086,7 +1187,7 @@ def load_TESS(
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
         X_test = np.array(x)[test_index, :]
         ytest = np.array(y)[test_index].tolist()
@@ -1122,6 +1223,22 @@ def load_SAVEE(
     sr=16000,
     split=None,
 ):
+    """
+    description: This function load dataset for SAVEE.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    param {*} split: single-corpus split for 4/3/2.5/2/1
+    return {*}: training, validation and testing set, audio length
+    """
     x, y, category, paths, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
@@ -1134,18 +1251,7 @@ def load_SAVEE(
         [],
     )
 
-    # original class ranging split
-    # emotion_map = {
-    #     "a": 0,  # angry
-    #     "d": 1,  # digust
-    #     "f": 2,  # fear
-    #     "h": 3,  # happiness
-    #     "n": 4,  # neutral
-    #     "sa": 5,  # sadness
-    #     "su": 6,  # surprise
-    # }
-
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "a": 0,  # angry
             "d": 1,  # digust
@@ -1155,7 +1261,7 @@ def load_SAVEE(
             "sa": 5,  # sadness
             "su": 6,  # surprise
         }
-    else:
+    else:  # single-corpus 3-class
         emotion_map = {
             ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
             (
@@ -1198,7 +1304,7 @@ def load_SAVEE(
                 "sa",
                 "anger",
                 "sadness",
-            ): 2,
+            ): 2,  # negative
         }
 
     category_map = {
@@ -1212,6 +1318,7 @@ def load_SAVEE(
     }
     path = "datasets/speech/SAVEE"
     for file in os.listdir(path):
+        # get features
         feature, X = get_features(
             "SAVEE",
             method,
@@ -1230,12 +1337,15 @@ def load_SAVEE(
             for k, i in enumerate(emotion_map.keys()):
                 if label in i:
                     emotion = emotion_map[i]
+
         x.append(feature)
         y.append(emotion)
         paths.append(os.path.join(path, file))
         category.append(category_map[label])
         audio.append(X)
         lengths.append(len(X))
+
+        # visualization
         if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "SAVEE", category_map[label])
             corr.append(os.path.join(path, file))
@@ -1244,10 +1354,10 @@ def load_SAVEE(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            visual4corr3(
+            visual4corr_signal(
                 "SAVEE", paths[index], os.path.join(path, file), category_map[label]
             )
-            # visual4corr4(
+            # visual4corr_filter_ma(
             #     "SAVEE", paths[index], os.path.join(path, file), category_map[label]
             # )
             visual4corrMAV(
@@ -1266,16 +1376,17 @@ def load_SAVEE(
     #     for row in similarities:
     #         writer.writerow(row)
 
-    visual4corr2("SAVEE", corr, corr_emo)
     visual4label("speech", "SAVEE", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
-        visual4corr(x, "SAVEE")
+        visual4corrmatrix(x, "SAVEE")
 
+    # scaled
     if method != "wav2vec":
         if scaled != None:
             x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+    # reverse
     if reverse == True:
         x, y, audio, lengths = get_reverse(
             x,
@@ -1292,8 +1403,9 @@ def load_SAVEE(
             300,
             window,
             sr,
-        )  # sample need to evaluate
+        )
 
+    # noise
     if noise != None:
         x, y, audio, lengths = get_noise(
             x,
@@ -1313,6 +1425,7 @@ def load_SAVEE(
             noise,
         )
 
+    # denoise
     if denoise == True:
         x, y, audio, lengths = get_denoise(
             x,
@@ -1332,11 +1445,11 @@ def load_SAVEE(
 
     length = None if method != "wav2vec" else max(lengths)
 
-    if split == None:
+    if split == None:  # single-corpus
         if method != "wav2vec":
-            X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            X_train, X_left, ytrain, yleft = train_test_split(
                 np.array(x), y, test_size=0.4, random_state=9
-            )  # 3:2
+            )
         else:
             # feature_extractor = AutoFeatureExtractor.from_pretrained(
             #     "facebook/wav2vec2-base", return_attention_mask=True
@@ -1356,8 +1469,8 @@ def load_SAVEE(
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-        # (1680, 40), (560, 40), (560, 40), (1680,)
-    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+
+    else:  # cross-corpus corresponding single-corpus case
         """
         # this one is used for original ranging split of proportion
         X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
@@ -1376,7 +1489,7 @@ def load_SAVEE(
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
         X_test = np.array(x)[test_index, :]
         ytest = np.array(y)[test_index].tolist()
@@ -1412,6 +1525,22 @@ def load_CREMA(
     sr=16000,
     split=None,
 ):
+    """
+    description: This function load dataset for CREMA-D.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    param {*} split: single-corpus split for 4/3/2.5/2/1
+    return {*}: training, validation and testing set, audio length
+    """
     x, y, category, paths, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
@@ -1423,17 +1552,8 @@ def load_CREMA(
         [],
         [],
     )
-    # original class ranging split
-    # emotion_map = {
-    #     "ang": 0,  # angry
-    #     "dis": 1,  # disgust
-    #     "fea": 2,  # fear
-    #     "hap": 3,  # happiness
-    #     "neu": 4,  # neutral
-    #     "sad": 5,  # sadness
-    # }
 
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "ang": 0,  # angry
             "dis": 1,  # disgust
@@ -1442,7 +1562,7 @@ def load_CREMA(
             "neu": 4,  # neutral
             "sad": 5,  # sadness
         }
-    else:
+    else:  # single-corpus 3-class
         emotion_map = {
             ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
             (
@@ -1485,7 +1605,7 @@ def load_CREMA(
                 "sa",
                 "anger",
                 "sadness",
-            ): 2,
+            ): 2,  # negative
         }
     category_map = {
         "ang": "angry",
@@ -1509,7 +1629,6 @@ def load_CREMA(
             sr=sr,
         )
         label = file.split("_")[2]
-        # emotion = emotion_map[label.lower()]
 
         if split == None:
             emotion = emotion_map[label.lower()]
@@ -1523,6 +1642,8 @@ def load_CREMA(
         category.append(category_map[label.lower()])
         audio.append(X)  # list of array
         lengths.append(len(X))
+
+        # visualization
         if category.count(category_map[label.lower()]) == 1:
             visual4feature(
                 os.path.join(path, file), "CREMA-D", category_map[label.lower()]
@@ -1533,13 +1654,13 @@ def load_CREMA(
             index = category.index(
                 category_map[label.lower()]
             )  # find the index of the first one
-            visual4corr3(
+            visual4corr_signal(
                 "CREMA",
                 paths[index],
                 os.path.join(path, file),
                 category_map[label.lower()],
             )
-            # visual4corr4(
+            # visual4corr_filter_ma(
             #     "CREMA",
             #     paths[index],
             #     os.path.join(path, file),
@@ -1567,16 +1688,17 @@ def load_CREMA(
     #     for row in similarities:
     #         writer.writerow(row)
 
-    visual4corr2("CREMA", corr, corr_emo)
     visual4label("speech", "CREMA", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
-        visual4corr(x, "CREMA-D")
+        visual4corrmatrix(x, "CREMA-D")
 
+    # scaled
     if method != "wav2vec":
         if scaled != None:
             x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+    # reverse
     if reverse == True:
         x, y, audio, lengths = get_reverse(
             x,
@@ -1593,8 +1715,9 @@ def load_CREMA(
             500,
             window,
             sr,
-        )  # sample need to evaluate
+        )
 
+    # noise
     if noise != None:
         x, y, audio, lengths = get_noise(
             x,
@@ -1614,6 +1737,7 @@ def load_CREMA(
             noise,
         )
 
+    # denoise
     if denoise == True:
         x, y, audio, lengths = get_denoise(
             x,
@@ -1633,9 +1757,9 @@ def load_CREMA(
 
     length = None if method != "wav2vec" else max(lengths)
 
-    if split == None:
+    if split == None:  # single-corpus
         if method != "wav2vec":
-            X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            X_train, X_left, ytrain, yleft = train_test_split(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
@@ -1657,8 +1781,7 @@ def load_CREMA(
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-        # (4465, 40), (1488, 40), (1489, 40), (1680,)
-    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+    else:  # cross-corpus corresponding single-corpus
         """
         # this one is used for original ranging split of proportion
         X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
@@ -1677,7 +1800,7 @@ def load_CREMA(
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
         X_test = np.array(x)[test_index, :]
         ytest = np.array(y)[test_index].tolist()
@@ -1713,6 +1836,22 @@ def load_EmoDB(
     sr=16000,
     split=None,
 ):
+    """
+    description: This function load dataset for EmoDB.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    param {*} split: single-corpus split for 4/3/2.5/2/1
+    return {*}: training, validation and testing set, audio length
+    """
     x, y, category, paths, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
@@ -1724,19 +1863,8 @@ def load_EmoDB(
         [],
         [],
     )
-    # original class ranging split
 
-    # emotion_map = {
-    #     "W": 0,  # angry
-    #     "L": 1,  # boredom
-    #     "E": 2,  # disgust
-    #     "A": 3,  # anxiety/fear
-    #     "F": 4,  # happiness
-    #     "T": 5,  # sadness
-    #     "N": 6,
-    # }
-
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "W": 0,  # angry
             "L": 1,  # boredom
@@ -1746,7 +1874,7 @@ def load_EmoDB(
             "T": 5,  # sadness
             "N": 6,
         }
-    else:
+    else:  # 3-class single-corpus
         emotion_map = {
             ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
             (
@@ -1789,7 +1917,7 @@ def load_EmoDB(
                 "sa",
                 "anger",
                 "sadness",
-            ): 2,
+            ): 2,  # negative
         }
 
     category_map = {
@@ -1803,6 +1931,7 @@ def load_EmoDB(
     }
     path = "datasets/speech/EmoDB"
     for file in os.listdir(path):
+        # get features
         feature, X = get_features(
             "EmoDB",
             method,
@@ -1827,6 +1956,8 @@ def load_EmoDB(
         category.append(category_map[label])
         audio.append(X)
         lengths.append(len(X))
+
+        # visualization
         if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "EmoDB", category_map[label])
             corr.append(os.path.join(path, file))
@@ -1835,10 +1966,10 @@ def load_EmoDB(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            visual4corr3(
+            visual4corr_signal(
                 "EmoDB", paths[index], os.path.join(path, file), category_map[label]
             )
-            # visual4corr4(
+            # visual4corr_filter_ma(
             #     "EmoDB", paths[index], os.path.join(path, file), category_map[label]
             # )
             visual4corrMAV(
@@ -1857,16 +1988,17 @@ def load_EmoDB(
     #     for row in similarities:
     #         writer.writerow(row)
 
-    visual4corr2("EmoDB", corr, corr_emo)
     visual4label("speech", "EmoDB", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
-        visual4corr(x, "EmoDB")
+        visual4corrmatrix(x, "EmoDB")
 
+    # scaled
     if method != "wav2vec":
         if scaled != None:
             x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+    # reverse
     if reverse == True:
         x, y, audio, lengths = get_reverse(
             x,
@@ -1883,8 +2015,9 @@ def load_EmoDB(
             500,
             window,
             sr,
-        )  # sample need to evaluate
+        )
 
+    # noise
     if noise != None:
         x, y, audio, lengths = get_noise(
             x,
@@ -1904,6 +2037,7 @@ def load_EmoDB(
             noise,
         )
 
+    # denoise
     if denoise == True:
         x, y, audio, lengths = get_denoise(
             x,
@@ -1923,9 +2057,9 @@ def load_EmoDB(
 
     length = None if method != "wav2vec" else max(lengths)
 
-    if split == None:
+    if split == None:  # single-corpus
         if method != "wav2vec":
-            X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            X_train, X_left, ytrain, yleft = train_test_split(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
@@ -1947,8 +2081,7 @@ def load_EmoDB(
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-        # (1680, 40), (560, 40), (560, 40), (1680,)
-    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+    else:  # cross-corpus corresponding single-corpus
         """
         # this one is used for original ranging split of proportion
         X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
@@ -1967,7 +2100,7 @@ def load_EmoDB(
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
         X_test = np.array(x)[test_index, :]
         ytest = np.array(y)[test_index].tolist()
@@ -2003,6 +2136,22 @@ def load_eNTERFACE(
     sr=16000,
     split=None,
 ):
+    """
+    description: This function load dataset for eNTERFACE-05.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    param {*} split: single-corpus split for 4/3/2.5/2/1
+    return {*}: training, validation and testing set, audio length
+    """
     x, y, category, paths, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
@@ -2014,17 +2163,8 @@ def load_eNTERFACE(
         [],
         [],
     )
-    # original class ranging split
-    # emotion_map = {
-    #     "an": 0,  # angry
-    #     "di": 1,  # disgust
-    #     "fe": 2,  # fear
-    #     "ha": 3,  # happiness
-    #     "sa": 4,  # sadness
-    #     "su": 5,  # surprise
-    # }
 
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "an": 0,  # angry
             "di": 1,  # disgust
@@ -2033,9 +2173,8 @@ def load_eNTERFACE(
             "sa": 4,  # sadness
             "su": 5,  # surprise
         }
-    else:
+    else:  # 3-class single-corpus
         emotion_map = {
-            # ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
             (
                 "03",
                 "08",
@@ -2076,7 +2215,7 @@ def load_eNTERFACE(
                 "sa",
                 "anger",
                 "sadness",
-            ): 1,
+            ): 1,  # negative
         }
 
     category_map = {
@@ -2089,6 +2228,7 @@ def load_eNTERFACE(
     }
     path = "datasets/speech/eNTERFACE05"
     for file in os.listdir(path):
+        # get features
         feature, X = get_features(
             "eNTERFACE",
             method,
@@ -2105,7 +2245,6 @@ def load_eNTERFACE(
         else:
             label = file.split(".")[0].split("_")[1]
 
-        # emotion = emotion_map[label]
         if split == None:
             emotion = emotion_map[label]
         else:
@@ -2119,6 +2258,8 @@ def load_eNTERFACE(
         category.append(category_map[label])
         audio.append(X)
         lengths.append(len(X))
+
+        # visualization
         if category.count(category_map[label]) == 1:
             visual4feature(os.path.join(path, file), "eNTERFACE", category_map[label])
             corr.append(os.path.join(path, file))
@@ -2127,10 +2268,10 @@ def load_eNTERFACE(
             index = category.index(
                 category_map[label]
             )  # find the index of the first one
-            visual4corr3(
+            visual4corr_signal(
                 "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
             )
-            # visual4corr4(
+            # visual4corr_filter_ma(
             #     "eNTERFACE", paths[index], os.path.join(path, file), category_map[label]
             # )
             visual4corrMAV(
@@ -2149,16 +2290,17 @@ def load_eNTERFACE(
     #     for row in similarities:
     #         writer.writerow(row)
 
-    visual4corr2("eNTERFACE", corr, corr_emo)
     visual4label("speech", "eNTERFACE05", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
-        visual4corr(x, "eNTERFACE")
+        visual4corrmatrix(x, "eNTERFACE")
 
+    # scaled
     if method != "wav2vec":
         if scaled != None:
             x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+    # reverse
     if reverse == True:
         x, y, audio, lengths = get_reverse(
             x,
@@ -2175,8 +2317,9 @@ def load_eNTERFACE(
             500,
             window,
             sr,
-        )  # sample need to evaluate
+        )
 
+    # noise
     if noise != None:
         x, y, audio, lengths = get_noise(
             x,
@@ -2196,6 +2339,7 @@ def load_eNTERFACE(
             noise,
         )
 
+    # denoise
     if denoise == True:
         x, y, audio, lengths = get_denoise(
             x,
@@ -2215,9 +2359,9 @@ def load_eNTERFACE(
 
     length = None if method != "wav2vec" else max(lengths)
 
-    if split == None:
+    if split == None:  # single-corpus
         if method != "wav2vec":
-            X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            X_train, X_left, ytrain, yleft = train_test_split(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
@@ -2240,8 +2384,7 @@ def load_eNTERFACE(
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-        # (1680, 40), (560, 40), (560, 40), (1680,)
-    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+    else:  # cross-corpus corresponding single-corpus
         """
         # this one is used for original ranging split of proportion
         X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
@@ -2260,7 +2403,7 @@ def load_eNTERFACE(
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
         X_test = np.array(x)[test_index, :]
         ytest = np.array(y)[test_index].tolist()
@@ -2296,6 +2439,22 @@ def load_AESDD(
     sr=16000,
     split=None,
 ):
+    """
+    description: This function load dataset for AESDD.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} sr: sampling rate
+    param {*} split: single-corpus split for 4/3/2.5/2/1
+    return {*}: training, validation and testing set, audio length
+    """
     x, y, category, path, audio, lengths, corr, corr_emo, similarities = (
         [],
         [],
@@ -2308,16 +2467,7 @@ def load_AESDD(
         [],
     )
 
-    # original class of ranging split
-    # emotion_map = {
-    #     "anger": 0,
-    #     "disgust": 1,
-    #     "fear": 2,
-    #     "happiness": 3,
-    #     "sadness": 4,
-    # }
-
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "anger": 0,
             "disgust": 1,
@@ -2325,9 +2475,8 @@ def load_AESDD(
             "happiness": 3,
             "sadness": 4,
         }
-    else:
+    else:  # 3-class single-corpus
         emotion_map = {
-            # ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
             (
                 "03",
                 "08",
@@ -2373,6 +2522,7 @@ def load_AESDD(
 
     for dirname, _, filenames in os.walk("datasets/speech/AESDD"):
         for filename in filenames:
+            # get features
             feature, X = get_features(
                 "AESDD",
                 method,
@@ -2384,17 +2534,12 @@ def load_AESDD(
                 window=window,
                 sr=sr,
             )
-            # label = filename.split("_")[-1].split(".")[0]
             label = dirname.split("/")[-1]
-
-            # original ranging spllit
-            # emotion = emotion_map[label]
 
             if split == None:
                 emotion = emotion_map[label]
             else:
                 for k, i in enumerate(emotion_map.keys()):
-                    # label = filename.split("_")[-1].split(".")[0]
                     if label in i:
                         emotion = emotion_map[i]
 
@@ -2404,16 +2549,18 @@ def load_AESDD(
             category.append(label)
             audio.append(X)
             lengths.append(len(X))
+
+            # visualization
             if category.count(label) == 1:
                 visual4feature(os.path.join(dirname, filename), "AESDD", label)
                 corr.append(os.path.join(dirname, filename))
                 corr_emo.append(label)
             if category.count(label) == 2:
                 index = category.index(label)  # find the index of the first one
-                visual4corr3(
+                visual4corr_signal(
                     "AESDD", path[index], os.path.join(dirname, filename), label
                 )
-                # visual4corr4(
+                # visual4corr_filter_ma(
                 #     "AESDD", path[index], os.path.join(dirname, filename), label
                 # )
                 visual4corrMAV(
@@ -2433,16 +2580,17 @@ def load_AESDD(
     #     for row in similarities:
     #         writer.writerow(row)
 
-    visual4corr2("AESDD", corr, corr_emo)
     visual4label("speech", "AESDD", category)
     print(np.array(x).shape)
     if method not in ["AlexNet", "CNN"]:
-        visual4corr(x, "AESDD")
+        visual4corrmatrix(x, "AESDD")
 
+    # scaled
     if method != "wav2vec":
         if scaled != None:
             x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+    # reverse
     if reverse == True:
         x, y, audio, lengths = get_reverse(
             x,
@@ -2461,6 +2609,7 @@ def load_AESDD(
             sr,
         )
 
+    # noise
     if noise != None:
         x, y, audio, lengths = get_noise(
             x,
@@ -2480,6 +2629,7 @@ def load_AESDD(
             noise,
         )
 
+    # denoise
     if denoise == True:
         x, y, audio, lengths = get_denoise(
             x,
@@ -2499,9 +2649,9 @@ def load_AESDD(
 
     length = None if method != "wav2vec" else max(lengths)
 
-    if split == None:
+    if split == None:  # single-corpus
         if method != "wav2vec":
-            X_train, X_left, ytrain, yleft = train_test_split(  # 2800, 1680, 1120
+            X_train, X_left, ytrain, yleft = train_test_split(
                 np.array(x), y, test_size=0.4, random_state=9
             )  # 3:2
         else:
@@ -2523,8 +2673,7 @@ def load_AESDD(
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-        # (1680, 40), (560, 40), (560, 40), (1680,)
-    else:  # split != None can only be used for AlexNet as single-corpus split experiment
+    else:  # cross-corpus corresponding single-corpus
         """
         # this one is used for original ranging split of proportion
         X_train, X_test, ytrain, ytest = train_test_split(  # 2800, 1680, 1120
@@ -2543,7 +2692,7 @@ def load_AESDD(
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(x).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(x).shape[0]) if i not in test_index]
         X_test = np.array(x)[test_index, :]
         ytest = np.array(y)[test_index].tolist()
@@ -2579,7 +2728,22 @@ def load_cross_corpus(
     corpus=None,
     sr=16000,
 ):  # ["RAVDESS", "TESS"]
-
+    """
+    description: This function loads dataset for cross-corpus experiments of Case 1.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} corpus: two corpus where the first one is training corpus and the second one is testing corpus
+    param {*} sr: sampling rate
+    return {*}: training, validation and testing set, audio length
+    """
     lengths = []
     (
         X_train,
@@ -2621,8 +2785,9 @@ def load_cross_corpus(
             "di",
             "fe",
             "sa",
-        ): 2,
+        ): 2,  # negative
     }
+    # load dataset for each
     for index, cor in enumerate(corpus):
         # index=0 train, index=1 test
         x, y, paths, audio = [], [], [], []
@@ -2633,6 +2798,8 @@ def load_cross_corpus(
                 for k, i in enumerate(emotion_map.keys()):
                     if file_name.split("-")[2] in i:
                         emotion = emotion_map[i]
+
+                # get features
                 feature, X = get_features(
                     cor,
                     method,
@@ -2710,10 +2877,12 @@ def load_cross_corpus(
                 audio.append(X)
                 lengths.append(len(X))
 
+        # scaled
         if method != "wav2vec":
             if scaled != None:
                 x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+        # reverse
         if reverse == True:
             x, y, audio, lengths = get_reverse(
                 x,
@@ -2732,6 +2901,7 @@ def load_cross_corpus(
                 sr,
             )
 
+        # noise
         if noise != None:
             x, y, audio, lengths = get_noise(
                 x,
@@ -2751,6 +2921,7 @@ def load_cross_corpus(
                 noise,
             )
 
+        # denoise
         if denoise == True:
             x, y, audio, lengths = get_denoise(
                 x,
@@ -2768,36 +2939,22 @@ def load_cross_corpus(
                 sr,
             )
 
-        # new_label = []
-        # for i in y:
-        #     if i not in [1, 2, 3]:
-        #         new_label.append(i)
-        #     else:
-        #         for k, j in enumerate(emotion_map.keys()):
-        #             if label in j:
-        #                 emotion = emotion_map[j]
-        #         new_label.append(emotion)
-        # y = new_label
         if method != "wav2vec":
+            # 900, 300, 300, train_corpus 1200, test_corpus 300
             if index == 0:  # train corpus
                 # split into train and val
                 random.seed(123)
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], 1200
                 )
-                X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+                X_train, X_val, ytrain, yval = train_test_split(
                     np.array(x)[sample_index, :],
                     np.array(y)[sample_index].tolist(),
                     test_size=0.25,
                     random_state=9,
                 )  # 3:1
-            elif index == 1:
+            elif index == 1:  # test corpus
                 random.seed(123)
-                # sample_index = random.sample(
-                #     [i for i in range(np.array(x).shape[0])], 300
-                # )
-                # X_test = np.array(x)[sample_index, :]
-                # ytest = np.array(y)[sample_index].tolist()
                 X_test = np.array(x)
                 ytest = y
         else:
@@ -2809,43 +2966,8 @@ def load_cross_corpus(
                 y_test_corpus = y
 
     length = None
-    # if method == "wav2vec":
-    #     length = max(lengths)
-    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
-    #         "facebook/wav2vec2-base", return_attention_mask=True
-    #     )
-    #     X_train_corpus = feature_extractor(
-    #         train_corpus_audio,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     random.seed(123)
-    #     sample_index = random.sample([i for i in range(np.array(x).shape[0])], 1200)
-    #     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
-    #         np.array(X_train_corpus["input_values"])[sample_index, :],
-    #         y_train_corpus,
-    #         test_size=0.25,
-    #         random_state=9,
-    #     )  # 3:1
-
-    #     X_test_corpus = feature_extractor(
-    #         test_corpus_audio,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     random.seed(123)
-    #     # sample_index = random.sample([i for i in range(np.array(x).shape[0])], 300)
-    #     # X_test = np.array(X_test_corpus["input_values"])[sample_index, :]
-    #     # ytest = np.array(y_test_corpus)[sample_index, :].tolist()
-    #     X_test = np.array(X_test_corpus["input_values"])
-    #     ytest = y_test_corpus.tolist()
 
     return X_train, ytrain, X_val, yval, X_test, ytest, length
-    # 900, 300, 300, train_corpus 1200, test_corpus 300
 
 
 def load_mix_corpus(
@@ -2864,8 +2986,23 @@ def load_mix_corpus(
 ):  # cc: mix, corpus: with only one string as the testing set
 
     # 900+300, 900 train 300 val, 300 test
-    # 900/5=180, 300/5=60, 1200/5=240
-    # 300
+    # 1200/5=240
+    """
+    description: This function loads dataset for cross-corpus experiments of Case 2.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} corpus: one corpus which is the testing corpus when the mixture is the training corpus
+    param {*} sr: sampling rate
+    return {*}: training, validation and testing set, audio length
+    """
     datasets = ["RAVDESS", "TESS", "SAVEE", "CREMA-D", "EmoDB"]
     emotion_map = {
         ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
@@ -2895,7 +3032,7 @@ def load_mix_corpus(
             "di",
             "fe",
             "sa",
-        ): 2,  # tuple can be hashed but list cannot
+        ): 2,  # negative
     }
     lengths, paths, audio, X_train, ytrain, X_val, yval, X_test, ytest = (
         [],
@@ -2908,6 +3045,7 @@ def load_mix_corpus(
         [],
         [],
     )
+    # load data
     for index, dataset in enumerate(datasets):
         x, y = [], []  # for each dataset
         if dataset == "RAVDESS":
@@ -2990,12 +3128,9 @@ def load_mix_corpus(
                 audio.append(X)
                 lengths.append(len(X))
 
-        # first reverse for each dataset, then get
+        # mixture of train
         random.seed(123)
-        sample_index = random.sample(
-            [i for i in range(np.array(x).shape[0])], 240
-        )  # 1440, 40
-        # 240, 40
+        sample_index = random.sample([i for i in range(np.array(x).shape[0])], 240)
         X_train = (
             np.array(x)[sample_index, :]
             if len(X_train) == 0
@@ -3007,12 +3142,14 @@ def load_mix_corpus(
             else (ytrain + np.array(y)[sample_index].tolist())
         )
 
+        # scaled
         if method != "wav2vec":
             if scaled != None:
                 X_train = transform_feature(
                     method, X_train, features, n_mfcc, n_mels, scaled
                 )
 
+        # reverse
         if reverse == True:
             X_train, ytrain, audio, lengths = get_reverse(
                 X_train,
@@ -3031,6 +3168,7 @@ def load_mix_corpus(
                 sr,
             )
 
+        # noise
         if noise != None:
             X_train, ytrain, audio, lengths = get_noise(
                 X_train,
@@ -3050,6 +3188,7 @@ def load_mix_corpus(
                 noise,
             )
 
+        # denoise
         if denoise == True:
             X_train, ytrain, audio, lengths = get_denoise(
                 X_train,
@@ -3068,44 +3207,17 @@ def load_mix_corpus(
             )
 
         if (dataset == corpus[0]) or (corpus[0] == "eNTERFACE"):  # testing set
-            # if dataset == corpus[0]:  # testing set
             left_index = [
                 i for i in range(np.array(x).shape[0]) if i not in sample_index
             ]
-            # random.seed(123)
-            # test_index = (
-            #     left_index if dataset == "SAVEE" else random.sample(left_index, 300)
-            # )
-            # the left index of SAVEE is not enough for 300
-            X_test = np.array(x)[left_index, :]  # 300,40
+            X_test = np.array(x)[left_index, :]
             ytest = np.array(y)[left_index].tolist()
 
-    # after traversing all dataset
     length = None
-    # if method == "wav2vec":
-    #     length = max(lengths)
-    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
-    #         "facebook/wav2vec2-base", return_attention_mask=True
-    #     )
-    #     X_train = feature_extractor(
-    #         X_train,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     X_test = feature_extractor(
-    #         X_test,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     X_test = np.array(X_test["input_values"])
 
-    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+    X_train, X_val, ytrain, yval = train_test_split(
         X_train, ytrain, test_size=0.25, random_state=9
-    )  # 3:1  # 1200, 40  # 300,4
+    )  # 3:1  # 900:300
 
     return X_train, ytrain, X_val, yval, X_test, ytest, length
 
@@ -3123,11 +3235,24 @@ def load_mix3_corpus(
     window=None,
     corpus=None,
     sr=16000,
-):  # cc: mix, corpus: with only one string as the testing set
-
-    # 900+300, 900 train 300 val, 300 test
-    # 900/5=180, 300/5=60, 1200/5=240
-    # 300
+):
+    # 1:1:1 (200/200/200)
+    """
+    description: This function loads dataset for cross-corpus experiments of modified setup with mixture of 3 corpus.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} corpus: the testing corpus under mixture of 3 as training for 1:1:1 (200/200/200)
+    param {*} sr: sampling rate
+    return {*}: training, validation and testing set, audio length
+    """
     datasets = ["RAVDESS", "TESS", "CREMA-D"]
     emotion_map = {
         ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
@@ -3157,7 +3282,7 @@ def load_mix3_corpus(
             "di",
             "fe",
             "sa",
-        ): 2,  # tuple can be hashed but list cannot
+        ): 2,  # negative
     }
     lengths, paths, audio, X_train, ytrain, X_val, yval, X_test, ytest = (
         [],
@@ -3170,14 +3295,14 @@ def load_mix3_corpus(
         [],
         [],
     )
+    # load dataset
     for index, dataset in enumerate(datasets):
         x, y = [], []  # for each dataset
         if dataset == "RAVDESS":
             for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
-                # print(file)
                 file_name = os.path.basename(file)
                 for k, i in enumerate(emotion_map.keys()):
-                    if file_name.split("-")[2] in i:  # tuple
+                    if file_name.split("-")[2] in i:
                         emotion = emotion_map[i]
                 feature, X = get_features(
                     dataset,
@@ -3232,17 +3357,6 @@ def load_mix3_corpus(
                     window=window,
                     sr=sr,
                 )
-                # if dataset == "SAVEE":
-                #     label = file.split(".")[0].split("_")[-1][:-2]
-                # elif dataset == "CREMA-D":
-                #     label = file.split("_")[2].lower()
-                # elif dataset == "EmoDB":
-                #     label = file.split(".")[0][-2]
-                # elif dataset == "eNTERFACE":
-                #     if file[1] == "_":
-                #         label = file.split(".")[0].split("_")[-2]
-                #     else:
-                #         label = file.split(".")[0].split("_")[1]
                 if dataset == "CREMA-D":
                     label = file.split("_")[2].lower()
 
@@ -3255,7 +3369,6 @@ def load_mix3_corpus(
                 audio.append(X)
                 lengths.append(len(X))
 
-        # first reverse for each dataset, then get
         # 200 for CREMA-D, RAVDESS, TESS of each
         random.seed(123)
         sample_index = random.sample([i for i in range(np.array(x).shape[0])], 200)
@@ -3271,12 +3384,14 @@ def load_mix3_corpus(
             else (ytrain + np.array(y)[sample_index].tolist())
         )
 
+        # scaled
         if method != "wav2vec":
             if scaled != None:
                 X_train = transform_feature(
                     method, X_train, features, n_mfcc, n_mels, scaled
                 )
 
+        # reverse
         if reverse == True:
             X_train, ytrain, audio, lengths = get_reverse(
                 X_train,
@@ -3295,6 +3410,7 @@ def load_mix3_corpus(
                 sr,
             )
 
+        # noise
         if noise != None:
             X_train, ytrain, audio, lengths = get_noise(
                 X_train,
@@ -3314,6 +3430,7 @@ def load_mix3_corpus(
                 noise,
             )
 
+        # denoise
         if denoise == True:
             X_train, ytrain, audio, lengths = get_denoise(
                 X_train,
@@ -3331,323 +3448,24 @@ def load_mix3_corpus(
                 sr,
             )
 
-        # if (dataset == corpus[0]) or (corpus[0] == "eNTERFACE"):  # testing set
         if dataset == corpus[0]:  # testing set
             left_index = [
                 i for i in range(np.array(x).shape[0]) if i not in sample_index
             ]
             random.seed(123)
             test_index = random.sample(left_index, 200)  # 200:200:200  -- 200
-            X_test = np.array(x)[test_index, :]  # 300,40
+            X_test = np.array(x)[test_index, :]
             ytest = np.array(y)[test_index].tolist()
 
-    # after traversing all dataset
     length = None
-    # if method == "wav2vec":
-    #     length = max(lengths)
-    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
-    #         "facebook/wav2vec2-base", return_attention_mask=True
-    #     )
-    #     X_train = feature_extractor(
-    #         X_train,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     X_test = feature_extractor(
-    #         X_test,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     X_test = np.array(X_test["input_values"])
 
-    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+    X_train, X_val, ytrain, yval = train_test_split(
         X_train, ytrain, test_size=0.5, random_state=9
-    )  # 3:1  # 1200, 40  # 300,4
-
-    return X_train, ytrain, X_val, yval, X_test, ytest, length
-
-
-def load_split_corpus(
-    method,
-    features,
-    n_mfcc,
-    n_mels,
-    scaled,
-    max_length,
-    reverse,
-    noise,
-    denoise,
-    window=None,
-    corpus=None,
-    sr=16000,
-    split=None,
-):  # cc: mix, corpus: with only one string as the testing set
-
-    # 900+300, 900 train 300 val, 300 test
-    # 900/5=180, 300/5=60, 1200/5=240
-    # 300
-    # datasets = ["RAVDESS", "TESS", "SAVEE", "CREMA-D", "EmoDB"]
-    emotion_map = {
-        ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
-        ("03", "08", "happy", "ps", "h", "su", "hap", "F", "ha", "su"): 1,  # positive
-        (
-            "04",
-            "05",
-            "06",
-            "07",
-            "angry",
-            "disgust",
-            "fear",
-            "sad",
-            "a",
-            "d",
-            "f",
-            "sa",
-            "ang",
-            "dis",
-            "fea",
-            "sad",
-            "W",
-            "E",
-            "A",
-            "T",
-            "an",
-            "di",
-            "fe",
-            "sa",
-        ): 2,  # tuple can be hashed but list cannot
-    }
-    lengths, paths, audio, X_train, ytrain, X_val, yval, X_test, ytest = (
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
     )
-    for index, cor in enumerate(corpus):
-        x, y = [], []  # for each dataset
-        if cor == "RAVDESS":
-            for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
-                # print(file)
-                file_name = os.path.basename(file)
-                for k, i in enumerate(emotion_map.keys()):
-                    if file_name.split("-")[2] in i:  # tuple
-                        emotion = emotion_map[i]
-                feature, X = get_features(
-                    cor,
-                    method,
-                    file,
-                    features,
-                    n_mfcc=n_mfcc,
-                    n_mels=n_mels,
-                    max_length=max_length,
-                    window=window,
-                    sr=sr,
-                )
-                x.append(feature)
-                y.append(emotion)
-                paths.append(file)
-                audio.append(X)
-                lengths.append(len(X))
-        elif cor == "TESS":
-            for dirname, _, filenames in os.walk("datasets/speech/TESS"):
-                for filename in filenames:
-                    feature, X = get_features(
-                        cor,
-                        method,
-                        os.path.join(dirname, filename),
-                        features,
-                        n_mfcc=n_mfcc,
-                        n_mels=n_mels,
-                        max_length=max_length,
-                        window=window,
-                        sr=sr,
-                    )
-                    for k, i in enumerate(emotion_map.keys()):
-                        label = filename.split("_")[-1].split(".")[0]
-                        if label in i:
-                            emotion = emotion_map[i]
-                    x.append(feature)
-                    y.append(emotion)
-                    paths.append(os.path.join(dirname, filename))
-                    audio.append(X)
-                    lengths.append(len(X))
-        else:
-            # if cor == "eNTERFACE":
-            #     cor = "eNTERFACE05"
-            path = (
-                f"datasets/speech/{cor}"
-                if cor != "eNTERFACE"
-                else f"datasets/speech/eNTERFACE05"
-            )
-            for file in os.listdir(path):
-                feature, X = get_features(
-                    cor,
-                    method,
-                    os.path.join(path, file),
-                    features,
-                    n_mfcc=n_mfcc,
-                    n_mels=n_mels,
-                    max_length=max_length,
-                    window=window,
-                    sr=sr,
-                )
-                if cor == "SAVEE":
-                    label = file.split(".")[0].split("_")[-1][:-2]
-                elif cor == "CREMA-D":
-                    label = file.split("_")[2].lower()
-                elif cor == "EmoDB":
-                    label = file.split(".")[0][-2]
-                elif cor == "eNTERFACE":
-                    if file[1] == "_":
-                        label = file.split(".")[0].split("_")[-2]
-                    else:
-                        label = file.split(".")[0].split("_")[1]
-                for k, i in enumerate(emotion_map.keys()):
-                    if label in i:
-                        emotion = emotion_map[i]
-                x.append(feature)
-                y.append(emotion)
-                paths.append(os.path.join(path, file))
-                audio.append(X)
-                lengths.append(len(X))
-
-        # first reverse for each dataset, then get
-        random.seed(123)
-        if index == 0:  # train
-            sample_index = random.sample(
-                [i for i in range(np.array(x).shape[0])], int(1000 * (1 - split))
-            )  # 1440, 40
-        elif index == 1:  # test, split is test size
-            sample_index = random.sample(
-                [i for i in range(np.array(x).shape[0])], int(1000 * split)
-            )  # 1440, 40
-
-        # 240, 40
-        X_train = (
-            np.array(x)[sample_index, :]
-            if len(X_train) == 0
-            else np.concatenate((X_train, np.array(x)[sample_index, :]), axis=0)
-        )
-        ytrain = (
-            np.array(y)[sample_index].tolist()
-            if len(ytrain) == 0
-            else (ytrain + np.array(y)[sample_index].tolist())
-        )
-
-        if method != "wav2vec":
-            if scaled != None:
-                X_train = transform_feature(
-                    method, X_train, features, n_mfcc, n_mels, scaled
-                )
-
-        if reverse == True:
-            X_train, ytrain, audio, lengths = get_reverse(
-                X_train,
-                ytrain,
-                audio,
-                lengths,
-                paths,
-                "mix",
-                method,
-                features,
-                n_mfcc,
-                n_mels,
-                max_length,
-                100,
-                window,
-                sr,
-            )
-
-        if noise != None:
-            X_train, ytrain, audio, lengths = get_noise(
-                X_train,
-                ytrain,
-                audio,
-                lengths,
-                paths,
-                "mix",
-                method,
-                features,
-                n_mfcc,
-                n_mels,
-                max_length,
-                100,
-                window,
-                sr,
-                noise,
-            )
-
-        if denoise == True:
-            X_train, ytrain, audio, lengths = get_denoise(
-                X_train,
-                ytrain,
-                audio,
-                lengths,
-                emotion_map,
-                "mix",
-                method,
-                features,
-                n_mfcc,
-                n_mels,
-                max_length,
-                window,
-                sr,
-            )
-
-        if (cor == corpus[1]) or (corpus[1] == "eNTERFACE"):  # testing set
-            # if dataset == corpus[0]:  # testing set
-            left_index = [
-                i for i in range(np.array(x).shape[0]) if i not in sample_index
-            ]
-            # random.seed(123)
-            # test_index = (
-            #     left_index if dataset == "SAVEE" else random.sample(left_index, 300)
-            # )
-            # the left index of SAVEE is not enough for 300
-            X_test = np.array(x)[left_index, :]  # 300,40
-            ytest = np.array(y)[left_index].tolist()
-
-    # after traversing all dataset
-    length = None
-    # if method == "wav2vec":
-    #     length = max(lengths)
-    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
-    #         "facebook/wav2vec2-base", return_attention_mask=True
-    #     )
-    #     X_train = feature_extractor(
-    #         X_train,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     X_test = feature_extractor(
-    #         X_test,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     X_test = np.array(X_test["input_values"])
-
-    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
-        X_train, ytrain, test_size=0.5, random_state=9
-    )  # 3:1  # 1200, 40  # 300,4
 
     return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
-# load_split_corpus is for the original cross-corpus ranging different split for proportion
-# while load_split_corpus_size is for size
 def load_split_corpus_size(
     method,
     features,
@@ -3661,16 +3479,28 @@ def load_split_corpus_size(
     window=None,
     corpus=None,
     sr=16000,
-    split=None,  # split is the size of testing set within the mixture
-):  # cc: mix, corpus: with only one string as the testing set
+    split=None,
+):
+    """
+    description: This function loads dataset for cross-corpus experiments of modified setup.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} corpus: two corpus where the first one is training corpus and the second one is testing corpus
+    param {*} sr: sampling rate
+    param {*} split: ranging split of mixture for training 0.8/0.6/0.5/0.4/0.2
+    return {*}: training, validation and testing set, audio length
+    """
 
-    # 900+300, 900 train 300 val, 300 test
-    # 900/5=180, 300/5=60, 1200/5=240
-    # 300
-    # datasets = ["RAVDESS", "TESS", "SAVEE", "CREMA-D", "EmoDB"]
     if ("eNTERFACE" in set(corpus)) and ("AESDD" in set(corpus)):
         emotion_map = {
-            # ("01", "02", "neutral", "n", "neu", "L", "N"): 0,  # neutral
             (
                 "03",
                 "08",
@@ -3711,7 +3541,7 @@ def load_split_corpus_size(
                 "sa",
                 "anger",
                 "sadness",
-            ): 1,  # tuple can be hashed but list cannot
+            ): 1,  # negative
         }
     else:
         emotion_map = {
@@ -3756,7 +3586,7 @@ def load_split_corpus_size(
                 "sa",
                 "anger",
                 "sadness",
-            ): 2,  # tuple can be hashed but list cannot
+            ): 2,  # negative
         }
     lengths, paths, audio, X_train, ytrain, X_val, yval, X_test, ytest = (
         [],
@@ -3769,11 +3599,11 @@ def load_split_corpus_size(
         [],
         [],
     )
+    # load dataset
     for index, cor in enumerate(corpus):
         x, y = [], []  # for each dataset
         if cor == "RAVDESS":
             for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
-                # print(file)
                 file_name = os.path.basename(file)
                 for k, i in enumerate(emotion_map.keys()):
                     if file_name.split("-")[2] in i:  # tuple
@@ -3841,8 +3671,6 @@ def load_split_corpus_size(
                     audio.append(X)
                     lengths.append(len(X))
         else:
-            # if cor == "eNTERFACE":
-            #     cor = "eNTERFACE05"
             path = (
                 f"datasets/speech/{cor}"
                 if cor != "eNTERFACE"
@@ -3880,18 +3708,17 @@ def load_split_corpus_size(
                 audio.append(X)
                 lengths.append(len(X))
 
-        # first reverse for each dataset, then get
+        # mixture of training 1000*(1-split) for train corpus, 1000*split for test corpus
         random.seed(123)
-        if index == 0:  # train
+        if index == 0:  # train in mixture
             sample_index = random.sample(
                 [i for i in range(np.array(x).shape[0])], int(1000 * (1 - split))
-            )  # 1440, 40
-        elif index == 1:  # test, split is test size
+            )
+        elif index == 1:  # test in mixture
             sample_index = random.sample(
                 [i for i in range(np.array(x).shape[0])], int(1000 * split)
-            )  # 1440, 40
+            )
 
-        # 240, 40
         X_train = (
             np.array(x)[sample_index, :]
             if len(X_train) == 0
@@ -3903,12 +3730,14 @@ def load_split_corpus_size(
             else (ytrain + np.array(y)[sample_index].tolist())
         )
 
+        # scaled
         if method != "wav2vec":
             if scaled != None:
                 X_train = transform_feature(
                     method, X_train, features, n_mfcc, n_mels, scaled
                 )
 
+        # reverse
         if reverse == True:
             X_train, ytrain, audio, lengths = get_reverse(
                 X_train,
@@ -3927,6 +3756,7 @@ def load_split_corpus_size(
                 sr,
             )
 
+        # noise
         if noise != None:
             X_train, ytrain, audio, lengths = get_noise(
                 X_train,
@@ -3946,6 +3776,7 @@ def load_split_corpus_size(
                 noise,
             )
 
+        # denoise
         if denoise == True:
             X_train, ytrain, audio, lengths = get_denoise(
                 X_train,
@@ -3963,47 +3794,27 @@ def load_split_corpus_size(
                 sr,
             )
 
-        if (cor == corpus[1]) or (corpus[1] == "eNTERFACE"):  # testing set
-            # if dataset == corpus[0]:  # testing set
+        if (cor == corpus[1]) or (
+            corpus[1] == "eNTERFACE"
+        ):  # testing set fixed 200 samples
             left_index = [
                 i for i in range(np.array(x).shape[0]) if i not in sample_index
             ]
             random.seed(123)
-            test_index = random.sample(left_index, 200)  # fixed 200 for testing set
-            X_test = np.array(x)[test_index, :]  # 300,40
+            test_index = random.sample(left_index, 200)
+            X_test = np.array(x)[test_index, :]
             ytest = np.array(y)[test_index].tolist()
 
-    # after traversing all dataset
     length = None
-    # if method == "wav2vec":
-    #     length = max(lengths)
-    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
-    #         "facebook/wav2vec2-base", return_attention_mask=True
-    #     )
-    #     X_train = feature_extractor(
-    #         X_train,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     X_test = feature_extractor(
-    #         X_test,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-    #     X_test = np.array(X_test["input_values"])
 
-    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+    X_train, X_val, ytrain, yval = train_test_split(
         X_train, ytrain, test_size=0.5, random_state=9
-    )  # 3:1  # 1200, 40  # 300,4
+    )
 
     return X_train, ytrain, X_val, yval, X_test, ytest, length
 
 
-def load_finetune_corpus(  # train with one, finetune with the other, test with the other
+def load_finetune_corpus(
     method,
     features,
     n_mfcc,
@@ -4017,6 +3828,22 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
     corpus=None,
     sr=16000,
 ):  # ["RAVDESS", "TESS"]  train, finetune/test
+    """
+    description: This function loads dataset for cross-corpus experiments of Case 3.
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} corpus: two corpus where the first one is training corpus and the second one is finetuning/testing corpus
+    param {*} sr: sampling rate
+    return {*}: training, validation and testing set, audio length
+    """
 
     lengths = []
     (
@@ -4061,10 +3888,11 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
             "di",
             "fe",
             "sa",
-        ): 2,
+        ): 2,  # negative
     }
+    # load dataset
     for index, cor in enumerate(corpus):
-        # index=0 train, index=1 test
+        # index=0 train, index=1 finetune/test
         x, y, paths, audio = [], [], [], []
         if cor == "RAVDESS":
             for file in glob.glob("datasets/speech/RAVDESS/Actor_*/*.wav"):
@@ -4149,10 +3977,12 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 audio.append(X)
                 lengths.append(len(X))
 
+        # scaled
         if method != "wav2vec":
             if scaled != None:
                 x = transform_feature(method, x, features, n_mfcc, n_mels, scaled)
 
+        # reverse
         if reverse == True:
             x, y, audio, lengths = get_reverse(
                 x,
@@ -4171,6 +4001,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 sr,
             )
 
+        # noise
         if noise != None:
             x, y, audio, lengths = get_noise(
                 x,
@@ -4190,6 +4021,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 noise,
             )
 
+        # denoise
         if denoise == True:
             x, y, audio, lengths = get_denoise(
                 x,
@@ -4207,17 +4039,6 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 sr,
             )
 
-        # new_label = []
-        # for i in y:
-        #     if i not in [1, 2, 3]:
-        #         new_label.append(i)
-        #     else:
-        #         for k, j in enumerate(emotion_map.keys()):
-        #             if label in j:
-        #                 emotion = emotion_map[j]
-        #         new_label.append(emotion)
-        # y = new_label
-
         # train: 1200 (900+300, train+val)
         # finetune: 600 train, 200 val, 200 test
         if method != "wav2vec":
@@ -4227,7 +4048,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], 1200
                 )
-                X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+                X_train, X_val, ytrain, yval = train_test_split(
                     np.array(x)[sample_index, :],
                     np.array(y)[sample_index],
                     test_size=0.25,
@@ -4235,12 +4056,7 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 )  # 3:1  # train + val
             elif index == 1:  # finetune
                 random.seed(123)
-                # sample_index = random.sample(
-                #     [i for i in range(np.array(x).shape[0])], 1000
-                # )
                 Xtune_train, X_left, ytune_train, yleft = train_test_split(
-                    # np.array(x)[sample_index, :],
-                    # np.array(y)[sample_index],
                     np.array(x),
                     y,
                     test_size=0.4,
@@ -4257,51 +4073,6 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
                 finetune_corpus_audio = audio
 
     length = None
-    # if method == "wav2vec":
-    #     length = max(lengths)
-    #     feature_extractor = AutoFeatureExtractor.from_pretrained(
-    #         "facebook/wav2vec2-base", return_attention_mask=True
-    #     )
-    #     X_train_corpus = feature_extractor(
-    #         train_corpus_audio,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-
-    #     random.seed(123)
-    #     sample_index = random.sample([i for i in range(np.array(x).shape[0])], 1200)
-    #     X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
-    #         np.array(X_train_corpus["input_values"])[sample_index, :],
-    #         y,
-    #         test_size=0.25,
-    #         random_state=9,
-    #     )  # 3:1  # train + val
-
-    #     X_finetune_corpus = feature_extractor(
-    #         finetune_corpus_audio,
-    #         sampling_rate=feature_extractor.sampling_rate,
-    #         max_length=length,
-    #         truncation=True,
-    #         padding=True,
-    #     )
-
-    #     random.seed(123)
-    #     # sample_index = random.sample(
-    #     #     [i for i in range(np.array(X_finetune_corpus).shape[0])], 1000
-    #     # )
-    #     Xtune_train, X_left, ytune_train, yleft = train_test_split(
-    #         # np.array(X_finetune_corpus["input_values"])[sample_index, :],
-    #         np.array(X_finetune_corpus["input_values"]),
-    #         y,
-    #         test_size=0.4,
-    #         random_state=9,
-    #     )  # 3:2
-
-    #     Xtune_val, X_test, ytune_val, ytest = train_test_split(
-    #         X_left, yleft, test_size=0.5, random_state=9
-    #     )  # 1:1
 
     return (
         X_train,
@@ -4316,12 +4087,17 @@ def load_finetune_corpus(  # train with one, finetune with the other, test with 
         Xtune_val,  # 200
         ytune_val,
     )
-    # 900, 300, 300, train_corpus 1200, test_corpus 300
 
 
-# def get_face_landmarks(image, draw=False, static_image_mode=True):
 def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
-    if landmark == "xyz":
+    """
+    description: This function gets facial landmarks from raw images.
+    param {*} image: raw image
+    param {*} landmark: landmark choices as xyz, 5, 68
+    param {*} dataset: name of dataset
+    return {*}: landmarks extracted
+    """
+    if landmark == "xyz":  # 468 landmarks
         image_input_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         face_mesh = mp.solutions.face_mesh.FaceMesh(
             static_image_mode=True,
@@ -4345,12 +4121,13 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
                 zs_.append(idx.z)
                 x = int(idx.x * image.shape[1])
                 y = int(idx.y * image.shape[0])
-                cv2.circle(image, (x, y), 1, (0, 255, 0), -1)  # 468x2
+                cv2.circle(image, (x, y), 1, (0, 255, 0), -1)  # 468x3=1404
             for j in range(len(xs_)):  # get landmarks of the face
                 image_landmarks.append(xs_[j] - min(xs_))
                 image_landmarks.append(ys_[j] - min(ys_))
                 image_landmarks.append(zs_[j] - min(zs_))
 
+        # save
         if write != None:
             if not os.path.exists(f"outputs/image/landmarks/"):
                 os.makedirs(f"outputs/image/landmarks/")
@@ -4358,7 +4135,7 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
         face_mesh.close()
         res = image_landmarks
 
-    elif landmark == "5":
+    elif landmark == "5":  # 5 landmarks
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         res = []
         detector = dlib.get_frontal_face_detector()
@@ -4367,13 +4144,12 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
             "models/image/shape_predictor_5_face_landmarks.dat"
         )
         for face in faces:
-            # Get the landmarks/parts for the face
             image_landmarks = predictor_5(image, face)
 
             # Loop over the landmark points
             tmp_x = []
             tmp_y = []
-            for n in range(0, 5):  # 5 landmarks with x,y, 134 features in total
+            for n in range(0, 5):  # 5 landmarks with x,y, 10 features in total
                 x = image_landmarks.part(n).x
                 y = image_landmarks.part(n).y
                 tmp_x.append(x)
@@ -4383,6 +4159,7 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
                 res.append(tmp_y[n] - min(tmp_y))
                 cv2.circle(image, (tmp_x[n], tmp_y[n]), 1, (255, 0, 0), -1)
 
+        # save
         if (write != None) and (len(faces) != 0):
             if not os.path.exists(f"outputs/image/landmarks/"):
                 os.makedirs(f"outputs/image/landmarks/")
@@ -4390,7 +4167,7 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
                 f"outputs/image/landmarks/{dataset}_{landmark}_{write}.JPG", image
             )
 
-    elif landmark == "68":
+    elif landmark == "68":  # 68 landmarks
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         res = []
         detector = dlib.get_frontal_face_detector()
@@ -4399,13 +4176,12 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
             "models/image/shape_predictor_68_face_landmarks.dat"
         )
         for face in faces:
-            # Get the landmarks/parts for the face
             image_landmarks = predictor_68(image, face)
 
             # Loop over the landmark points
             tmp_x = []
             tmp_y = []
-            for n in range(0, 68):  # 5 landmarks with x,y, 134 features in total
+            for n in range(0, 68):  # 68 landmarks with x,y, 134 features in total
                 x = image_landmarks.part(n).x
                 y = image_landmarks.part(n).y
                 tmp_x.append(x)
@@ -4414,6 +4190,8 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
                 res.append(tmp_x[n] - min(tmp_x))
                 res.append(tmp_y[n] - min(tmp_y))
                 cv2.circle(image, (tmp_x[n], tmp_y[n]), 1, (255, 0, 0), -1)
+
+        # save
         if (write != None) and (len(faces) != 0):
             if not os.path.exists(f"outputs/image/landmarks/"):
                 os.makedirs(f"outputs/image/landmarks/")
@@ -4421,52 +4199,20 @@ def get_face_landmarks(image, landmark="xyz", write=None, dataset="CK"):
                 f"outputs/image/landmarks/{dataset}_{landmark}_{write}.JPG", image
             )
 
-    # elif landmark == "468":
-    #     res = []
-    #     mp_face_mesh = mp.solutions.face_mesh
-    #     face_mesh = mp_face_mesh.FaceMesh(
-    #         static_image_mode=True, max_num_faces=1, min_detection_confidence=0.5
-    #     )
-    #     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    #     results = face_mesh.process(rgb_image)
-    #     if results.multi_face_landmarks:
-    #         for face_landmarks in results.multi_face_landmarks:
-    #             for landmark in face_landmarks.landmark:
-    #                 x = int(landmark.x * image.shape[1])
-    #                 y = int(landmark.y * image.shape[0])
-    #                 res.append(x)
-    #                 res.append(y)
-    #                 cv2.circle(image, (x, y), 1, (0, 255, 0), -1)  # 468x2
-
-    #     if write != None:
-    #         if not os.path.exists(f"outputs/image/landmarks/"):
-    #             os.makedirs(f"outputs/image/landmarks/")
-    #         cv2.imwrite(f"outputs/image/landmarks/CK_468_{write}.JPG", image)
-    #     face_mesh.close()
-
-    # elif landmark == "facenet":
-    #     # model = VGGFace(
-    #     #     model="resnet50",
-    #     #     include_top=False,
-    #     #     input_shape=(224, 224, 3),
-    #     #     pooling="avg",
-    #     # )
-    #     # img = cv2.resize(image, (224, 224))
-    #     # img_array = image_process.img_to_array(img)
-    #     # img_array = np.expand_dims(img_array, axis=0)
-    #     # img_array = preprocess_input(img_array)
-    #     # image_landmarks = model.predict(img_array)
-    #     # # print(features.shape)  # Should print (1, 2048)
-    #     result = DeepFace.represent(img_path=image, model_name='Facenet',enforce_detection=False)
-    #     print(result)
-
     return res
 
 
 def load_CK(method, landmark=None, split=None, process=None):
+    """
+    description: This function loads dataset for CK+.
+    param {*} method: name of model
+    param {*} landmark: choices of landmark
+    param {*} split: split for 3-class single-corpus
+    param {*} process: sobel/equal/filter/blur/assi/noise
+    return {*}: training, validation and testing set, dimension, number of classes
+    """
     X, y, category = [], [], []
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "anger": 0,
             "contempt": 1,
@@ -4476,47 +4222,45 @@ def load_CK(method, landmark=None, split=None, process=None):
             "sadness": 5,
             "surprise": 6,
         }
-    else:
+    else:  # 3-class single-corpus
         emotion_map = {
             ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
             ("happy", "surprise", "4", "1"): 1,
             ("contempt", "neutral", "7"): 2,
         }
 
+    # load dataset
     for dirname, _, filenames in os.walk("datasets/image/CK"):
         for filename in filenames:
             img = cv2.imread(os.path.join(dirname, filename))
-            # print(img)
-            # print(filename)
-            # print(dirname)
             label = dirname.split("/")[-1]
-            if landmark == None:
+
+            if landmark == None:  # raw image
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 if len(X) == 0:
                     if not os.path.exists("outputs/image/process/"):
                         os.makedirs("outputs/image/process/")
                     cv2.imwrite(f"outputs/image/process/CK_ori.JPG", img)
 
+                # processing
                 if process == "blur":  # gaussian blur
                     img = cv2.GaussianBlur(img, (7, 7), 0)
                 elif process == "noise":  # salt & pepper
                     img = random_noise(img, mode="s&p")
                     img = (255 * img).astype(np.uint8)
-                elif process == "sobel":
+                elif process == "sobel":  # sobel's kernel
                     sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
                     sobelx = cv2.convertScaleAbs(sobelx)
                     sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
                     sobely = cv2.convertScaleAbs(sobely)
                     img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                    # img = cv2.addWeighted(img, 1, sobel, 1, 0)
-                elif process == "equal":
+                elif process == "equal":  # histogram equalization
                     img = cv2.equalizeHist(img)
-                elif process == "filter":
+                elif process == "filter":  # wiener noise filter
                     img = wiener(img, mysize=(15, 15))
                     img = np.clip(img, 0, 255).astype(np.uint8)
 
-                X.append(img)  # grayscale
+                X.append(img)
                 if len(X) == 1:
                     cv2.imwrite(f"outputs/image/process/CK_{process}.JPG", img)
 
@@ -4529,28 +4273,28 @@ def load_CK(method, landmark=None, split=None, process=None):
                     category.append(label)
                     y.append(emotion_map[label])
 
-            else:  # MLP
+            else:  # landmarks
                 write = len(X) if len(X) <= 5 else None
                 face_landmarks = get_face_landmarks(
                     img, landmark=landmark, write=write, dataset="CK"
                 )
-                X.append(face_landmarks)  # 136 for 68
-                y.append(emotion_map[label])  # anger
+                X.append(face_landmarks)
+                y.append(emotion_map[label])
 
     visual4label("image", "CK", category)
     X, y = shuffle(X, y, random_state=42)  # shuffle
     print(len(X))
     num_classes = len(set(y))
     if landmark == None:
-        n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
-        # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        n, h, w = np.array(X).shape
         if method == "MLP":
             X = np.array(X).reshape((n, h * w)).tolist()
             h = h * w
     else:
         h = np.array(X).shape[1]
 
-    if split == None:
+    # train test split
+    if split == None:  # single-corpus
         X_train, X_left, ytrain, yleft = train_test_split(
             np.array(X),
             y,
@@ -4561,11 +4305,11 @@ def load_CK(method, landmark=None, split=None, process=None):
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-    else:
+    else:  # cross-corpus corresponding 3-class single-corpus
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(X).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(X).shape[0]) if i not in test_index]
         X_test = np.array(X)[test_index, :, :]
         ytest = np.array(y)[test_index].tolist()
@@ -4592,21 +4336,20 @@ def load_CK(method, landmark=None, split=None, process=None):
                 random_state=9,
             )  # 1:1 for train : val
 
-    # if landmark == False:
-    #     # np.array() format for X now
-    #     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
-    # if landmark == True:
-    #     np.savetxt(
-    #         "outputs/image/landmark_CK.txt",
-    #         np.asarray(X),
-    #     )
-
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
 def load_FER(method, landmark=None, split=None, process=None):
+    """
+    description: This function loads dataset for FER-2013.
+    param {*} method: name of model
+    param {*} landmark: choices of landmark
+    param {*} split: split for 3-class single-corpus
+    param {*} process: sobel/equal/filter/blur/assi/noise
+    return {*}: training, validation and testing set, dimension, number of classes
+    """
     X, y, category = [], [], []
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "angry": 0,
             "disgust": 1,
@@ -4616,7 +4359,7 @@ def load_FER(method, landmark=None, split=None, process=None):
             "sad": 5,
             "surprise": 6,
         }
-    else:
+    else:  # 3-class single-corpus
         emotion_map = {
             ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
             ("happy", "surprise", "4", "1"): 1,
@@ -4629,33 +4372,32 @@ def load_FER(method, landmark=None, split=None, process=None):
             sec_path = os.path.join(first_path, secdir)
             for file in os.listdir(sec_path):
                 img = cv2.imread(os.path.join(sec_path, file))
-                if landmark == None:
+                if landmark == None:  # raw image
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     if len(X) == 0:
                         if not os.path.exists("outputs/image/process/"):
                             os.makedirs("outputs/image/process/")
                         cv2.imwrite(f"outputs/image/process/FER_ori.JPG", img)
 
+                    # processing
                     if process == "blur":  # gaussian blur
                         img = cv2.GaussianBlur(img, (7, 7), 0)
                     elif process == "noise":  # salt & pepper
                         img = random_noise(img, mode="s&p")
                         img = (255 * img).astype(np.uint8)
-                    elif process == "sobel":
+                    elif process == "sobel":  # sobel's kernel
                         sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
                         sobelx = cv2.convertScaleAbs(sobelx)
                         sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
                         sobely = cv2.convertScaleAbs(sobely)
                         img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                        # img = cv2.addWeighted(img, 1, sobel, 1, 0)
-                    elif process == "equal":
+                    elif process == "equal":  # histogram equalization
                         img = cv2.equalizeHist(img)
-                    elif process == "filter":
+                    elif process == "filter":  # wiener noise filter
                         img = wiener(img, mysize=(15, 15))
                         img = np.clip(img, 0, 255).astype(np.uint8)
 
-                    X.append(img)  # grayscale
+                    X.append(img)
                     if len(X) == 1:
                         cv2.imwrite(f"outputs/image/process/FER_{process}.JPG", img)
 
@@ -4667,35 +4409,33 @@ def load_FER(method, landmark=None, split=None, process=None):
                     else:
                         category.append(secdir)
                         y.append(emotion_map[secdir])
-                else:  # MLP
+                else:  # landmarks
                     write = len(X) if len(X) <= 5 else None
                     face_landmarks = get_face_landmarks(
                         img, landmark=landmark, write=write, dataset="FER"
                     )
                     if landmark == "xyz":
-                        if len(face_landmarks) == 1404:  # 468 x 3 = 1404
+                        if len(face_landmarks) == 1404:
                             X.append(face_landmarks)
-                            y.append(emotion_map[secdir])  # anger
+                            y.append(emotion_map[secdir])
                     else:
                         if len(face_landmarks) != 0:
-                            X.append(face_landmarks)  # 136 for 68
-                            y.append(emotion_map[secdir])  # anger
+                            X.append(face_landmarks)
+                            y.append(emotion_map[secdir])
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
     print(len(X))
     visual4label("image", "FER", category)
     num_classes = len(set(y))
     if landmark == None:
-        n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
-        # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
+        n, h, w = np.array(X).shape
         if method == "MLP":
             X = np.array(X).reshape((n, h * w)).tolist()
             h = h * w
     else:
-        # X = X[:, :1404]
         h = np.array(X).shape[1]
 
-    if split == None:
+    if split == None:  # single-corpus
         X_train, X_left, ytrain, yleft = train_test_split(
             np.array(X),
             y,
@@ -4706,11 +4446,11 @@ def load_FER(method, landmark=None, split=None, process=None):
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-    else:
+    else:  # cross-corpus corresponding 3-class single-corpus
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(X).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(X).shape[0]) if i not in test_index]
         X_test = np.array(X)[test_index, :, :]
         ytest = np.array(y)[test_index].tolist()
@@ -4729,21 +4469,20 @@ def load_FER(method, landmark=None, split=None, process=None):
             random_state=9,
         )  # 1:1 for train : val
 
-    # if landmark == False:
-    #     # np.array() format for X now
-    #     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
-    # if landmark == True:
-    #     np.savetxt(
-    #         "outputs/image/landmark_FER.txt",
-    #         np.asarray(X),
-    #     )
-
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
 def load_RAF(method, landmark=None, split=None, process=None):
+    """
+    description: This function loads dataset for RAF-DB.
+    param {*} method: name of model
+    param {*} landmark: choices of landmark
+    param {*} split: split for 3-class single-corpus
+    param {*} process: sobel/equal/filter/blur/assi/noise
+    return {*}: training, validation and testing set, dimension, number of classes
+    """
     X, y, category = [], [], []
-    if split == None:
+    if split == None:  # single-corpus
         emotion_map = {
             "1": 0,
             "2": 1,
@@ -4762,7 +4501,7 @@ def load_RAF(method, landmark=None, split=None, process=None):
             "6": "angry",
             "7": "neutral",
         }
-    else:
+    else:  # 3-class single-corpus
         emotion_map = {
             ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
             ("happy", "surprise", "4", "1"): 1,
@@ -4776,72 +4515,69 @@ def load_RAF(method, landmark=None, split=None, process=None):
             sec_path = os.path.join(first_path, secdir)
             for file in os.listdir(sec_path):
                 img = cv2.imread(os.path.join(sec_path, file))
-                if landmark == None:
+                if landmark == None:  # raw image
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                     if len(X) == 0:
                         if not os.path.exists("outputs/image/process/"):
                             os.makedirs("outputs/image/process/")
                         cv2.imwrite(f"outputs/image/process/RAF_ori.JPG", img)
 
+                    # processing
                     if process == "blur":  # gaussian blur
                         img = cv2.GaussianBlur(img, (7, 7), 0)
                     elif process == "noise":  # salt & pepper
                         img = random_noise(img, mode="s&p")
                         img = (255 * img).astype(np.uint8)
-                    elif process == "sobel":
+                    elif process == "sobel":  # sobel's kernel
                         sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
                         sobelx = cv2.convertScaleAbs(sobelx)
                         sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
                         sobely = cv2.convertScaleAbs(sobely)
                         img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                        # img = cv2.addWeighted(img, 1, sobel, 1, 0)
-                    elif process == "equal":
+                    elif process == "equal":  # histogram equalization
                         img = cv2.equalizeHist(img)
-                    elif process == "filter":
+                    elif process == "filter":  # wiener noise filtering
                         img = wiener(img, mysize=(15, 15))
                         img = np.clip(img, 0, 255).astype(np.uint8)
 
-                    X.append(img)  # grayscale
+                    X.append(img)
                     if len(X) == 1:
                         cv2.imwrite(f"outputs/image/process/RAF_{process}.JPG", img)
                     if split != None:
                         for k, i in enumerate(emotion_map.keys()):
-                            if secdir in i:  # tuple
+                            if secdir in i:
                                 emotion = emotion_map[i]
                         y.append(emotion)
                     else:
                         category.append(category_map[secdir])
                         y.append(emotion_map[secdir])
-                else:  # MLP
+                else:  # landmarks
                     write = len(X) if len(X) <= 5 else None
                     face_landmarks = get_face_landmarks(
                         img, landmark=landmark, write=write, dataset="RAF"
                     )
                     if landmark == "xyz":
-                        if len(face_landmarks) == 1404:  # 468 x 3 = 1404
+                        if len(face_landmarks) == 1404:
                             X.append(face_landmarks)
-                            y.append(emotion_map[secdir])  # anger
+                            y.append(emotion_map[secdir])
                     else:
                         if len(face_landmarks) != 0:
-                            X.append(face_landmarks)  # 136 for 68
-                            y.append(emotion_map[secdir])  # anger
+                            X.append(face_landmarks)
+                            y.append(emotion_map[secdir])
 
     X, y = shuffle(X, y, random_state=42)  # shuffle
     num_classes = len(set(y))
     print(len(X))
     visual4label("image", "RAF", category)
     if landmark == None:
-        n, h, w = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
-        # n, h, w, d = np.array(X).shape  # expected: 48x48x1, (35887, 48, 48, 3)
-        print(n, h, w)
+        n, h, w = np.array(X).shape
         if method == "MLP":
             X = np.array(X).reshape((n, h * w)).tolist()
             h = h * w
     else:
         h = np.array(X).shape[1]
 
-    if split == None:
+    if split == None:  # single-corpus
         X_train, X_left, ytrain, yleft = train_test_split(
             np.array(X),
             y,
@@ -4852,11 +4588,11 @@ def load_RAF(method, landmark=None, split=None, process=None):
         X_val, X_test, yval, ytest = train_test_split(
             X_left, yleft, test_size=0.5, random_state=9
         )  # 1:1
-    else:
+    else:  # cross-corpus corresponding 3-class single-corpus
         random.seed(123)
         test_index = random.sample(
             [i for i in range(np.array(X).shape[0])], 200  # 200 fixed for testing size
-        )  # 1440, 40
+        )
         left_index = [i for i in range(np.array(X).shape[0]) if i not in test_index]
         X_test = np.array(X)[test_index, :, :]
         ytest = np.array(y)[test_index].tolist()
@@ -4875,29 +4611,23 @@ def load_RAF(method, landmark=None, split=None, process=None):
             random_state=9,
         )  # 1:1 for train : val
 
-    # if landmark == False:
-    #     # np.array() format for X now
-    #     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes  # shape 48
-    # if landmark == True:
-    #     np.savetxt(
-    #         "outputs/image/landmark_RAF.txt",
-    #         np.asarray(X),
-    #     )
-
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
 
 def load_split_corpus_size_image(
     method,
     corpus=None,
-    split=None,  # split is the size of testing set within the mixture
+    split=None,
     process=None,
-):  # cc: mix, corpus: with only one string as the testing set
-
-    # 900+300, 900 train 300 val, 300 test
-    # 900/5=180, 300/5=60, 1200/5=240
-    # 300
-    # datasets = ["RAVDESS", "TESS", "SAVEE", "CREMA-D", "EmoDB"]
+):
+    """
+    description: This function constructs cross-corpus experiments for the mixture of 2 corpus.
+    param {*} method: name of model
+    param {*} corpus: two corpus of the mixture, the former one is training set while the latter one is testing set
+    param {*} split: split of size for mixture of two corpus with 0.8/0.6/0.5/0.4/0.2
+    param {*} process: process of assimilating corpus as same framework
+    return {*}: training, validation and testing, dimension and number of classes
+    """
     emotion_map = {
         ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
         ("happy", "surprise", "4", "1"): 1,
@@ -4906,6 +4636,7 @@ def load_split_corpus_size_image(
 
     X_train, ytrain, X_val, yval, X_test, ytest = [], [], [], [], [], []
 
+    # load each dataset
     for index, cor in enumerate(corpus):
         x, y = [], []  # for each dataset
         if cor == "CK":
@@ -4915,10 +4646,11 @@ def load_split_corpus_size_image(
                     label = dirname.split("/")[-1]
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-                    if index == 0:  # only train
-                        if process == "blur":  # gaussian blur
+                    if index == 0:
+                        # processing
+                        if process == "blur":
                             img = cv2.GaussianBlur(img, (7, 7), 0)
-                        elif process == "noise":  # salt & pepper
+                        elif process == "noise":
                             img = random_noise(img, mode="s&p")
                             img = (255 * img).astype(np.uint8)
                         elif process == "sobel":
@@ -4927,39 +4659,23 @@ def load_split_corpus_size_image(
                             sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
                             sobely = cv2.convertScaleAbs(sobely)
                             img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                            # img = cv2.addWeighted(img, 1, sobel, 1, 0)
                         elif process == "equal":
                             img = cv2.equalizeHist(img)
                         elif process == "filter":
                             img = wiener(img, mysize=(15, 15))
                             img = np.clip(img, 0, 255).astype(np.uint8)
 
-                        elif (
-                            process == "assi"
-                        ):  # which means to assimilate both as common image
+                        elif process == "assi":
                             img = cv2.equalizeHist(img)
                             img = cv2.GaussianBlur(img, (3, 3), 0)
-                            # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
-                            # sobelx = cv2.convertScaleAbs(sobelx)
-                            # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
-                            # sobely = cv2.convertScaleAbs(sobely)
-                            # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                            # img = cv2.addWeighted(img, 1, sobel, 1, 0)
                     if index == 1:
                         if process == "assi":
                             img = cv2.equalizeHist(img)
                             img = cv2.GaussianBlur(img, (3, 3), 0)
-                            # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
-                            # sobelx = cv2.convertScaleAbs(sobelx)
-                            # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
-                            # sobely = cv2.convertScaleAbs(sobely)
-                            # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                            # img = cv2.addWeighted(img, 1, sobel, 1, 0)
 
-                    x.append(img)  # grayscale
-
+                    x.append(img)
                     for k, i in enumerate(emotion_map.keys()):
-                        if label in i:  # tuple
+                        if label in i:
                             emotion = emotion_map[i]
                     y.append(emotion)
         else:
@@ -4973,10 +4689,11 @@ def load_split_corpus_size_image(
                         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                         if cor == "RAF":
                             img = cv2.resize(img, (48, 48))
-                        if index == 0:  # only
-                            if process == "blur":  # gaussian blur
+                        if index == 0:
+                            # processing
+                            if process == "blur":
                                 img = cv2.GaussianBlur(img, (7, 7), 0)
-                            elif process == "noise":  # salt & pepper
+                            elif process == "noise":
                                 img = random_noise(img, mode="s&p")
                                 img = (255 * img).astype(np.uint8)
                             elif process == "sobel":
@@ -4985,62 +4702,45 @@ def load_split_corpus_size_image(
                                 sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
                                 sobely = cv2.convertScaleAbs(sobely)
                                 img = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                                # img = cv2.addWeighted(img, 1, sobel, 1, 0)
                             elif process == "equal":
                                 img = cv2.equalizeHist(img)
                             elif process == "filter":
                                 img = wiener(img, mysize=(15, 15))
                                 img = np.clip(img, 0, 255).astype(np.uint8)
-                            elif (
-                                process == "assi"
-                            ):  # which means to assimilate both as common image
+                            elif process == "assi":
                                 img = cv2.equalizeHist(img)
                                 img = cv2.GaussianBlur(img, (3, 3), 0)
-                                # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
-                                # sobelx = cv2.convertScaleAbs(sobelx)
-                                # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
-                                # sobely = cv2.convertScaleAbs(sobely)
-                                # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                                # img = cv2.addWeighted(img, 1, sobel, 1, 0)
 
                         if index == 1:
                             if process == "assi":
                                 img = cv2.equalizeHist(img)
                                 img = cv2.GaussianBlur(img, (3, 3), 0)
-                                # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
-                                # sobelx = cv2.convertScaleAbs(sobelx)
-                                # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
-                                # sobely = cv2.convertScaleAbs(sobely)
-                                # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-                                # img = cv2.addWeighted(img, 1, sobel, 1, 0)
-
-                        x.append(img)  # grayscale
+                        x.append(img)
                         for k, i in enumerate(emotion_map.keys()):
-                            if secdir in i:  # tuple
+                            if secdir in i:
                                 emotion = emotion_map[i]
                         y.append(emotion)
 
-        # first reverse for each dataset, then get
         x, y = shuffle(x, y, random_state=42)  # shuffle
         num_classes = len(set(y))
         n, h, w = np.array(x).shape
 
+        # train test split
         random.seed(123)
-        if index == 0:  # train
+        if index == 0:  # train in mixture
             sample_index = random.sample(
                 [i for i in range(np.array(x).shape[0])], int(1000 * (1 - split))
-            )  # 1440, 40
-        elif index == 1:  # test, split is test size
-            if (split == 0.8) and (cor == "CK"):  # CK is tested
+            )
+        elif index == 1:  # test in mixture
+            if (split == 0.8) and (cor == "CK"):
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], int(len(x) - 200)
-                )  # 1440, 40
+                )
             else:
                 sample_index = random.sample(
                     [i for i in range(np.array(x).shape[0])], int(1000 * split)
-                )  # 1440, 40
+                )
 
-        # 240, 40
         X_train = (
             np.array(x)[sample_index, :, :]
             if len(X_train) == 0
@@ -5053,18 +4753,17 @@ def load_split_corpus_size_image(
         )
 
         if cor == corpus[1]:  # testing set
-            # if dataset == corpus[0]:  # testing set
             left_index = [
                 i for i in range(np.array(x).shape[0]) if i not in sample_index
             ]
             random.seed(123)
             test_index = random.sample(left_index, 200)  # fixed 200 for testing set
-            X_test = np.array(x)[test_index, :, :]  # 300,40
+            X_test = np.array(x)[test_index, :, :]
             ytest = np.array(y)[test_index].tolist()
 
-    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+    X_train, X_val, ytrain, yval = train_test_split(
         X_train, ytrain, test_size=0.5, random_state=9
-    )  # 3:1  # 1200, 40  # 300,4
+    )
 
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
@@ -5072,11 +4771,13 @@ def load_split_corpus_size_image(
 def load_mix3_corpus_image(
     method,
     corpus=None,
-):  # cc: mix, corpus: with only one string as the testing set
-
-    # 900+300, 900 train 300 val, 300 test
-    # 900/5=180, 300/5=60, 1200/5=240
-    # 300
+):
+    """
+    description: This function constructs cross-corpus experiments for the mixture of 3 corpus.
+    param {*} method: name of model
+    param {*} corpus: testing corpus of 1:1:1 (200/200/200)
+    return {*}: training, validation and testing, dimension and number of classes
+    """
     datasets = ["CK", "FER", "RAF"]
     emotion_map = {
         ("anger", "disgust", "fear", "sadness", "sad", "2", "3", "5", "6"): 0,
@@ -5086,6 +4787,7 @@ def load_mix3_corpus_image(
 
     X_train, ytrain, X_val, yval, X_test, ytest = [], [], [], [], [], []
 
+    # load dataset
     for index, dataset in enumerate(datasets):
         x, y = [], []  # for each dataset
         if dataset == "CK":
@@ -5110,17 +4812,17 @@ def load_mix3_corpus_image(
                         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                         if dataset == "RAF":
                             img = cv2.resize(img, (48, 48))
-                        x.append(img)  # grayscale
+                        x.append(img)
                         for k, i in enumerate(emotion_map.keys()):
-                            if secdir in i:  # tuple
+                            if secdir in i:
                                 emotion = emotion_map[i]
                         y.append(emotion)
 
-        # first reverse for each dataset, then get
         x, y = shuffle(x, y, random_state=42)  # shuffle
         num_classes = len(set(y))
         n, h, w = np.array(x).shape
 
+        # 200 samples for each corpus in mixture
         random.seed(123)
         sample_index = random.sample([i for i in range(np.array(x).shape[0])], 200)
 
@@ -5135,19 +4837,18 @@ def load_mix3_corpus_image(
             else (ytrain + np.array(y)[sample_index].tolist())
         )
 
-        # if (dataset == corpus[0]) or (corpus[0] == "eNTERFACE"):  # testing set
         if dataset == corpus[0]:  # testing set
             left_index = [
                 i for i in range(np.array(x).shape[0]) if i not in sample_index
             ]
             random.seed(123)
-            test_index = random.sample(left_index, 200)  # 200:200:200  -- 200
-            X_test = np.array(x)[test_index, :]  # 300,40
+            test_index = random.sample(left_index, 200)  # 1:1:1 (200:200:200)
+            X_test = np.array(x)[test_index, :]
             ytest = np.array(y)[test_index].tolist()
 
-    X_train, X_val, ytrain, yval = train_test_split(  # 2800, 1680, 1120
+    X_train, X_val, ytrain, yval = train_test_split(
         X_train, ytrain, test_size=0.5, random_state=9
-    )  # 3:1  # 1200, 40  # 300,4
+    )
 
     return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
 
@@ -5159,8 +4860,10 @@ def load_patches(X, dataset):
     return {*}: patches
     """
     if dataset in ["CK", "FER"]:
-        X_patches = patchify(X[0], (8, 8), 8)  # 100 for 10x10x3, step
+        X_patches = patchify(X[0], (8, 8), 8)
         X_save = np.reshape(X_patches, (36, 8, 8, 1))
+
+        # save patches
         if not os.path.exists("outputs/image/patches/"):
             os.makedirs("outputs/image/patches/")
         for index, patch in enumerate(X_save):
@@ -5173,10 +4876,10 @@ def load_patches(X, dataset):
             X_patches = np.concatenate(((np.array(X_patches)), patches), axis=0)
 
     elif dataset == "RAF":
-        X_patches = patchify(
-            X[0], (25, 25), 25
-        )  # 100 for 10x10x3, step  100x100 -- 25x25 16
+        X_patches = patchify(X[0], (25, 25), 25)
         X_save = np.reshape(X_patches, (16, 25, 25, 1))
+
+        # save patches
         if not os.path.exists("outputs/image/patches/"):
             os.makedirs("outputs/image/patches/")
         for index, patch in enumerate(X_save):
@@ -5189,34 +4892,6 @@ def load_patches(X, dataset):
             X_patches = np.concatenate(((np.array(X_patches)), patches), axis=0)
 
     return X_patches.astype(np.int64)
-
-
-# def sample_ViT(X, y, n):
-#     """
-#     description: Due to large size of patches, this method is used for sampling from patches to
-#     reduce dimensionality.
-#     param {*} X: input data
-#     param {*} y: input label
-#     param {*} n: class name
-#     return {*}: sampled data and label
-#     """
-#     ViT_index, ViT_label = [], []
-#     for i in range(12):
-#         class_index = [index for index, j in enumerate(y) if label_map[n[index]] == i]
-#         ViT_index += random.sample(class_index, 100)
-#     ViT_sample = [i for index, i in enumerate(X) if index in ViT_index]
-#     ViT_label = [i for index, i in enumerate(y) if index in ViT_index]
-#     return ViT_sample, ViT_label
-
-
-"""
-description: This function is used for loading data from preprocessed dataset into model input.
-param {*} task: task Aor B
-param {*} path: preprocessed dataset path
-param {*} method: selected model for experiment
-param {*} batch_size: batch size of NNs
-return {*}: loaded model input 
-"""
 
 
 def load_data(
@@ -5240,8 +4915,30 @@ def load_data(
     split=None,
     process=None,
 ):
-    if task == "speech":
-        if corpus == None:
+    """
+    description: This function is the general function for loading dataset.
+    param {*} task: image or speech
+    param {*} method: model name
+    param {*} cc: mix/cross/finetune
+    parma {*} dataset: name of dataset
+    param {*} features: features selected
+    param {*} n_mfcc: number of mfcc features
+    param {*} n_mels: number of mel features
+    param {*} scaled: min-max normalization or standardization
+    param {*} max_length: max length for CNN
+    param {*} reverse: whether reverse
+    param {*} noise: whether adding noise
+    param {*} denoise: whether denoise
+    param {*} window: window selected
+    param {*} corpus: depend on cross-corpus experiment setups
+    param {*} sr: sampling rate
+    param {*} landmark: landmark choices
+    param {*} split: cross-corpus 0.8/0.6/0.5/0.4/0.2, single-corpus 4/3/2.5/2/1
+    param {*} process: processing choices of operations
+    return {*}: training, validation and testing set, audio length
+    """
+    if task == "speech":  # load speech dataset
+        if corpus == None:  # single-corpus
             if dataset == "RAVDESS":
                 X_train, ytrain, X_val, yval, X_test, ytest, length = load_RAVDESS(
                     method,
@@ -5350,7 +5047,7 @@ def load_data(
         else:
             if split == None:
                 if cc == "mix":
-                    # # use for original design of mixture of 5
+                    # # use for original design of Case 2
                     # X_train, ytrain, X_val, yval, X_test, ytest, length = (
                     #     load_mix_corpus(
                     #         method,
@@ -5368,7 +5065,7 @@ def load_data(
                     #     )
                     # )
 
-                    # used for new design of ranging split case of 3
+                    # used for modified setup mixture of 3
                     X_train, ytrain, X_val, yval, X_test, ytest, length = (
                         load_mix3_corpus(
                             method,
@@ -5385,7 +5082,7 @@ def load_data(
                             sr=sr,
                         )
                     )
-                elif cc == "finetune":
+                elif cc == "finetune":  # cross-corpus Case 3
                     (
                         X_train,
                         ytrain,
@@ -5412,7 +5109,7 @@ def load_data(
                         corpus=corpus,
                         sr=sr,
                     )
-                elif cc == "cross":
+                elif cc == "cross":  # cross-corpus Case 1
                     X_train, ytrain, X_val, yval, X_test, ytest, length = (
                         load_cross_corpus(
                             method,
@@ -5429,22 +5126,7 @@ def load_data(
                             sr=sr,
                         )
                     )
-            else:
-                # X_train, ytrain, X_val, yval, X_test, ytest, length = load_split_corpus(
-                #     method,
-                #     features,
-                #     n_mfcc,
-                #     n_mels,
-                #     scaled,
-                #     max_length,
-                #     reverse,
-                #     noise,
-                #     denoise,
-                #     window=None,
-                #     corpus=corpus,
-                #     sr=sr,
-                #     split=split,
-                # )
+            else:  # modified setup of cross-corpus
                 X_train, ytrain, X_val, yval, X_test, ytest, length = (
                     load_split_corpus_size(
                         method,
@@ -5466,11 +5148,9 @@ def load_data(
         shape = np.array(X_train).shape[1]
         num_classes = len(set(ytrain))
         if method in ["SVM", "KNN", "DT", "RF", "NB", "LSTM", "CNN", "AlexNet", "GMM"]:
-            if (
-                cc != "finetune"
-            ):  # cc of finetune can only be used in CNN, AlexNet, LSTM
+            if cc != "finetune":
                 return X_train, ytrain, X_val, yval, X_test, ytest, shape, num_classes
-            else:  # finetune
+            else:
                 return (
                     X_train,
                     ytrain,
@@ -5500,8 +5180,8 @@ def load_data(
             else:
                 return train_ds, val_ds, test_ds, shape, num_classes
 
-    elif task == "image":
-        if corpus == None:
+    elif task == "image":  # load image dataset
+        if corpus == None:  # single-corpus
             if dataset == "CK":
                 X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = load_CK(
                     method, landmark, split, process
@@ -5515,38 +5195,24 @@ def load_data(
                     method, landmark, split, process
                 )
             if method == "ViT":
-                # Xtrain, ytrain = sample_ViT(Xtrain, ytrain, ntrain)
-                # Xval, yval = sample_ViT(Xval, yval, nval)
-                # Xtest, ytest = sample_ViT(Xtest, ytest, ntest)
-
                 X_train = load_patches(X_train, dataset)
                 X_val = load_patches(X_val, dataset)
                 X_test = load_patches(X_test, dataset)
-        else:  # corpus != None
-            if split == None:
+        else:
+            if split == None:  # cross-corpus mixture of 3
                 if cc == "mix":
                     X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = (
                         load_mix3_corpus_image(method, corpus)
                     )
-            else:
+            else:  # cross-corpus mixture of 2
                 X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes = (
                     load_split_corpus_size_image(method, corpus, split, process)
                 )
 
-        if method in ["CNN", "Inception", "MLP"]:
+        if method in ["CNN", "Xception", "MLP"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, h, num_classes
         elif method in ["ViT"]:
             return X_train, ytrain, X_val, yval, X_test, ytest, num_classes
-
-
-"""
-description: This function is used for loading selected model.
-param {*} task: task A or B
-param {*} method: selected model
-param {*} multilabel: whether configuring multilabels setting (can only be used with MLP/CNN in task B)
-param {*} lr: learning rate for adjustment and tuning
-return {*}: constructed model
-"""
 
 
 def load_model(
@@ -5566,6 +5232,25 @@ def load_model(
     h=None,
     landmark=None,
 ):
+    """
+    description: This function is the general function for model loading.
+    param {*} task: image or speech
+    param {*} method: model name
+    param {*} features: features selected
+    param {*} cc: mix/cross/finetune
+    param {*} shape: shape of audio input
+    param {*} num_classes: number of classes
+    parma {*} dataset: name of dataset
+    param {*} max_length: max length for CNN
+    param {*} bidirectional: whether construct bidirectional for RNN
+    param {*} epochs: number of epochs for NN
+    param {*} lr: learning rate for NN
+    param {*} batch_size: batch size for NN
+    param {*} cv: whether cross-validation
+    param {*} h: dimension of image
+    param {*} landmark: landmark choices
+    return {*}: constructed model
+    """
     if task == "speech":
         if method in ["SVM", "DT", "RF", "NB", "KNN"]:
             model = SpeechBase(method)
@@ -5635,6 +5320,8 @@ def load_model(
             model = GMM(task, method, features, cc, dataset, num_classes)
         elif method == "KMeans":
             model = KMeans(task, method, features, cc, dataset, num_classes)
+        elif method == "DBSCAN":
+            model = DBSCAN(task, method, features, cc, dataset, num_classes)
         elif method == "wav2vec":
             # model = Wav2Vec(
             #     task,
@@ -5673,8 +5360,8 @@ def load_model(
                 lr=lr,
                 batch_size=batch_size,
             )
-        elif method == "Inception":
-            model = Inception(
+        elif method == "Xception":
+            model = Xception(
                 task,
                 method,
                 cc,
@@ -5699,19 +5386,6 @@ def load_model(
     return model
 
 
-"""
-description: This function is used for visualizing confusion matrix.
-param {*} task: task A or B
-param {*} method: selected model
-param {*} ytrain: train ground truth
-param {*} yval: validation ground truth
-param {*} ytest: test ground truth
-param {*} train_pred: train prediction
-param {*} val_pred: validation prediction
-param {*} test_pred: test prediction
-"""
-
-
 def visual4cm(
     task,
     method,
@@ -5733,14 +5407,36 @@ def visual4cm(
     landmark=None,
     process=None,
 ):
-    # confusion matrix
+    """
+    description: This function is used for visualizing confusion matrix.
+    param {*} task: speech/image
+    param {*} method: selected model
+    param {*} features: features selected
+    param {*} cc: mix/finetune/cross
+    param {*} dataset: name of dataset
+    param {*} ytrain: train ground truth
+    param {*} yval: validation ground truth
+    param {*} ytest: test ground truth
+    param {*} train_pred: train prediction
+    param {*} val_pred: validation prediction
+    param {*} test_pred: test prediction
+    param {*} ytune_train: finetuning train ground truth
+    param {*} ytune_val: finetuning validation ground truth
+    param {*} tune_train_pred: finetuning train prediction
+    param {*} tune_val_pred: finetuning validation prediction
+    param {*} corpus: depend on cross-corpus experiment setups
+    param {*} split: cross-corpus 0.8/0.6/0.5/0.4/0.2, single-corpus 4/3/2.5/2/1
+    param {*} landmark: landmark choices
+    param {*} process: processing choices of operations
+    """
+
     if cc != "finetune":
         cms = {
             "train": confusion_matrix(ytrain, train_pred),
             "val": confusion_matrix(yval, val_pred),
             "test": confusion_matrix(ytest, test_pred),
         }
-    else:
+    else:  # finetune
         cms = {
             "train": confusion_matrix(ytrain, train_pred),
             "val": confusion_matrix(yval, val_pred),
@@ -5770,9 +5466,9 @@ def visual4cm(
     plt.subplots_adjust(wspace=0.40, hspace=0.1)
     fig.colorbar(disp.im_, ax=axes)
 
+    # save
     if not os.path.exists(f"outputs/{task}/confusion_matrix/"):
         os.makedirs(f"outputs/{task}/confusion_matrix/")
-
     if task == "speech":
         if (corpus != None) and (split != None):
             fig.savefig(
@@ -5822,76 +5518,16 @@ def visual4cm(
     plt.close()
 
 
-"""
-description: This function is used for visualizing auc roc curves.
-param {*} task: task A or B
-param {*} method: selected model
-param {*} ytrain: train ground truth
-param {*} yval: validation ground truth
-param {*} ytest: test ground truth
-param {*} train_pred: train prediction
-param {*} val_pred: validation prediction
-param {*} test_pred: test prediction
-"""
-
-
-# def visual4auc(task, method, ytrain, yval, ytest, train_pred, val_pred, test_pred):
-#     # roc curves
-#     rocs = {
-#         "train": roc_curve(
-#             np.array(ytrain).astype(int),
-#             train_pred.astype(int),
-#             pos_label=1,
-#             drop_intermediate=True,
-#         ),
-#         "val": roc_curve(
-#             np.array(yval).astype(int),
-#             val_pred.astype(int),
-#             pos_label=1,
-#             drop_intermediate=True,
-#         ),
-#         "test": roc_curve(
-#             np.array(ytest).astype(int),
-#             test_pred.astype(int),
-#             pos_label=1,
-#             drop_intermediate=True,
-#         ),
-#     }
-
-#     colors = list(mcolors.TABLEAU_COLORS.keys())
-
-#     plt.figure(figsize=(10, 6))
-#     for index, mode in enumerate(["train", "val", "test"]):
-#         plt.plot(
-#             rocs[mode][0],
-#             rocs[mode][1],
-#             lw=1,
-#             label="{}(AUC={:.3f})".format(mode, auc(rocs[mode][0], rocs[mode][1])),
-#             color=mcolors.TABLEAU_COLORS[colors[index]],
-#         )
-#     plt.plot([0, 1], [0, 1], "--", lw=1, color="grey")
-#     plt.axis("square")
-#     plt.xlim([0, 1])
-#     plt.ylim([0, 1])
-#     plt.xlabel("False Positive Rate", fontsize=10)
-#     plt.ylabel("True Positive Rate", fontsize=10)
-#     plt.title(f"ROC Curve for {method}", fontsize=10)
-#     plt.legend(loc="lower right", fontsize=5)
-
-#     if not os.path.exists("outputs/images/roc_curve/"):
-#         os.makedirs("outputs/images/roc_curve/")
-#     plt.savefig(f"outputs/images/roc_curve/{method}_task{task}.png")
-#     plt.close()
-
-
-"""
-description: This function is used for visualizing decision trees.
-param {*} method: selected model
-param {*} model: constructed tree model
-"""
-
-
 def visual4tree(task, method, features, cc, dataset, model):
+    """
+    description: This function is used for visualizing decision trees.
+    param {*} task: speech/image
+    param {*} method: selected model
+    param {*} features: features selected
+    param {*} cc: mix/finetune/cross
+    param {*} dataset: name of dataset
+    param {*} model: constructed tree model
+    """
     plt.figure(figsize=(100, 15))
     class_names = (
         ["pneumonia", "non-pneumonia"]
@@ -5907,15 +5543,13 @@ def visual4tree(task, method, features, cc, dataset, model):
     plt.close()
 
 
-"""
-description: This function is used for calculating metrics performance including accuracy, precision, recall, f1-score.
-param {*} task: task A or B
-param {*} y: ground truth
-param {*} pred: predicted labels
-"""
-
-
 def get_metrics(task, y, pred):
+    """
+    description: This function is used for calculating balanced metrics.
+    param {*} task: speech/image
+    param {*} y: ground truth
+    param {*} pred: predicted labels
+    """
     average = "macro"
     result = {
         "acc": round(
@@ -5940,21 +5574,20 @@ def get_metrics(task, y, pred):
 
 
 def get_imbalance(task, y, pred):
-    # mcc  [-1,1]
-    # geometric mean  [0,1]
-    # discriminant power
-    # balanced accuracy  [0,1]
-    # kappa [-1,1]
-    # youden's index
-    # likelihoods
-    # auroc
-    # classification report imbalance & IBA
+    """
+    description: This function is used for calculating imbalanced metrics.
+    param {*} task: speech/image
+    param {*} y: ground truth
+    param {*} pred: predicted labels
+    """
+
     sen = sensitivity_score(np.array(y).astype(int), pred.astype(int), average="macro")
     spe = specificity_score(np.array(y).astype(int), pred.astype(int), average="macro")
     X = sen / (1 - sen)
     Y = spe / (1 - spe)
     LR_pos = sen / (1 - spe)
     LR_neg = (1 - sen) / spe
+
     result = {
         "mcc": round(matthews_corrcoef(np.array(y).astype(int), pred.astype(int)), 4),
         "g-mean": round(
@@ -5979,7 +5612,6 @@ def get_imbalance(task, y, pred):
             spe + sen - 1,
             4,
         ),
-        # "likelihood" : class_likelihood_ratios(np.array(y).astype(int), pred.astype(int)),
         "likelihood": [round(LR_pos, 4), round(LR_neg, 4)],
     }
     print(classification_report_imbalanced(np.array(y).astype(int), pred.astype(int)))
@@ -5987,15 +5619,13 @@ def get_imbalance(task, y, pred):
     return result
 
 
-"""
-description: This function is used for visualizing hyperparameter selection for grid search models.
-param {*} task: task A or B
-param {*} method: selected model
-param {*} scores: mean test score for cross validation of different parameter combinations
-"""
-
-
 def hyperpara_selection(task, method, feature, cc, dataset, scores):
+    """
+    description: This function is used for visualizing hyperparameter selection for grid search models.
+    param {*} task: speech/image
+    param {*} method: selected model
+    param {*} scores: mean test score for cross validation of different parameter combinations
+    """
     plt.figure(figsize=(8, 5))
     plt.plot(scores, c="g", marker="D", markersize=5)
     plt.xlabel("Params")
@@ -6009,52 +5639,23 @@ def hyperpara_selection(task, method, feature, cc, dataset, scores):
     plt.close()
 
 
-"""
-description: This function is used for visualizing dataset label distribution.
-param {*} task: task A or B
-param {*} data: npz data
-"""
-
-
-# def visual4label(task, data):
-#     fig, ax = plt.subplots(
-#         nrows=1, ncols=3, figsize=(6, 3), subplot_kw=dict(aspect="equal"), dpi=600
-#     )
-
-#     for index, mode in enumerate(["train", "val", "test"]):
-#         pie_data = [
-#             np.count_nonzero(data[f"{mode}_labels"].flatten() == i)
-#             for i in range(len(set(data[f"{mode}_labels"].flatten().tolist())))
-#         ]
-#         labels = [
-#             f"label {i}"
-#             for i in sorted(list(set(data[f"{mode}_labels"].flatten().tolist())))
-#         ]
-#         wedges, texts, autotexts = ax[index].pie(
-#             pie_data,
-#             autopct=lambda pct: f"{pct:.2f}%\n({int(np.round(pct/100.*np.sum(pie_data))):d})",
-#             textprops=dict(color="w"),
-#         )
-#         if index == 2:
-#             ax[index].legend(
-#                 wedges, labels, loc="center left", bbox_to_anchor=(1, 0, 0.5, 1)
-#             )
-#         size = 6 if task == "A" else 3
-#         plt.setp(autotexts, size=size, weight="bold")
-#         ax[index].set_title(mode)
-#     plt.tight_layout()
-
-#     if not os.path.exists("outputs/images/"):
-#         os.makedirs("outputs/images/")
-#     fig.savefig(f"outputs/images/label_distribution_task{task}.png")
-#     plt.close()
-
-
 def visaul4curves(task, method, feature, cc, dataset, train_res, val_res, epochs):
+    """
+    description: This function visualizes curves of convergence for loss and accuracy along epochs.
+    param {*} task: speech/image
+    param {*} method: name of model
+    param {*} feature: feature selected
+    param {*} cc: mix/finetune/cross
+    param {*} dataset: name of dataset
+    param {*} train_res: loss and accuracy stored along epochs in training
+    param {*} val_res: loss and accuracy stored along epochs in training
+    param {*} epochs: epochs for NN
+    """
     acc = train_res["train_acc"]
     val_acc = val_res["val_acc"]
     epochs = list(range(epochs))
 
+    # accuracy
     plt.figure(figsize=(10, 8))
     plt.plot(epochs, acc, label="train accuracy")
     plt.plot(epochs, val_acc, label="val accuracy")
@@ -6066,6 +5667,7 @@ def visaul4curves(task, method, feature, cc, dataset, train_res, val_res, epochs
     plt.savefig(f"outputs/{task}/nn_curves/{method}_{feature}_{cc}_{dataset}_acc.png")
     plt.close()
 
+    # loss
     loss = train_res["train_loss"]
     val_loss = val_res["val_loss"]
     plt.figure(figsize=(10, 8))
@@ -6081,6 +5683,12 @@ def visaul4curves(task, method, feature, cc, dataset, train_res, val_res, epochs
 
 
 def visual4feature(filename, dataset, emotion):
+    """
+    description: This function visualizes features for audio as waveform, mel-spectrogram, chromogram, etc.
+    param {*} filename: name for audio
+    param {*} dataset: name for dataset
+    param {*} emotion: name for emotion
+    """
     with soundfile.SoundFile(filename) as sound_file:
         data = sound_file.read(dtype="float32")
         if dataset == "eNTERFACE":
@@ -6088,7 +5696,7 @@ def visual4feature(filename, dataset, emotion):
         sr = sound_file.samplerate
     sound_file.close()
 
-    # waveform, spectrum (specshow)
+    # waveform
     plt.figure(figsize=(10, 4))
     plt.title(emotion, size=20)
     librosa.display.waveshow(
@@ -6099,9 +5707,10 @@ def visual4feature(filename, dataset, emotion):
     plt.savefig(f"outputs/speech/features/{dataset}_{emotion}_waveform.png")
     plt.close()
 
-    x = librosa.stft(
-        data
-    )  # frequency domain: The STFT represents a signal in the time-frequency domain by computing discrete Fourier transforms (DFT) over short overlapping windows.
+    # spectrum
+    x = librosa.stft(data)
+    # frequency domain: The STFT represents a signal in the time-frequency domain
+    # by computing discrete Fourier transforms (DFT) over short overlapping windows.
     xdb = librosa.amplitude_to_db(
         abs(x)
     )  # Convert an amplitude spectrogram to dB-scaled spectrogram.
@@ -6167,7 +5776,12 @@ def visual4feature(filename, dataset, emotion):
 
 
 def visual4label(task, dataset, category):
-
+    """
+    description: This function visualizes label proportion.
+    param {*} task: image/speech
+    param {*} dataset: name of dataset
+    param {*} category: category mapping for emotion and label
+    """
     fig, ax = plt.subplots(
         nrows=1, ncols=1, figsize=(6, 3), subplot_kw=dict(aspect="equal"), dpi=600
     )
@@ -6183,18 +5797,21 @@ def visual4label(task, dataset, category):
     size = 6
     plt.setp(autotexts, size=size, weight="bold")
     ax.set_title(f"Emotion distribution of {dataset}")
-
     plt.tight_layout()
 
+    # save
     if not os.path.exists(f"outputs/{task}/emotion_labels/"):
         os.makedirs(f"outputs/{task}/emotion_labels/")
     fig.savefig(f"outputs/{task}/emotion_labels/{dataset}.png")
     plt.close()
 
 
-def visual4corr(feature, dataset):
-    # print(feature)
-    # print(np.array(feature).shape)
+def visual4corrmatrix(feature, dataset):
+    """
+    description: This function visualizes correlation matrix for each dataset of 40 mfcc features.
+    param {*} feature: features
+    param {*} dataset: name of dataset
+    """
     fea = []
     for i in feature:
         fea.append(i.tolist())
@@ -6204,8 +5821,6 @@ def visual4corr(feature, dataset):
     # we will find the column-wise Pearson correlation
     # coefficients between variables in xarr and yarr.
 
-    # print(corr_matrix)
-    # print(np.array(corr_matrix).shape)
     plt.figure(figsize=(10, 8))
     hm = sns.heatmap(data=corr_matrix, annot=False)
     plt.title(f"Correlation matrix of {dataset}")
@@ -6214,7 +5829,7 @@ def visual4corr(feature, dataset):
     plt.savefig(f"outputs/speech/corr_matrix/{dataset}.png")
     plt.close()
 
-    # txt
+    # store the matrix as txt
     filename = f"outputs/speech/corr_matrix/corr.csv"
     if not os.path.isfile(filename):
         with open(filename, "w") as csvfile:
@@ -6231,43 +5846,15 @@ def visual4corr(feature, dataset):
                 writer.writerow(i)
 
 
-def visual4corr2(dataset, corr, corr_emo):
-    for index_i, i in enumerate(corr):
-        for index_j, j in enumerate(corr):
-            if index_i != index_j:
-                sample_rate, data1 = wavfile.read(i)
-                sample_rate, data2 = wavfile.read(j)
-                if dataset == "eNTERFACE":
-                    data1 = data1[:, 0]
-                    data2 = data2[:, 0]
-                data1 = data1.astype(float)
-                data2 = data2.astype(float)
-                data1 /= np.max(np.abs(data1))
-                data2 /= np.max(np.abs(data2))
-
-                correlation = np.correlate(data1, data2, mode="full")
-                lags = np.arange(-len(data1) + 1, len(data2))
-
-                # Plot the cross-correlation
-                plt.figure(figsize=(10, 5))
-                fig, (ax1, ax2, ax_corr) = plt.subplots(3, 1, sharex=True)
-                ax1.plot(data1)
-                ax2.plot(data2)
-                plt.title(
-                    f"Cross-Correlation of {corr_emo[index_i]} and {corr_emo[index_j]} in {dataset}"
-                )
-                ax_corr.plot(lags, correlation)
-                plt.xlabel("Lag")
-                plt.ylabel("Correlation")
-                if not os.path.exists(f"outputs/speech/corr_signal/"):
-                    os.makedirs(f"outputs/speech/corr_signal/")
-                fig.savefig(
-                    f"outputs/speech/corr_signal/{dataset}_{corr_emo[index_i]}_{corr_emo[index_j]}.png"
-                )
-                plt.close()
-
-
-def visual4corr3(dataset, file1, file2, emotion):
+def visual4corr_signal(dataset, file1, file2, emotion):
+    """
+    description: This function visualizes auto-correlation, cross-correlation for two signal of same emotion.
+    param {*} dataset: name of dataset
+    param {*} file1: file of signal 1
+    param {*} file2: file of signal 2
+    param {*} emotion: emotion name
+    """
+    # read audio data
     sample_rate, data1 = wavfile.read(file1)
     sample_rate, data2 = wavfile.read(file2)
     if dataset == "eNTERFACE":
@@ -6278,6 +5865,7 @@ def visual4corr3(dataset, file1, file2, emotion):
     data1 /= np.max(np.abs(data1))
     data2 /= np.max(np.abs(data2))
 
+    # auto-correlation and cross-correlation
     cross_correlation = np.correlate(
         data1, data2, mode="full"
     )  # the amplitude is sum of correlation multiplication
@@ -6294,45 +5882,43 @@ def visual4corr3(dataset, file1, file2, emotion):
         np.max(cross_correlation),
     )
 
-    # Plot the cross-correlation
+    # plot
     plt.figure(figsize=(10, 16))
     fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
     ax1.plot(data1)
     ax2.plot(data2)
     ax3.plot(auto_lags1, auto_correlation1)
     ax4.plot(auto_lags2, auto_correlation2)
-    # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
     ax_corr.plot(cross_lags, cross_correlation)
     plt.xlabel("Lag")
     plt.ylabel("Correlation")
-    if not os.path.exists(f"outputs/speech/corr_signal3/"):
-        os.makedirs(f"outputs/speech/corr_signal3/")
-    fig.savefig(f"outputs/speech/corr_signal3/{dataset}_{emotion}.png")
+    if not os.path.exists(f"outputs/speech/corr_signal/"):
+        os.makedirs(f"outputs/speech/corr_signal/")
+    fig.savefig(f"outputs/speech/corr_signal/{dataset}_{emotion}.png")
     plt.close()
 
     # most artificially to most real
     # (RAVDESS/TESS), (SAVEE, EmoDB, AESDD, CREMA-D), eNTERFACE05
 
 
-def visual4corr4(dataset, file1, file2, emotion):
+def visual4corr_filter_ma(dataset, file1, file2, emotion):
+    """
+    description: This function visualizes auto-correlation, cross-correlation for two signal of same emotion after filtering and MA.
+    param {*} dataset: name of dataset
+    param {*} file1: file of signal 1
+    param {*} file2: file of signal 2
+    param {*} emotion: emotion name
+    """
     sample_rate, data1 = wavfile.read(file1)
     sample_rate, data2 = wavfile.read(file2)
-    # print(sample_rate)
     if dataset == "eNTERFACE":
         data1 = data1[:, 0]
         data2 = data2[:, 0]
 
     # low pass filter
-    # Parameters
-    fs = 1000.0  # Sample rate (Hz)  # 500
-    # t = np.arange(0, 1.0, 1.0/fs)  # Time vector
-    cutoff = 5.0  # Desired cutoff frequency of the filter (Hz)  # 10
-    order = 5  # Order of the filter
-    # small cutoff can have a obvious difference between two signal
-    # large cutoff will still have similar signal
-    # frequency cannot be too small
-
-    # Generate the signal
+    fs = 1000.0
+    cutoff = 5.0
+    order = 5
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
     b, a = butter(order, normal_cutoff, btype="low", analog=False)
@@ -6344,23 +5930,20 @@ def visual4corr4(dataset, file1, file2, emotion):
     fdata1 /= np.max(np.abs(fdata1))
     fdata2 /= np.max(np.abs(fdata2))
 
-    cross_correlation = np.correlate(
-        fdata1, fdata2, mode="full"
-    )  # the amplitude is sum of correlation multiplication
+    cross_correlation = np.correlate(fdata1, fdata2, mode="full")
     cross_lags = np.arange(-len(fdata1) + 1, len(fdata2))
     auto_correlation1 = np.correlate(fdata1, fdata1, mode="full")
     auto_lags1 = np.arange(-len(fdata1) + 1, len(fdata1))
     auto_correlation2 = np.correlate(fdata2, fdata2, mode="full")
     auto_lags2 = np.arange(-len(fdata2) + 1, len(fdata2))
 
-    # Plot the cross-correlation
+    # plot
     plt.figure(figsize=(10, 16))
     fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
     ax1.plot(fdata1)
     ax2.plot(fdata2)
     ax3.plot(auto_lags1, auto_correlation1)
     ax4.plot(auto_lags2, auto_correlation2)
-    # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
     ax_corr.plot(cross_lags, cross_correlation)
     plt.xlabel("Lag")
     plt.ylabel("Correlation")
@@ -6390,37 +5973,30 @@ def visual4corr4(dataset, file1, file2, emotion):
     plt.savefig(f"outputs/speech/corr_signal_filter/{dataset}_{emotion}_mels.png")
     plt.close()
 
-    # most artificially to most real
-    # (RAVDESS/TESS), (SAVEE, EmoDB, AESDD, CREMA-D), eNTERFACE0
-
     # moving average
     window_size = 100  # Window size for moving average
     ma_data1 = np.convolve(data1, np.ones(window_size) / window_size, mode="valid")
     ma_data2 = np.convolve(data2, np.ones(window_size) / window_size, mode="valid")
     # the larger the window size, the better
-
     ma_data1 = ma_data1.astype(float)
     ma_data2 = ma_data2.astype(float)
     ma_data1 /= np.max(np.abs(ma_data1))
     ma_data2 /= np.max(np.abs(ma_data2))
 
-    cross_correlation = np.correlate(
-        ma_data1, ma_data2, mode="full"
-    )  # the amplitude is sum of correlation multiplication
+    cross_correlation = np.correlate(ma_data1, ma_data2, mode="full")
     cross_lags = np.arange(-len(ma_data1) + 1, len(ma_data2))
     auto_correlation1 = np.correlate(ma_data1, ma_data1, mode="full")
     auto_lags1 = np.arange(-len(ma_data1) + 1, len(ma_data1))
     auto_correlation2 = np.correlate(ma_data2, ma_data2, mode="full")
     auto_lags2 = np.arange(-len(ma_data2) + 1, len(ma_data2))
 
-    # Plot the cross-correlation
+    # plot
     plt.figure(figsize=(10, 16))
     fig, (ax1, ax2, ax3, ax4, ax_corr) = plt.subplots(5, 1, sharex=True)
     ax1.plot(ma_data1)
     ax2.plot(ma_data2)
     ax3.plot(auto_lags1, auto_correlation1)
     ax4.plot(auto_lags2, auto_correlation2)
-    # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
     ax_corr.plot(cross_lags, cross_correlation)
     plt.xlabel("Lag")
     plt.ylabel("Correlation")
@@ -6431,12 +6007,16 @@ def visual4corr4(dataset, file1, file2, emotion):
 
 
 def signal_similarity(dataset, file1, file2, emotion):
+    """
+    description: This function visualizes signal similarity for two signal of same emotion.
+    param {*} dataset: name of dataset
+    param {*} file1: file of signal 1
+    param {*} file2: file of signal 2
+    param {*} emotion: emotion name
+    """
     sample_rate, data1 = wavfile.read(file1)
     sample_rate, data2 = wavfile.read(file2)
-    print(sample_rate)
-    # if dataset == "eNTERFACE":
-    #     data1 = data1[:, 0]
-    #     data2 = data2[:, 0]
+    # print(sample_rate)
 
     weights = {
         "zcr_similarity": 0.2,
@@ -6447,23 +6027,15 @@ def signal_similarity(dataset, file1, file2, emotion):
         "perceptual_similarity": 0.2,
     }
 
-    # Create an instance of the AudioSimilarity class
-
     audio_similarity = AudioSimilarity(
         file1, file2, sample_rate, weights, verbose=True, sample_size=1
     )
     similarity = {
-        # "zcr":audio_similarity.zcr_similarity(),
-        # "rhythm":audio_similarity.rhythm_similarity(),
-        # "chroma":audio_similarity.chroma_similarity(),
-        # "energy":audio_similarity.energy_envelope_similarity(),
-        # "spectral":audio_similarity.spectral_contrast_similarity(),
-        # "perceptual":audio_similarity.perceptual_similarity(),
         "score": audio_similarity.stent_weighted_audio_similarity(metrics="all")
     }
     print(f"Stent Weighted Audio Similarity of {emotion}: {similarity}")
 
-    # plt.figure(figsize=(10, 16))
+    # plot
     audio_similarity.plot(
         metrics=None,
         option="all",
@@ -6485,62 +6057,17 @@ def signal_similarity(dataset, file1, file2, emotion):
 
     return similarity
 
-    # # dwt, too long
-    # # Generate dummy data for the time series
-    # np.random.seed(0)
-    # time_series_a = np.cumsum(data1)
-    # time_series_b = np.cumsum(data2)
-
-    # # Calculate DTW distance and obtain the warping paths (no need for the C library)
-    # distance, paths = dtw.warping_paths(time_series_a, time_series_b, use_c=False)
-    # best_path = dtw.best_path(paths)
-
-    # dtw_score = distance / len(best_path)
-
-    # plt.figure(figsize=(12, 8))
-
-    # # Original Time Series Plot
-    # ax1 = plt.subplot2grid((2, 2), (0, 0))
-    # ax1.plot(time_series_a, label='Series A', color='blue')
-    # ax1.plot(time_series_b, label='Series B', linestyle='--',color='orange')
-    # ax1.set_title('Original Time Series')
-    # ax1.legend()
-
-    # # Shortest Path Plot (Cost Matrix with the path)
-    # # In this example, only the path is plotted, not the entire cost matrix.
-
-    # ax2 = plt.subplot2grid((2, 2), (0, 1))
-    # ax2.plot(np.array(best_path)[:, 0], np.array(best_path)[:, 1], 'green', marker='o', linestyle='-')
-    # ax2.set_title('Shortest Path (Best Path)')
-    # ax2.set_xlabel('Series A')
-    # ax2.set_ylabel('Series B')
-    # ax2.grid(True)
-
-    # # Point-to-Point Comparison Plot
-    # ax3 = plt.subplot2grid((2, 2), (1, 0), colspan=2)
-    # ax3.plot(time_series_a, label='Series A', color='blue', marker='o')
-    # ax3.plot(time_series_b, label='Series B', color='orange', marker='x', linestyle='--')
-    # for a, b in best_path:
-    #     ax3.plot([a, b], [time_series_a[a], time_series_b[b]], color='grey', linestyle='-', linewidth=1, alpha = 0.5)
-    # ax3.set_title('Point-to-Point Comparison After DTW Alignment')
-    # ax3.legend()
-
-    # plt.tight_layout()
-    # if not os.path.exists(f"outputs/speech/signal_similarity/"):
-    #     os.makedirs(f"outputs/speech/signal_similarity/")
-    # plt.savefig(f"outputs/speech/signal_similarity/{dataset}_{emotion}_dtw.png")
-    # plt.close()
-
-    # # Create a DataFrame to display the similarity score and correlation coefficient
-    # print(f"DTW Similarity Score: {dtw_score}")
-
-    # lower score, greater similarity
-
 
 def visual4corrMAV(dataset, file1, file2, emotion):
+    """
+    description: This function visualizes auto-correlation, cross-correlation for two signal of same emotion after MAV.
+    param {*} dataset: name of dataset
+    param {*} file1: file of signal 1
+    param {*} file2: file of signal 2
+    param {*} emotion: emotion name
+    """
     sample_rate, data1 = wavfile.read(file1)
     sample_rate, data2 = wavfile.read(file2)
-    # print(sample_rate)
     if dataset == "eNTERFACE":
         data1 = data1[:, 0]
         data2 = data2[:, 0]
@@ -6561,17 +6088,9 @@ def visual4corrMAV(dataset, file1, file2, emotion):
     # the larger the window size, the better
 
     # then low pass filter
-    # low pass filter
-    # Parameters
-    fs = 1000.0  # Sample rate (Hz)  # 500
-    # t = np.arange(0, 1.0, 1.0/fs)  # Time vector
-    cutoff = 5.0  # Desired cutoff frequency of the filter (Hz)  # 10
-    order = 5  # Order of the filter
-    # small cutoff can have a obvious difference between two signal
-    # large cutoff will still have similar signal
-    # frequency cannot be too small
-
-    # Generate the signal
+    fs = 1000.0
+    cutoff = 5.0
+    order = 5
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
     b, a = butter(order, normal_cutoff, btype="low", analog=False)
@@ -6583,9 +6102,7 @@ def visual4corrMAV(dataset, file1, file2, emotion):
     fdata1 /= np.max(np.abs(fdata1))
     fdata2 /= np.max(np.abs(fdata2))
 
-    cross_correlation = np.correlate(
-        fdata1, fdata2, mode="full"
-    )  # the amplitude is sum of correlation multiplication
+    cross_correlation = np.correlate(fdata1, fdata2, mode="full")
     cross_lags = np.arange(-len(fdata1) + 1, len(fdata2))
     auto_correlation1 = np.correlate(fdata1, fdata1, mode="full")
     auto_lags1 = np.arange(-len(fdata1) + 1, len(fdata1))
@@ -6598,7 +6115,7 @@ def visual4corrMAV(dataset, file1, file2, emotion):
     #     np.max(cross_correlation),
     # )
 
-    # Plot the cross-correlation
+    # plot
     plt.figure(figsize=(10, 16))
     fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax_corr) = plt.subplots(7, 1, sharex=True)
     ax1.plot(ori_data1)
@@ -6607,7 +6124,6 @@ def visual4corrMAV(dataset, file1, file2, emotion):
     ax4.plot(fdata2)
     ax5.plot(auto_lags1, auto_correlation1)
     ax6.plot(auto_lags2, auto_correlation2)
-    # plt.title(f"Cross-Correlation of {emotion} in {dataset}")
     ax_corr.plot(cross_lags, cross_correlation)
     plt.xlabel("Lag")
     plt.ylabel("Correlation")

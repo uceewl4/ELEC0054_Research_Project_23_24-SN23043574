@@ -1,17 +1,23 @@
+# -*- encoding: utf-8 -*-
+"""
+@File    :   MLP.py
+@Time    :   2024/07/24 05:14:47
+@Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
+@Module : ELEC0054: Research Project
+@SN :   23043574
+@Contact :   uceewl4@ucl.ac.uk
+@Desc    :  This file encapsulates all implementation process for MLP in image emotion detection.
+"""
+
+# here put the import lib
+
 import os
 import time
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import Model
 from tqdm import tqdm
-from tensorboardX import SummaryWriter
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, Dropout, Input
-import os
-import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
 from keras.models import Sequential
-from tensorboardX import SummaryWriter  # used for nn curves visualization
 from tensorflow.keras.layers import (
     Dense,
     Flatten,
@@ -19,19 +25,11 @@ from tensorflow.keras.layers import (
     MaxPooling2D,
     Dropout,
     BatchNormalization,
+    Input,
 )
 
 
 class MLP(Model):
-    """
-    description: This function includes all initialization of MLP, like layers used for construction,
-      loss function object, optimizer, measurement of accuracy and loss.
-    param {*} self
-    param {*} task: task A or B
-    param {*} method: MLP
-    param {*} lr: learning rate
-    """
-
     def __init__(
         self,
         task,
@@ -50,7 +48,11 @@ class MLP(Model):
         self.method = method
         self.task = task
         self.finetune = True if cc == "finetune" else False
+        self.lr = lr
+        self.epoch = epochs
+        self.batch_size = batch_size
 
+        # network architecture
         self.model = Sequential(
             [
                 Dense(1024, activation="relu", input_shape=(h,)),
@@ -65,39 +67,16 @@ class MLP(Model):
             ]
         )
 
-        self.model.build(
-            (
-                None,
-                h,
-            )
-        )
+        self.model.build((None, h))
 
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.layers[0].input,
             outputs=self.model.get_layer("outputs").output,
         )
-
-        # objective function: sparse categorical cross entropy for mutliclass classification
-        # notice that here the loss is calculated from logits, no need to set activation function for the output layer
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True
-        )
-        self.lr = lr
-        self.epoch = epochs
-        self.batch_size = batch_size
-        self.method = method
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-
-    """
-  description: This function is used for the entire process of training. 
-    Notice that loss of both train and validation are backward propagated.
-  param {*} self
-  param {*} model: customized network constructed
-  param {*} train_ds: loaded train dataset as batches
-  param {*} val_ds: loaded validation dataset as batches
-  param {*} EPOCHS: number of epochs
-  return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
-  """
+        )  # loss
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)  # optimizer
 
     def train(
         self,
@@ -110,10 +89,24 @@ class MLP(Model):
         Xtune_val=None,
         ytune_val=None,
     ):
+        """
+        description: This function is used for the entire process of training.
+        param {*} self
+        param {*} Xtrain: features of train set
+        param {*} ytrain: labels of train set
+        param {*} Xval: features of validation set
+        param {*} yval: labels of validation set
+        param {*} Xtune_train: features of train set for finetuning
+        param {*} ytune_train: labels of train set for finetuning
+        param {*} Xtune_val: features of validation set for finetuning
+        param {*} ytune_val: labels of validation set for finetuning
+        return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
+        """
         print("Start training......")
         start_time_train = time.time()
         train_pred, val_pred, tune_train_pred, tune_val_pred = [], [], [], []
 
+        # compile and fit
         self.model.compile(
             optimizer=self.optimizer,
             loss=self.loss_object,
@@ -151,9 +144,12 @@ class MLP(Model):
         print(f"Finish training for {self.method}.")
         print(f"Training time: {elapsed_time_train}s")
 
+        # finetuning
         if self.finetune == True:
             print("Start fine-tuning......")
             start_time_tune = time.time()
+
+            # freezing
             for layer in self.model.layers[:-4]:
                 layer.trainable = False
             for layer in self.model.layers[-3:]:
@@ -203,24 +199,22 @@ class MLP(Model):
 
         return train_res, val_res, train_pred, val_pred, ytrain, yval
 
-    """
-  description: This function is used for the entire process of testing. 
-    Notice that loss of testing is not backward propagated.
-  param {*} self
-  param {*} model: customized network constructed
-  param {*} test_ds: loaded test dataset as batches
-  return {*}: accuracy and loss result, predicted labels and ground truth of test dataset
-  """
-
     def test(self, Xtest, ytest):
+        """
+        description: This function is used for the entire process of testing.
+        param {*} self
+        param {*} Xtest: features of test set
+        param {*} ytest: labels of test set
+        return {*}: predicted labels and ground truth of test dataset
+        """
         print("Start testing......")
         start_time_test = time.time()
+
         test_pred = []
         test_loss, test_acc = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
         test_predictions = self.output_layer.predict(x=Xtest)
         test_prob = tf.nn.softmax(test_predictions)  # probabilities
         test_pred += np.argmax(test_prob, axis=1).tolist()
-        test_pred = np.array(test_pred)
         test_pred = np.array(test_pred)
 
         end_time_test = time.time()

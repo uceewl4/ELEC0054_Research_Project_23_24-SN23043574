@@ -1,57 +1,37 @@
 # -*- encoding: utf-8 -*-
 """
-@File    :   CNN.py
-@Time    :   2024/02/24 21:47:03
+@File    :   Xception.py
+@Time    :   2024/07/24 05:03:09
 @Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
-@Module : ELEC0135: Applied Machine Learning Systems II
+@Module : ELEC0054: Research Project
 @SN :   23043574
 @Contact :   uceewl4@ucl.ac.uk
-@Desc    : This file includes all implementation process of CNN and multilabel setting.
+@Desc    :   This file encapsulates all implementation process for Xception in image emotion detection.
+            The code refers to https://github.com/oarriaga/face_classification/tree/master.
 """
+
 
 # here put the import lib
 import os
 import time
 import numpy as np
-from keras.models import Sequential
 import tensorflow as tf
+from keras.regularizers import l2
 from tensorflow.keras import Model
-from tensorboardX import SummaryWriter  # used for nn curves visualization
+from keras.models import Sequential
+from tensorflow.keras import layers
+from keras.layers import SeparableConv2D
 from tensorflow.keras.layers import (
-    Dense,
-    Flatten,
-    Conv2D,
     MaxPooling2D,
-    Dropout,
+    Activation,
+    Conv2D,
+    GlobalAveragePooling2D,
     BatchNormalization,
+    Input,
 )
 
-# from tensorflow.keras.layers import Activation, Convolution2D, Dropout, Conv2D
-# from tensorflow.keras.layers import AveragePooling2D, BatchNormalization
-# from tensorflow.keras.layers import GlobalAveragePooling2D
-# from tensorflow.keras.models import Sequential
-# from tensorflow.keras.layers import Flatten
-# from tensorflow.keras.models import Model
-# from tensorflow.keras.layers import Input
-# from tensorflow.keras.layers import MaxPooling2D
-# from tensorflow.keras.layers import SeparableConv2D
-# from tensorflow.keras import layers
-# from tensorflow.keras.regularizers import l2
 
-from tensorflow.keras.layers import Activation, Convolution2D, Dropout, Conv2D
-from tensorflow.keras.layers import AveragePooling2D, BatchNormalization
-from tensorflow.keras.layers import GlobalAveragePooling2D
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input
-from tensorflow.keras.layers import MaxPooling2D
-from keras.layers import SeparableConv2D
-from tensorflow.keras import layers
-from keras.regularizers import l2
-
-
-class Inception(Model):
+class Xception(Model):
     def __init__(
         self,
         task,
@@ -64,41 +44,39 @@ class Inception(Model):
         batch_size=16,
     ):
 
-        super(Inception, self).__init__()
+        super(Xception, self).__init__()
         self.num_classes = num_classes
         self.cc = cc
         self.method = method
         self.task = task
         self.batch_size = batch_size
         self.finetune = True if cc == "finetune" else False
+        self.lr = lr
+        self.epoch = epochs
 
+        # network architecture
         self.model = self.mini_XCEPTION((h, h, 1), self.num_classes)
         self.model.build((None, h, h, 1))
         self.model.summary()
-        # self.model.build((None, shape, length, 1))  # change
 
-        # self.output_layer = tf.keras.models.Model(
-        #     inputs=self.model.layers[0].input,
-        #     outputs=self.model.get_layer("outputs").output,
-        # )
-
-        # objective function: sparse categorical cross entropy for mutliclass classification
-        # notice that here the loss is calculated from logits, no need to set activation function for the output layer
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True
-        )
-        self.lr = lr
-        self.epoch = epochs
-        self.batch_size = batch_size
-        self.method = method
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        )  # loss
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)  # optimizer
 
-    # 40x40 input into mini-xception
+    # 48x48 input into mini-xception
     def mini_XCEPTION(self, input_shape, num_classes, l2_regularization=0.01):
+        """
+        description: This function describes the network architecture of modified Xception.
+        param {*} self
+        param {*} input_shape: input shape of Xception as 48x48x1 (resolution)
+        param {*} num_classes: number of classes for emotion classification
+        param {*} l2_regularization: regularization score
+        return {*}: constructed model
+        """
         regularization = l2(l2_regularization)
-
-        # base, 7 classes
         img_input = Input(input_shape)
+
         # first convolutional layer
         x = Conv2D(
             8, (3, 3), strides=(1, 1), kernel_regularizer=regularization, use_bias=False
@@ -115,11 +93,11 @@ class Inception(Model):
 
         # four basic builidng blocks
         # module 1
-        # right
+        # right: residual connection
         residual = Conv2D(16, (1, 1), strides=(2, 2), padding="same", use_bias=False)(x)
         residual = BatchNormalization()(residual)
 
-        # left
+        # left: separable convolution
         x = SeparableConv2D(
             16,
             (3, 3),
@@ -168,7 +146,6 @@ class Inception(Model):
         # module 3
         residual = Conv2D(64, (1, 1), strides=(2, 2), padding="same", use_bias=False)(x)
         residual = BatchNormalization()(residual)
-
         x = SeparableConv2D(
             64,
             (3, 3),
@@ -186,7 +163,6 @@ class Inception(Model):
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
-
         x = MaxPooling2D((3, 3), strides=(2, 2), padding="same")(x)
         x = layers.add([x, residual])
 
@@ -195,7 +171,6 @@ class Inception(Model):
             x
         )
         residual = BatchNormalization()(residual)
-
         x = SeparableConv2D(
             128,
             (3, 3),
@@ -213,11 +188,10 @@ class Inception(Model):
             use_bias=False,
         )(x)
         x = BatchNormalization()(x)
-
         x = MaxPooling2D((3, 3), strides=(2, 2), padding="same")(x)
         x = layers.add([x, residual])
 
-        # out
+        # output
         x = Conv2D(
             num_classes,  # take num of classes and do global average pooling
             (3, 3),
@@ -241,10 +215,25 @@ class Inception(Model):
         Xtune_val=None,
         ytune_val=None,
     ):
+        """
+        description: This function is used for the entire process of training.
+        param {*} self
+        param {*} Xtrain: features of train set
+        param {*} ytrain: labels of train set
+        param {*} Xval: features of validation set
+        param {*} yval: labels of validation set
+        param {*} Xtune_train: features of train set for finetuning
+        param {*} ytune_train: labels of train set for finetuning
+        param {*} Xtune_val: features of validation set for finetuning
+        param {*} ytune_val: labels of validation set for finetuning
+        return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
+        """
+
         print("Start training......")
         start_time_train = time.time()
         train_pred, val_pred, tune_train_pred, tune_val_pred = [], [], [], []
 
+        # compile and fit
         self.model.compile(
             optimizer=self.optimizer,
             loss=self.loss_object,
@@ -259,9 +248,7 @@ class Inception(Model):
         )
 
         # get predictions
-        # train_predictions = self.output_layer.predict(x=Xtrain)
         train_predictions = self.model.predict(x=Xtrain)
-        # train_prob = tf.nn.softmax(train_predictions)
         train_pred += np.argmax(train_predictions, axis=1).tolist()
         train_pred = np.array(train_pred)
         train_res = {
@@ -270,8 +257,6 @@ class Inception(Model):
         }
 
         val_predictions = self.model.predict(x=Xval)
-        # val_predictions = self.output_layer.predict(x=Xval)
-        # val_prob = tf.nn.softmax(val_predictions)
         val_pred += np.argmax(val_predictions, axis=1).tolist()
         val_pred = np.array(val_pred)
         val_res = {
@@ -284,9 +269,12 @@ class Inception(Model):
         print(f"Finish training for {self.method}.")
         print(f"Training time: {elapsed_time_train}s")
 
+        # finetuning
         if self.finetune == True:
             print("Start fine-tuning......")
             start_time_tune = time.time()
+
+            # freezing
             for layer in self.model.layers[:-4]:
                 layer.trainable = False
             for layer in self.model.layers[-3:]:
@@ -308,12 +296,10 @@ class Inception(Model):
             )
 
             tune_train_predictions = self.output_layer.predict(x=Xtune_train)
-            # tune_train_prob = tf.nn.softmax(tune_train_predictions)
             tune_train_pred += np.argmax(tune_train_predictions, axis=1).tolist()
             tune_train_pred = np.array(tune_train_pred)
 
             tune_val_predictions = self.output_layer.predict(x=Xtune_val)
-            # tune_val_prob = tf.nn.softmax(tune_val_predictions)
             tune_val_pred += np.argmax(tune_val_predictions, axis=1).tolist()
             tune_val_pred = np.array(tune_val_pred)
 
@@ -336,23 +322,23 @@ class Inception(Model):
 
         return train_res, val_res, train_pred, val_pred, ytrain, yval
 
-    """
-  description: This function is used for the entire process of testing. 
-    Notice that loss of testing is not backward propagated.
-  param {*} self
-  param {*} model: customized network constructed
-  param {*} test_ds: loaded test dataset as batches
-  return {*}: accuracy and loss result, predicted labels and ground truth of test dataset
-  """
-
     def test(self, Xtest, ytest):
+        """
+        description: This function is used for the entire process of testing.
+        param {*} self
+        param {*} Xtest: features of test set
+        param {*} ytest: labels of test set
+        return {*}: predicted labels and ground truth of test dataset
+        """
+
         print("Start testing......")
         start_time_test = time.time()
+
         test_pred = []
-        test_loss, test_acc = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
-        # test_predictions = self.output_layer.predict(x=Xtest)
+        test_loss, test_acc = self.model.evaluate(
+            Xtest, np.array(ytest), verbose=2
+        )  # evaluate
         test_predictions = self.model.predict(x=Xtest)
-        # test_prob = tf.nn.softmax(test_predictions)  # probabilities
         test_pred += np.argmax(test_predictions, axis=1).tolist()
         test_pred = np.array(test_pred)
         test_pred = np.array(test_pred)

@@ -1,37 +1,27 @@
 # -*- encoding: utf-8 -*-
 """
 @File    :   MLP.py
-@Time    :   2024/03/24 21:41:02
+@Time    :   2024/07/24 05:51:38
 @Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
 @Module : ELEC0054: Research Project
 @SN :   23043574
 @Contact :   uceewl4@ucl.ac.uk
-@Desc    :   None
+@Desc    :    This file encapsulates all implementation process for MLP in speech emotion detection.
 """
 
 # here put the import lib
 
-
 import os
 import time
 import numpy as np
+from tqdm import tqdm
 import tensorflow as tf
 from tensorflow.keras import Model
-from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, Dropout, Input
 
 
 class MLP(Model):
-    """
-    description: This function includes all initialization of MLP, like layers used for construction,
-      loss function object, optimizer, measurement of accuracy and loss.
-    param {*} self
-    param {*} task: task A or B
-    param {*} method: MLP
-    param {*} lr: learning rate
-    """
-
     def __init__(
         self,
         task,
@@ -51,8 +41,10 @@ class MLP(Model):
         self.method = method
         self.task = task
         self.dataset = dataset
+        self.lr = lr
+        self.epochs = epochs
 
-        # network layers definition
+        # network architecture
         self.d1 = Dense(256, activation="relu", input_shape=(shape,))
         self.d2 = Dense(128, activation="relu")
         self.do1 = Dropout(0.2)
@@ -61,41 +53,32 @@ class MLP(Model):
         self.do2 = Dropout(0.2)
         self.d5 = Dense(num_classes)
 
-        # objective function: binary cross entropy
-        # notice that here the loss is calculated from logits, no need to set activation function for the output layer
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True
-        )
-        self.lr = lr
-        self.epochs = epochs
-
-        # adam optimizer
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr)
+        )  # loss object
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr)  # optimizer
 
         # loss and accuracy
         self.train_loss = tf.keras.metrics.Mean(name="train_loss")
         self.train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
             name="train_accuracy"
         )
-
         self.val_loss = tf.keras.metrics.Mean(name="eval_loss")
         self.val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
             name="val_accuracy"
         )
-
         self.test_loss = tf.keras.metrics.Mean(name="test_loss")
         self.test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
             name="test_accuracy"
         )
 
-    """
-  description: This function is the actual construction process of customized network.
-  param {*} self
-  param {*} x: input 
-  return {*}: output logits
-  """
-
     def call(self, x):
+        """
+        description: This function is the actual construction process of customized network.
+        param {*} self
+        param {*} x: input
+        return {*}: output logits
+        """
         x = self.d1(x)
         x = self.d2(x)
         x = self.do1(x)
@@ -105,20 +88,20 @@ class MLP(Model):
 
         return self.d5(x)
 
-    """
-  description: This function is used for the entire process of training. 
-    Notice that loss of both train and validation are backward propagated.
-  param {*} self
-  param {*} model: customized network constructed
-  param {*} train_ds: loaded train dataset as batches
-  param {*} val_ds: loaded validation dataset as batches
-  param {*} EPOCHS: number of epochs
-  return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
-  """
-
     def train(self, model, train_ds, val_ds):
+        """
+        description: This function is used for the entire process of training.
+        param {*} self
+        param {*} model: constructed model
+        param {*} train_ds: data loader with batches of training set and labels
+        param {*} val_ds: data loader with batches of validation set and labels
+        return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
+        """
+
         print("Start training......")
         start_time_train = time.time()
+
+        # save changing curves of loss and accuracy
         if not os.path.exists(f"outputs/{self.task}/nn_curves/"):
             os.makedirs(f"outputs/{self.task}/nn_curves/")
         writer = SummaryWriter(
@@ -133,11 +116,11 @@ class MLP(Model):
             self.train_accuracy.reset_state()
             train_progress_bar = tqdm(range(len(train_ds)))
 
-            for step, (train_images, train_labels) in enumerate(train_ds):
+            for step, (train_samples, train_labels) in enumerate(train_ds):
                 with tf.GradientTape() as tape:
-                    predictions = model(train_images, training=True)  # logits
+                    predictions = model(train_samples, training=True)  # logits
                     train_prob = tf.nn.softmax(predictions)  # probabilities
-                    train_pred += np.argmax(train_prob, axis=1).tolist()
+                    train_pred += np.argmax(train_prob, axis=1).tolist()  # max prob
                     ytrain += np.array(train_labels).tolist()  # ground truth
                     loss = self.loss_object(train_labels, predictions)
 
@@ -147,7 +130,6 @@ class MLP(Model):
                     zip(gradients, model.trainable_variables)
                 )
                 train_progress_bar.update(1)
-
                 self.train_loss(loss)
                 self.train_accuracy(train_labels, predictions)
 
@@ -159,9 +141,9 @@ class MLP(Model):
                     self.val_accuracy.reset_state()
                     val_progress_bar = tqdm(range(len(val_ds)))
 
-                    for val_images, val_labels in val_ds:
+                    for val_samples, val_labels in val_ds:
                         with tf.GradientTape() as tape:
-                            predictions = model(val_images, training=True)
+                            predictions = model(val_samples, training=True)
                             val_prob = tf.nn.softmax(predictions)
                             val_pred += np.argmax(val_prob, axis=1).tolist()
                             yval += np.array(val_labels).tolist()
@@ -176,7 +158,6 @@ class MLP(Model):
                             zip(gradients, model.trainable_variables)
                         )
                         val_progress_bar.update(1)
-
                         self.val_loss(val_loss)
                         self.val_accuracy(val_labels, predictions)
 
@@ -191,6 +172,7 @@ class MLP(Model):
                 "train_acc": round(np.array(self.train_accuracy.result()) * 100, 4),
             }
             print(f"Epoch: {epoch + 1}", train_res)
+            # sketch curves
             writer.add_scalars(
                 "loss",
                 {
@@ -219,16 +201,15 @@ class MLP(Model):
 
         return train_res, val_res, train_pred, val_pred, ytrain, yval
 
-    """
-  description: This function is used for the entire process of testing. 
-    Notice that loss of testing is not backward propagated.
-  param {*} self
-  param {*} model: customized network constructed
-  param {*} test_ds: loaded test dataset as batches
-  return {*}: accuracy and loss result, predicted labels and ground truth of test dataset
-  """
-
     def test(self, model, test_ds):
+        """
+        description: This function is used for the entire process of testing.
+        param {*} self
+        param {*} model: trained model
+        param {*} test_ds: data loader with batches of testing set and labels
+        return {*}: predicted labels and ground truth of test dataset
+        """
+
         print("Start testing......")
         start_time_test = time.time()
 
@@ -238,15 +219,14 @@ class MLP(Model):
         self.test_accuracy.reset_state()
         test_progress_bar = tqdm(range(len(test_ds)))
 
-        for test_images, test_labels in test_ds:
-            predictions = model(test_images, training=False)  # logits
+        for test_samples, test_labels in test_ds:
+            predictions = model(test_samples, training=False)  # logits
             test_prob = tf.nn.softmax(predictions)  # probability
             test_pred += np.argmax(test_prob, axis=1).tolist()
             ytest += np.array(test_labels).tolist()  # ground truth
 
             t_loss = self.loss_object(test_labels, predictions)
             test_progress_bar.update(1)
-
             self.test_loss(t_loss)
             self.test_accuracy(test_labels, predictions)
 

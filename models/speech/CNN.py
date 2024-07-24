@@ -1,18 +1,15 @@
 # -*- encoding: utf-8 -*-
 """
 @File    :   CNN.py
-@Time    :   2024/03/28 17:51:52
+@Time    :   2024/07/24 05:36:17
 @Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
 @Module : ELEC0054: Research Project
 @SN :   23043574
 @Contact :   uceewl4@ucl.ac.uk
-@Desc    :   None
+@Desc    :  This file encapsulates all implementation process for CNN in speech emotion detection.
 """
 
 # here put the import lib
-
-# here put the import lib
-
 
 import os
 import time
@@ -21,29 +18,14 @@ import tensorflow as tf
 from tensorflow.keras import Model
 from keras.models import Sequential
 from sklearn.model_selection import KFold
-from tqdm import tqdm
-from tensorboardX import SummaryWriter
 from tensorflow.keras.layers import (
     Dense,
     Flatten,
     Conv2D,
-    Dropout,
-    Input,
-    SimpleRNN,
-    Bidirectional,
 )
 
 
 class CNN(Model):
-    """
-    description: This function includes all initialization of MLP, like layers used for construction,
-      loss function object, optimizer, measurement of accuracy and loss.
-    param {*} self
-    param {*} task: task A or B
-    param {*} method: MLP
-    param {*} lr: learning rate
-    """
-
     def __init__(
         self,
         task,
@@ -68,11 +50,13 @@ class CNN(Model):
         self.batch_size = batch_size
         self.dataset = dataset
         self.cv = cv
+        self.lr = lr
+        self.epoch = epochs
         self.finetune = True if cc == "finetune" else False
-        # network layers definition
+
+        # network architecture
         self.model = Sequential(
             [
-                # Input(shape=(shape, length, 1)),
                 Conv2D(
                     16,
                     (3, 3),
@@ -86,35 +70,18 @@ class CNN(Model):
             ]
         )
 
-        self.model.build((None, shape, length, 1))  # change
+        # build the model
+        self.model.build((None, shape, length, 1))
         self.model.summary()
-        # self.output_layer = tf.keras.models.Model(
-        #     inputs=self.model.input, outputs=self.model.get_layer("outputs").output
-        # )
+
         self.output_layer = tf.keras.models.Model(
             inputs=self.model.layers[0].input,
             outputs=self.model.get_layer("outputs").output,
         )
-
         self.loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True
-        )
-        self.lr = lr
-        self.epoch = epochs
-        self.batch_size = batch_size
-        self.method = method
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-
-    """
-  description: This function is used for the entire process of training. 
-    Notice that loss of both train and validation are backward propagated.
-  param {*} self
-  param {*} model: customized network constructed
-  param {*} train_ds: loaded train dataset as batches
-  param {*} val_ds: loaded validation dataset as batches
-  param {*} EPOCHS: number of epochs
-  return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
-  """
+        )  # loss
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr)  # optimizer
 
     def train(
         self,
@@ -127,16 +94,33 @@ class CNN(Model):
         Xtune_val=None,
         ytune_val=None,
     ):
+        """
+        description: This function is used for the entire process of training.
+        param {*} self
+        param {*} Xtrain: features of train set
+        param {*} ytrain: labels of train set
+        param {*} Xval: features of validation set
+        param {*} yval: labels of validation set
+        param {*} Xtune_train: features of train set for finetuning
+        param {*} ytune_train: labels of train set for finetuning
+        param {*} Xtune_val: features of validation set for finetuning
+        param {*} ytune_val: labels of validation set for finetuning
+        return {*}: accuracy and loss results, predicted labels, ground truth labels of train and validation
+        """
+
         print("Start training......")
         start_time_train = time.time()
         train_pred, val_pred, tune_train_pred, tune_val_pred = [], [], [], []
+
+        # cross-validation
         if self.cv == True:
             input = np.concatenate((Xtrain, Xval), axis=0)
             target = ytrain + yval
             for kfold, (train, val) in enumerate(
                 KFold(n_splits=10, shuffle=True).split(input, target)
-            ):
+            ):  # 10-fold
                 train_pred, val_pred = [], []
+
                 self.model.compile(
                     optimizer=self.optimizer,
                     loss=self.loss_object,
@@ -150,6 +134,7 @@ class CNN(Model):
                     validation_data=(input[val], target[val]),
                 )
         else:
+            # compile and fit
             self.model.compile(
                 optimizer=self.optimizer,
                 loss=self.loss_object,
@@ -187,28 +172,12 @@ class CNN(Model):
         print(f"Finish training for {self.method}.")
         print(f"Training time: {elapsed_time_train}s")
 
-        # if self.cv == True:
-        #     input = np.concatenate((Xtrain, Xval), axis=0)
-        #     target = ytrain + yval
-        #     for kfold, (train, val) in enumerate(
-        #         KFold(n_splits=10, shuffle=True).split(input, target)
-        #     ):
-        #         train_pred, val_pred = [], []
-        #         self.model.compile(
-        #             optimizer=self.optimizer,
-        #             loss=self.loss_object,
-        #             metrics=["accuracy"],
-        #         )
-        #         history = self.model.fit(
-        #             input[train],
-        #             target[train],
-        #             batch_size=self.batch_size,
-        #             epochs=self.epoch,
-        #             validation_data=(input[val], target[val]),
-        #         )
+        # finetuning
         if self.finetune == True:
             print("Start fine-tuning......")
             start_time_tune = time.time()
+
+            # freezing
             for layer in self.model.layers[:-4]:
                 layer.trainable = False
             for layer in self.model.layers[-3:]:
@@ -258,24 +227,23 @@ class CNN(Model):
 
         return train_res, val_res, train_pred, val_pred, ytrain, yval
 
-    """
-  description: This function is used for the entire process of testing. 
-    Notice that loss of testing is not backward propagated.
-  param {*} self
-  param {*} model: customized network constructed
-  param {*} test_ds: loaded test dataset as batches
-  return {*}: accuracy and loss result, predicted labels and ground truth of test dataset
-  """
-
     def test(self, Xtest, ytest):
+        """
+        description: This function is used for the entire process of testing.
+        param {*} self
+        param {*} Xtest: features of test set
+        param {*} ytest: labels of test set
+        return {*}: predicted labels and ground truth of test dataset
+        """
+
         print("Start testing......")
         start_time_test = time.time()
+
         test_pred = []
         test_loss, test_acc = self.model.evaluate(Xtest, np.array(ytest), verbose=2)
         test_predictions = self.output_layer.predict(x=Xtest)
         test_prob = tf.nn.softmax(test_predictions)  # probabilities
         test_pred += np.argmax(test_prob, axis=1).tolist()
-        test_pred = np.array(test_pred)
         test_pred = np.array(test_pred)
 
         end_time_test = time.time()

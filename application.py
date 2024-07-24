@@ -1,45 +1,37 @@
-# here put the import lib
-import os
-import cv2
-import smtplib
-import numpy as np
-from PIL import Image
-from io import BytesIO
-import streamlit as st
-from email.header import Header
-from email.mime.text import MIMEText
-from streamlit_option_menu import option_menu
-from keras.models import Sequential
-import tensorflow as tf
-from tensorflow.keras import Model
-import cv2
-import numpy as np
-from keras.models import model_from_json
+# -*- encoding: utf-8 -*-
+"""
+@File    :   application.py
+@Time    :   2024/07/24 06:18:12
+@Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
+@Module : ELEC0054: Research Project
+@SN :   23043574
+@Contact :   uceewl4@ucl.ac.uk
+@Desc    :   This file includes implementation process of application for video capture and real-time camera.
+            Notice that this file is separate from the main.py file and has to be run individually.
+            The code refers to https://github.com/oarriaga/face_classification/tree/master, https://github.com/datamagic2020/Emotion_detection_with_CNN.
+"""
 
-from utils import get_features, load_data, load_model
+
+# here put the import lib
 import cv2
-import mediapipe as mp
-import streamlit as st
-import sounddevice as sd
-import numpy as np
-import scipy.io.wavfile as wav
-import os
-import argparse
 import warnings
+import numpy as np
+import mediapipe as mp
 import tensorflow as tf
+
 
 warnings.filterwarnings("ignore")
-# parser = argparse.ArgumentParser(description="Argparse")
-# parser.add_argument("--app", type=str, default="speech", help="speech/video/realtime")
-# args = parser.parse_args()
-app = input("Please select your choice for emotion detection: [1] Video, [2] Real-time")
 
 
 def get_face_landmarks(image, draw=False, static_image_mode=True):
+    """
+    description: This function is used for extracting face landmarks from faces detected.
+    param {*} image: input frame
+    return {*}: image landmarks
+    """
 
     # Read the input image
     image_input_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
     face_mesh = mp.solutions.face_mesh.FaceMesh(
         static_image_mode=static_image_mode,
         max_num_faces=1,
@@ -49,11 +41,8 @@ def get_face_landmarks(image, draw=False, static_image_mode=True):
     results = face_mesh.process(image_input_rgb)
 
     image_landmarks = []
-
     if results.multi_face_landmarks:
-
         if draw:
-
             mp_drawing = mp.solutions.drawing_utils
             mp_drawing_styles = mp.solutions.drawing_styles
             drawing_spec = mp_drawing.DrawingSpec(thickness=2, circle_radius=1)
@@ -70,11 +59,17 @@ def get_face_landmarks(image, draw=False, static_image_mode=True):
         xs_ = []
         ys_ = []
         zs_ = []
-        for idx in ls_single_face:  # every single landmark get three coordinates xyz
+        for (
+            idx
+        ) in (
+            ls_single_face
+        ):  # every single landmark get three coordinates xyz with 468 landmarks in total
             xs_.append(idx.x)
             ys_.append(idx.y)
             zs_.append(idx.z)
-        for j in range(len(xs_)):  # get landmarks of the face
+        for j in range(
+            len(xs_)
+        ):  # get landmark as relative distance with smallest localization
             image_landmarks.append(xs_[j] - min(xs_))
             image_landmarks.append(ys_[j] - min(ys_))
             image_landmarks.append(zs_[j] - min(zs_))
@@ -83,48 +78,13 @@ def get_face_landmarks(image, draw=False, static_image_mode=True):
     return image_landmarks
 
 
-# if app == "0":
-#     # Record audio for 5 seconds (adjust duration as needed)
-#     duration = 5  # seconds
-#     fs = 24414  # Sample rate, as TESS
-#     print("Start recording...")
-#     recording = sd.rec(int(5 * fs), samplerate=fs, channels=1)
-#     sd.wait()  # Wait until recording is finished
-#     print("Finish recording.")
-#     if not os.path.exists("outputs/application/"):
-#         os.makedirs("outputs/application/")
-#     wav.write("outputs/application/audio.wav", fs, recording)
+"""
+    1 means applying model on selected video and corresponding video path has to be provided.
+    2 means real-time capture of facial changing with camera on your PC for emotion detection.
+"""
+app = input("Please select your choice for emotion detection: [1] Video, [2] Real-time")
 
-#     emotion_dict = {
-#         0: "angry",
-#         1: "disgust",
-#         2: "fear",
-#         3: "happy",
-#         4: "neutral",
-#         5: "ps",
-#         6: "sad",
-#     }
-
-#     feature, X = get_features(
-#         "TESS",
-#         "AlexNet",
-#         "outputs/application/audio.wav",
-#         "mfcc",
-#         n_mfcc=40,
-#         n_mels=128,
-#         max_length=150,
-#         sr=fs,
-#     )
-#     feature = np.array(feature)
-#     print(feature.shape)
-
-#     emotion_model = tf.keras.models.load_model("outputs/speech/models/AlexNet.h5")
-#     print("Loaded model from disk")
-
-#     emotion_prediction = emotion_model.predict(feature.reshape(40, 150))
-#     maxindex = int(np.argmax(emotion_prediction))
-
-
+# emotion mapping
 emotion_dict = {
     0: "Anger",
     1: "Contempt",
@@ -135,39 +95,37 @@ emotion_dict = {
     6: "Surprise",
 }
 
+# trained model of CNN for image emotion detection frame by frame
 emotion_model = tf.keras.models.load_model("outputs/image/models/CNN.h5")
 print("Loaded model from disk")
 
-if app == "1":
+if app == "1":  # video
     path = input("Please select your video path...")
     cap = cv2.VideoCapture(path)
 
-elif app == "2":
+elif app == "2":  # real-time capture
     cap = cv2.VideoCapture(1)
     if not cap.isOpened():
         cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise IOError("Cannot open webcam")
 
-while True:
-    # Find haar cascade to draw bounding box around face
+while True:  # detecting continuously
     ret, frame = cap.read()
     frame = cv2.resize(frame, (1280, 720))
-
     if not ret:
         break
+    # Find haar cascade to draw bounding box around face
     face_detector = cv2.CascadeClassifier(
         "/Users/anlly/Desktop/ucl/Final_Project/ELEC0054_Research_Project_23_24-SN23043574/outputs/image/models/haarcascades/haarcascade_frontalface_default.xml",
-    )  # crop the face
+    )
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # detect faces available on camera
     num_faces = face_detector.detectMultiScale(
         gray_frame, scaleFactor=1.3, minNeighbors=5
     )
-
     # print(num_faces)
-    # take each face available on the camera and Preprocess it
+
+    # process face within the frame
     for x, y, w, h in num_faces:  # face bounding boxes, rectangle
         cv2.rectangle(frame, (x, y - 50), (x + w, y + h + 10), (0, 255, 0), 4)
         roi_gray_frame = gray_frame[
@@ -180,7 +138,8 @@ while True:
         # predict the emotions
         emotion_prediction = emotion_model.predict(cropped_img)
         maxindex = int(np.argmax(emotion_prediction))
-        print(maxindex)
+        # print(maxindex)
+
         cv2.putText(
             frame,
             emotion_dict[maxindex],
@@ -192,8 +151,10 @@ while True:
             cv2.LINE_AA,
         )
 
+        # get face landmarks
         face_landmarks = get_face_landmarks(frame, draw=True, static_image_mode=False)
 
+    # show frames
     cv2.imshow("Emotion Detection", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break

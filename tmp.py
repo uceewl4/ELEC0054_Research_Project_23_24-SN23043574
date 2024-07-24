@@ -958,7 +958,7 @@ from keras.models import model_from_json
 
 def process(file):
     img = cv2.imread(file)
-    cv2.imwrite(f"outputs/{file.split(".")[0].split("/")[-1]}.png", img)
+    cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}.png", img)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img = cv2.equalizeHist(img)
     img = cv2.GaussianBlur(img, (3, 3), 0)
@@ -973,7 +973,7 @@ def process(file):
     # img = cv2.equalizeHist(img)
     print(file.split(".")[0])
     print(file.split(".")[0].split("/")[-1])
-    cv2.imwrite(f"outputs/{file.split(".")[0].split("/")[-1]}_assi.png", img)
+    cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}_assi.png", img)
     
 
 

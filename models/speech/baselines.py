@@ -1,43 +1,33 @@
 # -*- encoding: utf-8 -*-
 """
-@File    :   Baselines.py
-@Time    :   2024/03/24 20:00:21
+@File    :   baselines.py
+@Time    :   2024/07/24 05:32:39
 @Programme :  MSc Integrated Machine Learning Systems (TMSIMLSSYS01)
 @Module : ELEC0054: Research Project
 @SN :   23043574
 @Contact :   uceewl4@ucl.ac.uk
-@Desc    :   None
+@Desc    :   This file encapsulates all implementation process for basic classifiers in speech emotion detection.
 """
 
 # here put the import lib
-
-# here put the import lib
-import numpy as np
 import time
+import numpy as np
 from sklearn import svm
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB, CategoricalNB
-from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
-import os
 
 
 class Baselines:
-    """
-    description: This function is used for initialization of Baselines class with instance variables configuration.
-    param {*} self
-    param {*} method: used for specifying the baseline model of experiment
-    """
-
     def __init__(self, method=None):
         self.method = method
+
         if method == "KNN":
             self.model = KNeighborsClassifier()
         elif method == "SVM":
-            self.model = svm.SVC(
-                kernel="poly", C=10, gamma="auto"
-            )  # poly good for TESS
+            self.model = svm.SVC(kernel="poly", C=10, gamma="auto")
         elif method == "DT":
             self.model = DecisionTreeClassifier(criterion="entropy")
         elif method == "NB":
@@ -45,23 +35,19 @@ class Baselines:
         elif method == "RF":
             self.model = RandomForestClassifier(criterion="entropy", verbose=1)
 
-    """
-    description: This function includes entire training process and
-        the cross-validation procedure for baselines of KNN, DT, RF and ABC.
-        Notice that because of the size of dataset, high dimensional features of images and 
-        principle of some models, the process of RF, ABC may be extremely slow.
-        It can even take several hours for a model to run in task B. 
-        Some quick models are recommended on README.md and Github link.
-    param {*} self
-    param {*} Xtrain: train images
-    param {*} ytrain: train ground truth labels
-    param {*} Xval: validation images
-    param {*} yval: validation ground truth labels
-    param {*} gridSearch: whether grid search cross-validation (only for KNN, DT, RF and ABC)
-    return {*}: if grid search is performed, the cv results are returned.
-    """
-
     def train(self, Xtrain, ytrain, Xval, yval, gridSearch=False):
+        """
+        description: This function includes entire training process and
+            the cross-validation procedure for baselines of KNN, SVM, DT, NB and RF.
+        param {*} self
+        param {*} Xtrain: features of train set
+        param {*} ytrain: labels of train set
+        param {*} Xval: features of validation set
+        param {*} yval: labels of validation set
+        param {*} gridSearch: whether grid search cross-validation (only for KNN, DT, RF)
+        return {*}: if grid search is performed, the cv results are returned.
+        """
+        # train initially
         print(f"Start training for {self.method}......")
         start_time_train = time.time()
         self.model.fit(Xtrain, ytrain)
@@ -105,31 +91,30 @@ class Baselines:
             print(f"Finish tuning(cross-validation) for {self.method}.")
             print(f"Training and cross-validation time: {elapsed_time_train}s")
 
-    """
-    description: This function is used for the entire process of testing.
-    param {*} self
-    param {*} Xtrain: train images
-    param {*} ytrain: train ground truth labels
-    param {*} Xval: validation images
-    param {*} yval: validation ground truth labels
-    param {*} Xtest: test images
-    return {*}: predicted labels for train, validation and test respectively
-    """
-
     def test(self, Xtrain, ytrain, Xval, yval, Xtest):
+        """
+        description: This function is used for the entire process of testing.
+        param {*} self
+        param {*} Xtest: features of test set
+        param {*} ytest: labels of test set
+        return {*}: predicted labels and ground truth of test dataset
+        """
+
         print(f"Start testing for {self.method}......")
         start_time_test = time.time()
-        # 900,40
+
+        # predict again on entire train and validation sets
         self.model.fit(np.concatenate((Xtrain, Xval), axis=0), ytrain + yval)
         pred_test = self.model.predict(Xtest)
         pred_train = self.model.predict(Xtrain)
         pred_val = self.model.predict(Xval)
-        end_time_test = time.time()
 
+        end_time_test = time.time()
         elapsed_time_test = end_time_test - start_time_test
         print(f"Finish testing for {self.method}.")
         print(f"Testing time: {elapsed_time_test}s")
 
+        # # save the model
         # if not os.path.exists("outputs/speech/models/"):
         #     os.makedirs("outputs/speech/models")
         # self.model.save("outputs/speech/models/NB.h5")
