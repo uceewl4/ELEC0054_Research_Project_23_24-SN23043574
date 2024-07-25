@@ -4666,12 +4666,57 @@ def load_split_corpus_size_image(
                             img = np.clip(img, 0, 255).astype(np.uint8)
 
                         elif process == "assi":
+                            # img = cv2.equalizeHist(img)
+                            # img = cv2.GaussianBlur(img, (3, 3), 0)
+
                             img = cv2.equalizeHist(img)
-                            img = cv2.GaussianBlur(img, (3, 3), 0)
+                            target_blur = (
+                                100000.0  # Example target value, adjust as needed
+                            )
+                            current_laplacian_var = cv2.Laplacian(img, cv2.CV_64F).var()
+                            # print(
+                            #     f"Current Variance of Laplacian: {current_laplacian_var}"
+                            # )
+
+                            extent = np.sqrt(current_laplacian_var / target_blur)
+                            ksize = int(
+                                max(3, (extent * 10) // 2 * 2 + 1)
+                            )  # Ensure ksize is odd and at least 3
+                            sigma = extent * 2
+                            blurred_img = cv2.GaussianBlur(img, (ksize, ksize), sigma)
+                            final_laplacian_var = cv2.Laplacian(
+                                blurred_img, cv2.CV_64F
+                            ).var()
+                            # print(
+                            #     f"Final Variance of Laplacian Score: {final_laplacian_var}"
+                            # )
+
                     if index == 1:
                         if process == "assi":
+                            # img = cv2.equalizeHist(img)
+                            # img = cv2.GaussianBlur(img, (3, 3), 0)
+
                             img = cv2.equalizeHist(img)
-                            img = cv2.GaussianBlur(img, (3, 3), 0)
+                            target_blur = (
+                                100000.0  # Example target value, adjust as needed
+                            )
+                            current_laplacian_var = cv2.Laplacian(img, cv2.CV_64F).var()
+                            # print(
+                            #     f"Current Variance of Laplacian: {current_laplacian_var}"
+                            # )
+
+                            extent = np.sqrt(current_laplacian_var / target_blur)
+                            ksize = int(
+                                max(3, (extent * 10) // 2 * 2 + 1)
+                            )  # Ensure ksize is odd and at least 3
+                            sigma = extent * 2
+                            blurred_img = cv2.GaussianBlur(img, (ksize, ksize), sigma)
+                            final_laplacian_var = cv2.Laplacian(
+                                blurred_img, cv2.CV_64F
+                            ).var()
+                            # print(
+                            #     f"Final Variance of Laplacian Score: {final_laplacian_var}"
+                            # )
 
                     x.append(img)
                     for k, i in enumerate(emotion_map.keys()):
@@ -4708,13 +4753,64 @@ def load_split_corpus_size_image(
                                 img = wiener(img, mysize=(15, 15))
                                 img = np.clip(img, 0, 255).astype(np.uint8)
                             elif process == "assi":
+                                # img = cv2.equalizeHist(img)
+                                # img = cv2.GaussianBlur(img, (3, 3), 0)
                                 img = cv2.equalizeHist(img)
-                                img = cv2.GaussianBlur(img, (3, 3), 0)
+                                target_blur = (
+                                    100000.0  # Example target value, adjust as needed
+                                )
+                                current_laplacian_var = cv2.Laplacian(
+                                    img, cv2.CV_64F
+                                ).var()
+                                # print(
+                                #     f"Current Variance of Laplacian: {current_laplacian_var}"
+                                # )
+
+                                extent = np.sqrt(current_laplacian_var / target_blur)
+                                ksize = int(
+                                    max(3, (extent * 10) // 2 * 2 + 1)
+                                )  # Ensure ksize is odd and at least 3
+                                sigma = extent * 2
+                                blurred_img = cv2.GaussianBlur(
+                                    img, (ksize, ksize), sigma
+                                )
+                                final_laplacian_var = cv2.Laplacian(
+                                    blurred_img, cv2.CV_64F
+                                ).var()
+                                # print(
+                                #     f"Final Variance of Laplacian Score: {final_laplacian_var}"
+                                # )
 
                         if index == 1:
                             if process == "assi":
+                                # img = cv2.equalizeHist(img)
+                                # img = cv2.GaussianBlur(img, (3, 3), 0)
                                 img = cv2.equalizeHist(img)
-                                img = cv2.GaussianBlur(img, (3, 3), 0)
+                                target_blur = (
+                                    100000.0  # Example target value, adjust as needed
+                                )
+                                current_laplacian_var = cv2.Laplacian(
+                                    img, cv2.CV_64F
+                                ).var()
+                                # print(
+                                #     f"Current Variance of Laplacian: {current_laplacian_var}"
+                                # )
+
+                                extent = np.sqrt(current_laplacian_var / target_blur)
+                                ksize = int(
+                                    max(3, (extent * 10) // 2 * 2 + 1)
+                                )  # Ensure ksize is odd and at least 3
+                                sigma = extent * 2
+                                blurred_img = cv2.GaussianBlur(
+                                    img, (ksize, ksize), sigma
+                                )
+                                final_laplacian_var = cv2.Laplacian(
+                                    blurred_img, cv2.CV_64F
+                                ).var()
+                                # print(
+                                #     f"Final Variance of Laplacian Score: {final_laplacian_var}"
+                                # )
+
                         x.append(img)
                         for k, i in enumerate(emotion_map.keys()):
                             if secdir in i:
