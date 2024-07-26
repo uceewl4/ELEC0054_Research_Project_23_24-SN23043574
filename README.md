@@ -7,7 +7,7 @@ This is the Research Project for 23/24 ELEC0054 Msc IMLS SN23043574. Notice that
 **Project name:** Automatic Emotion Detection \
 **Scope:** Deep Learning, Machine Learning, Research and simulation \
 **Github:** https://github.com/uceewl4/ELEC0054_Research_Project_23_24-SN23043574.git . The private respository will become public once the deadline is passed. You can download the project through Github or Google Drive link provided in the report: . 
-To emphasize, most part of the project is run on UCL GPU server of turin.ee.ucl.ac.uk (you can also find my folder at /scratch/uceewl4/ELEC0054_Research_Project_23_24-SN23043574/), so it will be a bit slower if you run it on CPU. Some quicker models are recommended in the usage for you to run on CPU with small epochs. Please also see the video demonstration in Google Drive as well. Please follow the guidelines in Requirement and Usage to run the project. Thanks a lot.
+To emphasize, most part of the project is run on UCL GPU server of turin.ee.ucl.ac.uk (you can also find my folder at /scratch/uceewl4/ELEC0054_Research_Project_23_24-SN23043574/), so it will be much slower if you run it on CPU. Some quicker models are recommended in the usage for you to run on CPU with small epochs. Please also see the video demonstration in Google Drive as well. Please follow the guidelines in Requirement and Usage to run the project. Thanks a lot.
 
 ## Description
 ### 1. Project Structure 
@@ -77,42 +77,76 @@ To emphasize, most part of the project is run on UCL GPU server of turin.ee.ucl.
   - **CPU platform:** Python 3.11.8 and Anaconda virtual environment for conda 23.7.4. You can check all requirements in requirements.txt and environment in environment.yml. 
   - **GPU plaform:** UCL server: turin.ee.ucl.ac.uk and geneva.ee.ucl.ac.uk with Python 3.12.2, Anaconda virtual environment for conda 23.7.4 and cuda version 12.4.
 
-<!-- ## Usage
+## Usage
 - Step 1: Create environment with corresponding version mentioned in **Requirements** with Anaconda Navigator.
 - Step 2: Install requirement packages for the environment: 
   <p><code>pip install -r requirements.txt</code></p>
   It's also ok for you to combine step 1 and 2 together to run:
     <p><code>conda env create -f environment.yml</code></p>
 
-**<font color=red>**Notice:** Notice that the test version and complete version of the project is provided in different Google Drive links. Please choose your preferred one to run.</font>**
-
 - Step 3: you can run the project with the following commands.
-**<font color=#008000> Notice: Most of the project is run on GPU server, it may be much slower to run on CPU. So it's suggested that if you want to check the model implementation on CPU, try some fast model to see their performance as recommended. Besides, you need to explicitly set task as IG for image generation models.</font>**
+**<font color=#008000> Notice: Most of the project is run on GPU server, it may be much slower to run on CPU. So it's suggested that if you want to check the model implementation on CPU, try some fast model to see their performance as recommended.</font>**
 
-      image_classification(IC): default CNN, VGG19, AdvCNN, etc. (You can also try other models on GPU through my folder in /scratch/uceewl4/ or can set a small epoch on CPU to see their performance.)
-      image_generation(IG): AutoEncoder, etc. (It's not recommended to run GAN models on CPU since they are very slow.)
-      object_detection: the notebook result of Google Colab is provided in folder of runs.
-  <p><code>python main.py --epochs 1</code></p>
-  <p><code>python main.py --method AdvCNN --epochs 1</code></p>
-  <p><code>python main.py --method CNN --multilabel True --epochs 1</code></p>
-  <p><code>python main.py --method VGG19 --epochs 1</code></p>
-  <p><code>python main.py --task IG --method AutoEncoder --epochs 1</code></p>
+      speech emotion detection (--task speech): default CNN, NB, etc. (You can also try other models on GPU through my folder in /scratch/uceewl4/ or can set a small epoch on CPU to see their performance.)
+      image emotiond detection (--task image): default CNN, MLP, Xception, etc.
+
+  **Single-corpus experiments:**
+  <p><code>python main.py --dataset TESS --method NB</code></p>
+  <p><code>python main.py --dataset TESS --method CNN --epochs 1</code></p>
+  <p><code>python main.py --task image --dataset CK --method CNN --epochs 1</code></p>
+  
+  **Cross-corpus experiments:**
+  <p><code>python main.py --dataset TESS --method CNN --epochs 1 --split 4</code></p>
+  <p><code>python main.py --corpus TESS RAVDESS --method CNN --epochs 1 --split 0.8</code></p> 
+  <p><code>python main.py --task image --dataset CK --method CNN --epochs 1 --split 4</code></p>
+  <p><code>python main.py --task image --corpus CK RAF --method CNN --epochs 1 --split 0.8</code></p>
 
 
-  **<font color=#008000>Notice that the argument of pre_data must be set as True to download datasets and check data preprocessing initially. There are several other arguments which can be specified to select different model scenario. Default scenario is LR baseline for task A. You can specify the argument as follows:</font>**
+  **<font color=#008000>For cross-corpus experiment, the arguments for corpus are training (first) and testing (second) datasets of mixture. There are several other arguments which can be specified to select different model scenario. Default scenario is CNN for speech emotion detection with 2 epochs. You can specify the argument as follows:</font>**
 
-    --task: image classification (IC) or image generation (IG). **If you want to run image generation models, the task must be set as IG.
+    --task: speech or image emotion detection. **If you want to perform image emotion detection, the task must be set as image.
 
-    --method: model selected, default CNN. for IC, the model could be "CNN", "AdvCNN", "Multimodal", "MoE", "ResNet50", "InceptionV3", "MobileNetV2"."NASNetMobile", "VGG19", "ViT"; for IG, the model could be "ConGAN", "AutoEncoder", "BaseGAN", "PencilGAN". **<font color=#008000>Notice that your choice of task and method must be compatible.</font>**
+    --method: model selected, default CNN. for speech emotion detection, the model could be "CNN", "NB", "SVM", "DT", "KNN", "AlexNet","MLP", etc. for image emotion detection, the model could be "CNN", "Xception", "MLP", etc. **<font color=#008000>Notice that your choice of task and method must be compatible.</font>**
 
-    --batch_size: batch size of different methods, default 64.
+    --features: features of speech emotion detection like mfcc, all, mel, chroma, default mfcc.
 
-    --epochs: epochs of different methods, default 10.
+    --batch_size: batch size of different methods, default 32.
 
-    --lr: learning rate of different methods, default 0.00001.
+    --epochs: epochs of different methods, default 2.
 
-    --multilabel: whether set multilabels scenario, default False.  **only used for CNN.**
+    --lr: learning rate of different methods, default 0.001.
 
+    --n_mfcc: number of mfcc features, default 40.
+
+    --n_mels: number of mel features, default 128.
+
+    --sr: sampling rate, default 16000.
+
+    --max_length: max length for padding in CNN of speech emotion detection, default 150.
+
+    --reverse: play the audio in a reverse way, default False.
+
+    --noise: play the audio with white noise, white/buzz/bubble/cocktail effect, default None.
+
+    --denoise: play the audio by denoising, default None.
+
+    --landmark: number of landmark for image emotion detection, 5/68/xyz(468), default None.
+
+    --window: an array of integers as starting and ending point of window.
+
+    --bidirectional: whether construct bidirectional for RNN, default False.
+
+    --cv: whether cross validation, default None.
+
+    --cc: experiment setup like single, cross, mix, finetune, default single.
+
+    --scaled: feature processing like standard, minmax, default None.
+
+    --corpus: an array of string indicating mixture of corpus in cross-corpus setting, default None.
+
+    --split: plit of size for cross-corpus setting, including 0.2/0.4/0.5/0.6/0.8, 4/3/2.5/2/1, default None.
+
+    --process: image processing operation, blur/noise/filter/sobel/equal/assi, default None.
 
  
-         -->
+        

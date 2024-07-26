@@ -5971,12 +5971,12 @@ def visual4corr_signal(dataset, file1, file2, emotion):
     auto_correlation2 = np.correlate(data2, data2, mode="full")
     auto_lags2 = np.arange(-len(data2) + 1, len(data2))
 
-    print(
-        emotion,
-        np.max(auto_correlation1),
-        np.max(auto_correlation2),
-        np.max(cross_correlation),
-    )
+    # print(
+    #     emotion,
+    #     np.max(auto_correlation1),
+    #     np.max(auto_correlation2),
+    #     np.max(cross_correlation),
+    # )
 
     # plot
     plt.figure(figsize=(10, 16))

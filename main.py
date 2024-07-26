@@ -53,7 +53,7 @@ if __name__ == "__main__":
     # argument processing
     parser = argparse.ArgumentParser(description="Argparse")
     parser.add_argument("--task", type=str, default="speech", help="image or speech")
-    parser.add_argument("--method", type=str, default="SVM", help="model chosen")
+    parser.add_argument("--method", type=str, default="CNN", help="model chosen")
     parser.add_argument("--dataset", type=str, default="TESS", help="dataset chosen")
     parser.add_argument(
         "--features",
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch_size", type=int, default=32, help="batch size of NNs like MLP and CNN"
     )
-    parser.add_argument("--epochs", type=int, default=10, help="epochs of NNs")
+    parser.add_argument("--epochs", type=int, default=2, help="epochs of NNs")
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate of NNs")
     parser.add_argument(
         "--n_mfcc", type=int, default=40, help="number of mfcc features"
