@@ -974,7 +974,6 @@ from keras.models import model_from_json
 #     print(file.split(".")[0])
 #     print(file.split(".")[0].split("/")[-1])
 #     cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}_assi.png", img)
-    
 
 
 # img = process("datasets/image/CK/anger/S011_004_00000020.png")
@@ -1009,7 +1008,7 @@ import numpy as np
 #         iteration += 1
 #         ksize += 2  # Increment kernel size to increase blur effect
 #         print(f"Iteration: {iteration}, Kernel Size: {ksize}, Current Blur: {current_blur}")
-    
+
 #     return current_image
 
 # # Load an image
@@ -1032,7 +1031,6 @@ import numpy as np
 
 #     # Save the blurred image if needed
 #     cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}_assi_2.png", blurred_image)
-
 
 
 # import cv2
@@ -1070,7 +1068,7 @@ import numpy as np
 #     extent = np.sqrt(current_laplacian_var / target_blur)
 
 #     # Apply Gaussian blur with the calculated extent
-    
+
 #     blurred_image = apply_gaussian_blur_with_extent(img, extent)
 
 #     # Measure the final variance of the Laplacian
@@ -1081,9 +1079,9 @@ import numpy as np
 #     cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}_assi_2.png", blurred_image)
 
 
-
 import cv2
 import numpy as np
+
 
 # Function to calculate the variance of the Laplacian
 def variance_of_laplacian(image):
@@ -1091,10 +1089,12 @@ def variance_of_laplacian(image):
     laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
     return laplacian_var
 
+
 # Function to apply Gaussian blur with a specified kernel size and sigma
 def apply_gaussian_blur(image, ksize, sigma):
     blurred_image = cv2.GaussianBlur(image, (ksize, ksize), sigma)
     return blurred_image
+
 
 # Function to determine the kernel size and sigma based on the target blur extent
 def calculate_blur_parameters(current_laplacian_var, target_blur):
@@ -1109,19 +1109,22 @@ def calculate_blur_parameters(current_laplacian_var, target_blur):
     # else:
     #     # No adjustment needed if already within the range
     #     extent = 1
-    
+
     # Map the extent parameter to a kernel size (must be an odd number)
-    ksize = int(max(3, (extent * 10) // 2 * 2 + 1))  # Ensure ksize is odd and at least 3
-    
+    ksize = int(
+        max(3, (extent * 10) // 2 * 2 + 1)
+    )  # Ensure ksize is odd and at least 3
+
     # Map the extent parameter to a sigma value
     sigma = extent * 2
-    
+
     return ksize, sigma
+
 
 def process(file):
     # Load an image
     image = cv2.imread(file)
-    image = cv2.resize(image, (48,48))
+    image = cv2.resize(image, (48, 48))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     image = cv2.equalizeHist(image)
 
@@ -1144,9 +1147,10 @@ def process(file):
     final_laplacian_var = variance_of_laplacian(blurred_image)
     print(f"Final Variance of Laplacian Score: {final_laplacian_var}")
 
-
     # Save the blurred image if needed
-    cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}_assi_2.png", blurred_image)
+    cv2.imwrite(
+        f"outputs/tmp/{file.split('.')[0].split('/')[-1]}_assi_2.png", blurred_image
+    )
 
 
 img = process("datasets/image/CK/disgust/S005_001_00000010.png")
@@ -1155,8 +1159,12 @@ img = process("datasets/image/RAF/train/2/train_09375_aligned.jpg")
 img = process("datasets/image/CK/disgust/S131_010_00000017.png")
 img = process("datasets/image/FER/train/disgust/Training_3566649.jpg")
 img = process("datasets/image/RAF/train/2/train_00027_aligned.jpg")
-
-
+img = process("datasets/image/CK/anger/S011_004_00000020.png")
+img = process("datasets/image/FER/train/angry/Training_364963.jpg")
+img = process("datasets/image/RAF/train/1/train_00852_aligned.jpg")
+img = process("datasets/image/CK/contempt/S147_002_00000012.png")
+img = process("datasets/image/FER/train/fear/Training_737388.jpg")
+img = process("datasets/image/RAF/train/5/train_00199_aligned.jpg")
 
 
 # image = cv2.resize(image, (48,48))
@@ -1172,5 +1180,3 @@ img = process("datasets/image/RAF/train/2/train_00027_aligned.jpg")
 # blurred_image = cv2.GaussianBlur(image, (ksize, ksize), sigma)
 # final_laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
 # print(f"Final Variance of Laplacian Score: {final_laplacian_var}")
-
-   
