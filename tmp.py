@@ -927,12 +927,12 @@ from keras.models import model_from_json
 #         roi_gray_frame = gray_frame[
 #             y : y + h, x : x + w
 #         ]  # crop each face into one gray frame
-#         cropped_img = np.expand_dims(
+#         cropped_image = np.expand_dims(
 #             np.expand_dims(cv2.resize(roi_gray_frame, (48, 48)), -1), 0
 #         )  # resize into the images
 
 #         # predict the emotions
-#         emotion_prediction = emotion_model.predict(cropped_img)
+#         emotion_prediction = emotion_model.predict(cropped_image)
 #         maxindex = int(np.argmax(emotion_prediction))
 #         print(maxindex)
 #         cv2.putText(
@@ -957,31 +957,31 @@ from keras.models import model_from_json
 
 
 # def process(file):
-#     img = cv2.imread(file)
-#     cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}.png", img)
-#     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#     img = cv2.equalizeHist(img)
-#     img = cv2.GaussianBlur(img, (3, 3), 0)
+#     image = cv2.imread(file)
+#     cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}.png", image)
+#     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#     image = cv2.equalizeHist(image)
+#     image = cv2.GaussianBlur(image, (3, 3), 0)
 
-#     # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+#     # sobelx = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
 #     # sobelx = cv2.convertScaleAbs(sobelx)
-#     # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+#     # sobely = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
 #     # sobely = cv2.convertScaleAbs(sobely)
 #     # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
-#     # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+#     # image = cv2.addWeighted(image, 1, sobel, 1, 0)
 
-#     # img = cv2.equalizeHist(img)
+#     # image = cv2.equalizeHist(image)
 #     print(file.split(".")[0])
 #     print(file.split(".")[0].split("/")[-1])
-#     cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}_assi.png", img)
+#     cv2.imwrite(f"outputs/tmp/{file.split(".")[0].split("/")[-1]}_assi.png", image)
 
 
-# img = process("datasets/image/CK/anger/S011_004_00000020.png")
-# img = process("datasets/image/FER/train/angry/Training_364963.jpg")
-# img = process("datasets/image/RAF/train/1/train_00852_aligned.jpg")
-# img = process("datasets/image/CK/contempt/S147_002_00000012.png")
-# img = process("datasets/image/FER/train/fear/Training_737388.jpg")
-# img = process("datasets/image/RAF/train/5/train_00199_aligned.jpg")
+# image = process("datasets/image/CK/anger/S011_004_00000020.png")
+# image = process("datasets/image/FER/train/angry/Training_364963.jpg")
+# image = process("datasets/image/RAF/train/1/train_00852_aligned.jpg")
+# image = process("datasets/image/CK/contempt/S147_002_00000012.png")
+# image = process("datasets/image/FER/train/fear/Training_737388.jpg")
+# image = process("datasets/image/RAF/train/5/train_00199_aligned.jpg")
 
 
 import cv2
@@ -1013,18 +1013,18 @@ import numpy as np
 
 # # Load an image
 # def process(file):
-#     img = cv2.imread(file)
+#     image = cv2.imread(file)
 
 #     # Define the target blur extent
 #     target_blur = 500.0  # Example target value, adjust as needed
 
 #     # Apply Gaussian blur to reach the target blur extent
-#     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#     img = cv2.equalizeHist(img)
-#     blurred_image = apply_gaussian_blur_to_target(img, target_blur)
+#     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#     image = cv2.equalizeHist(image)
+#     blurred_image = apply_gaussian_blur_to_target(image, target_blur)
 
 #     # Display the original and blurred images
-#     # cv2.imshow("Original Image", img)
+#     # cv2.imshow("Original Image", image)
 #     # cv2.imshow("Blurred Image", blurred_image)
 #     # cv2.waitKey(0)
 #     # cv2.destroyAllWindows()
@@ -1051,13 +1051,13 @@ import numpy as np
 
 # def process(file):
 #     # Load an image
-#     img = cv2.imread(file)
+#     image = cv2.imread(file)
 
 #     # Measure the current variance of the Laplacian
-#     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#     img = cv2.equalizeHist(img)
+#     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#     image = cv2.equalizeHist(image)
 
-#     current_laplacian_var = variance_of_laplacian(img)
+#     current_laplacian_var = variance_of_laplacian(image)
 #     print(f"Current Variance of Laplacian: {current_laplacian_var}")
 
 #     # Define the target blur extent using variance of Laplacian
@@ -1069,7 +1069,7 @@ import numpy as np
 
 #     # Apply Gaussian blur with the calculated extent
 
-#     blurred_image = apply_gaussian_blur_with_extent(img, extent)
+#     blurred_image = apply_gaussian_blur_with_extent(image, extent)
 
 #     # Measure the final variance of the Laplacian
 #     final_laplacian_var = variance_of_laplacian(blurred_image)
@@ -1083,88 +1083,88 @@ import cv2
 import numpy as np
 
 
-# Function to calculate the variance of the Laplacian
-def variance_of_laplacian(image):
-    # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
-    return laplacian_var
+# # Function to calculate the variance of the Laplacian
+# def variance_of_laplacian(image):
+#     # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#     laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
+#     return laplacian_var
 
 
-# Function to apply Gaussian blur with a specified kernel size and sigma
-def apply_gaussian_blur(image, ksize, sigma):
-    blurred_image = cv2.GaussianBlur(image, (ksize, ksize), sigma)
-    return blurred_image
+# # Function to apply Gaussian blur with a specified kernel size and sigma
+# def apply_gaussian_blur(image, ksize, sigma):
+#     blurred_image = cv2.GaussianBlur(image, (ksize, ksize), sigma)
+#     return blurred_image
 
 
-# Function to determine the kernel size and sigma based on the target blur extent
-def calculate_blur_parameters(current_laplacian_var, target_blur):
-    # Determine the required extent to achieve the target blur extent
-    extent = np.sqrt(current_laplacian_var / target_blur)
-    # if current_laplacian_var < target_min:
-    #     # Increase blur if the current variance is less than the target minimum
-    #     extent = np.sqrt(target_min / current_laplacian_var)
-    # elif current_laplacian_var > target_max:
-    #     # Decrease blur if the current variance is more than the target maximum
-    #     extent = np.sqrt(current_laplacian_var / target_max)
-    # else:
-    #     # No adjustment needed if already within the range
-    #     extent = 1
+# # Function to determine the kernel size and sigma based on the target blur extent
+# def calculate_blur_parameters(current_laplacian_var, target_blur):
+#     # Determine the required extent to achieve the target blur extent
+#     extent = np.sqrt(current_laplacian_var / target_blur)
+#     # if current_laplacian_var < target_min:
+#     #     # Increase blur if the current variance is less than the target minimum
+#     #     extent = np.sqrt(target_min / current_laplacian_var)
+#     # elif current_laplacian_var > target_max:
+#     #     # Decrease blur if the current variance is more than the target maximum
+#     #     extent = np.sqrt(current_laplacian_var / target_max)
+#     # else:
+#     #     # No adjustment needed if already within the range
+#     #     extent = 1
 
-    # Map the extent parameter to a kernel size (must be an odd number)
-    ksize = int(
-        max(3, (extent * 10) // 2 * 2 + 1)
-    )  # Ensure ksize is odd and at least 3
+#     # Map the extent parameter to a kernel size (must be an odd number)
+#     ksize = int(
+#         max(3, (extent * 10) // 2 * 2 + 1)
+#     )  # Ensure ksize is odd and at least 3
 
-    # Map the extent parameter to a sigma value
-    sigma = extent * 2
+#     # Map the extent parameter to a sigma value
+#     sigma = extent * 2
 
-    return ksize, sigma
-
-
-def process(file):
-    # Load an image
-    image = cv2.imread(file)
-    image = cv2.resize(image, (48, 48))
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    image = cv2.equalizeHist(image)
-
-    # Define the target blur extent using variance of Laplacian
-    target_blur = 100000.0  # Example target value, adjust as needed
-    # target_min = 500
-    # target_max = 100000
-
-    # Calculate the current variance of the Laplacian
-    current_laplacian_var = variance_of_laplacian(image)
-    print(f"Current Variance of Laplacian: {current_laplacian_var}")
-
-    # Calculate the Gaussian blur parameters to reach the target blur extent
-    ksize, sigma = calculate_blur_parameters(current_laplacian_var, target_blur)
-
-    # Apply Gaussian blur with the calculated parameters
-    blurred_image = apply_gaussian_blur(image, ksize, sigma)
-
-    # Measure the final variance of the Laplacian
-    final_laplacian_var = variance_of_laplacian(blurred_image)
-    print(f"Final Variance of Laplacian Score: {final_laplacian_var}")
-
-    # Save the blurred image if needed
-    cv2.imwrite(
-        f"outputs/tmp/{file.split('.')[0].split('/')[-1]}_assi_2.png", blurred_image
-    )
+#     return ksize, sigma
 
 
-img = process("datasets/image/CK/disgust/S005_001_00000010.png")
-img = process("datasets/image/FER/train/disgust/Training_1070239.jpg")
-img = process("datasets/image/RAF/train/2/train_09375_aligned.jpg")
-img = process("datasets/image/CK/disgust/S131_010_00000017.png")
-img = process("datasets/image/FER/train/disgust/Training_3566649.jpg")
-img = process("datasets/image/RAF/train/2/train_00027_aligned.jpg")
-img = process("datasets/image/CK/anger/S011_004_00000020.png")
-img = process("datasets/image/FER/train/angry/Training_364963.jpg")
-img = process("datasets/image/RAF/train/1/train_00852_aligned.jpg")
-img = process("datasets/image/CK/contempt/S147_002_00000012.png")
-img = process("datasets/image/FER/train/fear/Training_737388.jpg")
-img = process("datasets/image/RAF/train/5/train_00199_aligned.jpg")
+# def process(file):
+#     # Load an image
+#     image = cv2.imread(file)
+#     image = cv2.resize(image, (48, 48))
+#     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#     image = cv2.equalizeHist(image)
+
+#     # Define the target blur extent using variance of Laplacian
+#     target_blur = 100000.0  # Example target value, adjust as needed
+#     # target_min = 500
+#     # target_max = 100000
+
+#     # Calculate the current variance of the Laplacian
+#     current_laplacian_var = variance_of_laplacian(image)
+#     print(f"Current Variance of Laplacian: {current_laplacian_var}")
+
+#     # Calculate the Gaussian blur parameters to reach the target blur extent
+#     ksize, sigma = calculate_blur_parameters(current_laplacian_var, target_blur)
+
+#     # Apply Gaussian blur with the calculated parameters
+#     blurred_image = apply_gaussian_blur(image, ksize, sigma)
+
+#     # Measure the final variance of the Laplacian
+#     final_laplacian_var = variance_of_laplacian(blurred_image)
+#     print(f"Final Variance of Laplacian Score: {final_laplacian_var}")
+
+#     # Save the blurred image if needed
+#     cv2.imwrite(
+#         f"outputs/tmp/{file.split('.')[0].split('/')[-1]}_assi_2.png", blurred_image
+#     )
+
+
+# image = process("datasets/image/CK/disgust/S005_001_00000010.png")
+# image = process("datasets/image/FER/train/disgust/Training_1070239.jpg")
+# image = process("datasets/image/RAF/train/2/train_09375_aligned.jpg")
+# image = process("datasets/image/CK/disgust/S131_010_00000017.png")
+# image = process("datasets/image/FER/train/disgust/Training_3566649.jpg")
+# image = process("datasets/image/RAF/train/2/train_00027_aligned.jpg")
+# image = process("datasets/image/CK/anger/S011_004_00000020.png")
+# image = process("datasets/image/FER/train/angry/Training_364963.jpg")
+# image = process("datasets/image/RAF/train/1/train_00852_aligned.jpg")
+# image = process("datasets/image/CK/contempt/S147_002_00000012.png")
+# image = process("datasets/image/FER/train/fear/Training_737388.jpg")
+# image = process("datasets/image/RAF/train/5/train_00199_aligned.jpg")
 
 
 # image = cv2.resize(image, (48,48))
@@ -1180,3 +1180,121 @@ img = process("datasets/image/RAF/train/5/train_00199_aligned.jpg")
 # blurred_image = cv2.GaussianBlur(image, (ksize, ksize), sigma)
 # final_laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
 # print(f"Final Variance of Laplacian Score: {final_laplacian_var}")
+
+
+def process(file):
+    # noise extent: dct
+    # image = cv2.imread(file)
+    # image = cv2.resize(image, (48, 48))
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # dct1 = cv2.dct(np.float32(image) / 255.0)
+    # high_freq1 = dct1[4:, 4:]
+    # noise_dct1 = np.std(high_freq1)
+    # print(f"Previous Estimated Noise Level (DCT): {noise_dct1}")
+
+    # image = cv2.equalizeHist(image)
+    # image = cv2.fastNlMeansDenoising(image, None, 10, 7, 21)
+
+    # dct2 = cv2.dct(np.float32(image) / 255.0)
+    # high_freq2 = dct2[4:, 4:]
+    # noise_dct2 = np.std(high_freq2)
+    # print(f"Current Estimated Noise Level (DCT): {noise_dct2}")
+
+    # cv2.imwrite(
+    #     f"outputs/tmp/{file.split('.')[0].split('/')[-1]}_assi_111.png",
+    #     image,
+    # )
+
+    # detail extent: entropy
+
+    # image = cv2.imread(file)
+    # image = cv2.resize(image, (48, 48))
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # hist = cv2.calcHist([image], [0], None, [256], [0, 256])
+    # hist_norm = hist.ravel() / hist.sum()
+    # entropy_value = -np.sum(hist_norm * np.log2(hist_norm + (hist_norm == 0)))
+    # print(f"Previous Enrtopy Value: {entropy_value}")
+
+    # image = cv2.equalizeHist(image)
+    # image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    # image = cv2.detailEnhance(image, sigma_s=10, sigma_r=0.15)
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # hist = cv2.calcHist([image], [0], None, [256], [0, 256])
+    # hist_norm = hist.ravel() / hist.sum()
+    # entropy_value = -np.sum(hist_norm * np.log2(hist_norm + (hist_norm == 0)))
+    # print(f"Current Enrtopy Value: {entropy_value}")
+
+    # cv2.imwrite(
+    #     f"outputs/tmp/{file.split('.')[0].split('/')[-1]}_assi_112.png",
+    #     image,
+    # )
+
+    # clahe and gamma
+
+    # image = cv2.imread(file)
+    # image = cv2.resize(image, (48, 48))
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # mean_intensity = np.mean(image)
+    # print(f"Previous Brightness Value: {mean_intensity}")
+
+    # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    # image = clahe.apply(image)
+    # gamma = 1.5
+    # invGamma = 1.0 / gamma
+    # table = np.array([(i / 255.0) ** invGamma * 255 for i in np.arange(256)]).astype(
+    #     "uint8"
+    # )
+    # image = cv2.LUT(image, table)
+
+    # mean_intensity = np.mean(image)
+    # print(f"Current Brightness Value: {mean_intensity}")
+
+    # cv2.imwrite(
+    #     f"outputs/tmp/{file.split('.')[0].split('/')[-1]}_assi_113.png",
+    #     image,
+    # )
+
+    # edge detection
+    image = cv2.imread(file)
+    image = cv2.resize(image, (48, 48))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    edges_before = cv2.Canny(image, 100, 200)
+    edge_pixels = np.count_nonzero(edges_before)
+    total_pixels = image.size
+    edge_density_before = edge_pixels / total_pixels
+    print(f"Edge Density before Laplacian: {edge_density_before}")
+
+    # Apply the Laplacian operator
+    laplacian = cv2.Laplacian(image, cv2.CV_64F, ksize=3)
+    laplacian = np.clip(laplacian, 0, 255).astype("uint8")
+    image = cv2.addWeighted(image, 1, laplacian, 1, 0)
+
+    edges_after = cv2.Canny(image, 100, 200)
+    edge_pixels = np.count_nonzero(edges_after)
+    total_pixels = image.size
+    edge_density_after = edge_pixels / total_pixels
+    print(f"Edge Density after Laplacian: {edge_density_after}")
+
+    cv2.imwrite(
+        f"outputs/tmp/{file.split('.')[0].split('/')[-1]}_assi_114.png",
+        image,
+    )
+
+
+image = process("datasets/image/CK/disgust/S005_001_00000010.png")
+image = process("datasets/image/FER/train/disgust/Training_1070239.jpg")
+image = process("datasets/image/RAF/train/2/train_09375_aligned.jpg")
+image = process("datasets/image/CK/disgust/S131_010_00000017.png")
+image = process("datasets/image/FER/train/disgust/Training_3566649.jpg")
+image = process("datasets/image/RAF/train/2/train_00027_aligned.jpg")
+image = process("datasets/image/CK/anger/S011_004_00000020.png")
+image = process("datasets/image/FER/train/angry/Training_364963.jpg")
+image = process("datasets/image/RAF/train/1/train_00852_aligned.jpg")
+image = process("datasets/image/CK/contempt/S147_002_00000012.png")
+image = process("datasets/image/FER/train/fear/Training_737388.jpg")
+image = process("datasets/image/RAF/train/5/train_00199_aligned.jpg")

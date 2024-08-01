@@ -4665,7 +4665,7 @@ def load_split_corpus_size_image(
                             img = wiener(img, mysize=(15, 15))
                             img = np.clip(img, 0, 255).astype(np.uint8)
 
-                        elif process == "assi":
+                        elif process == "assi":  # blur extent
                             # img = cv2.equalizeHist(img)
                             # img = cv2.GaussianBlur(img, (3, 3), 0)
 
@@ -4690,6 +4690,39 @@ def load_split_corpus_size_image(
                             # print(
                             #     f"Final Variance of Laplacian Score: {final_laplacian_var}"
                             # )
+                        elif process == "assi2":  # denoise
+                            # img = cv2.equalizeHist(img)
+                            # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                            # sobelx = cv2.convertScaleAbs(sobelx)
+                            # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                            # sobely = cv2.convertScaleAbs(sobely)
+                            # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                            # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+
+                            img = cv2.equalizeHist(img)
+
+                            # img = wiener(img, mysize=(3, 3))
+                            # img = np.clip(img, 0, 255).astype(np.uint8)
+                            img = cv2.fastNlMeansDenoising(img, None, 10, 7, 21)
+                        elif process == "assi3":  # detail enhance
+                            img = cv2.equalizeHist(img)
+                            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                            img = cv2.detailEnhance(img, sigma_s=10, sigma_r=0.15)
+                            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        elif process == "assi4":  # clahe and gamma
+                            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                            img = clahe.apply(img)
+                            gamma = 1.5
+                            invGamma = 1.0 / gamma
+                            table = np.array(
+                                [(i / 255.0) ** invGamma * 255 for i in np.arange(256)]
+                            ).astype("uint8")
+                            img = cv2.LUT(img, table)
+                        elif process == "assi5":
+                            # img = cv2.equalizeHist(img)
+                            laplacian = cv2.Laplacian(img, cv2.CV_64F, ksize=3)
+                            laplacian = np.clip(laplacian, 0, 255).astype("uint8")
+                            img = cv2.addWeighted(img, 1, laplacian, 1, 0)
 
                     if index == 1:
                         if process == "assi":
@@ -4717,6 +4750,39 @@ def load_split_corpus_size_image(
                             # print(
                             #     f"Final Variance of Laplacian Score: {final_laplacian_var}"
                             # )
+                        elif process == "assi2":  # denoise
+                            # img = cv2.equalizeHist(img)
+                            # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                            # sobelx = cv2.convertScaleAbs(sobelx)
+                            # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                            # sobely = cv2.convertScaleAbs(sobely)
+                            # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                            # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+
+                            img = cv2.equalizeHist(img)
+
+                            # img = wiener(img, mysize=(3, 3))
+                            # img = np.clip(img, 0, 255).astype(np.uint8)
+                            img = cv2.fastNlMeansDenoising(img, None, 10, 7, 21)
+                        elif process == "assi3":  # detail enhance
+                            img = cv2.equalizeHist(img)
+                            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                            img = cv2.detailEnhance(img, sigma_s=10, sigma_r=0.15)
+                            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        elif process == "assi4":  # clahe and gamma
+                            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                            img = clahe.apply(img)
+                            gamma = 1.5
+                            invGamma = 1.0 / gamma
+                            table = np.array(
+                                [(i / 255.0) ** invGamma * 255 for i in np.arange(256)]
+                            ).astype("uint8")
+                            img = cv2.LUT(img, table)
+                        elif process == "assi5":
+                            # img = cv2.equalizeHist(img)
+                            laplacian = cv2.Laplacian(img, cv2.CV_64F, ksize=3)
+                            laplacian = np.clip(laplacian, 0, 255).astype("uint8")
+                            img = cv2.addWeighted(img, 1, laplacian, 1, 0)
 
                     x.append(img)
                     for k, i in enumerate(emotion_map.keys()):
@@ -4780,6 +4846,44 @@ def load_split_corpus_size_image(
                                 # print(
                                 #     f"Final Variance of Laplacian Score: {final_laplacian_var}"
                                 # )
+                            elif process == "assi2":  # denoise
+                                # img = cv2.equalizeHist(img)
+                                # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                                # sobelx = cv2.convertScaleAbs(sobelx)
+                                # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                                # sobely = cv2.convertScaleAbs(sobely)
+                                # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                                # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+
+                                img = cv2.equalizeHist(img)
+
+                                # img = wiener(img, mysize=(3, 3))
+                                # img = np.clip(img, 0, 255).astype(np.uint8)
+                                img = cv2.fastNlMeansDenoising(img, None, 10, 7, 21)
+                            elif process == "assi3":  # detail enhance
+                                img = cv2.equalizeHist(img)
+                                img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                                img = cv2.detailEnhance(img, sigma_s=10, sigma_r=0.15)
+                                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                            elif process == "assi4":  # clahe and gamma
+                                clahe = cv2.createCLAHE(
+                                    clipLimit=2.0, tileGridSize=(8, 8)
+                                )
+                                img = clahe.apply(img)
+                                gamma = 1.5
+                                invGamma = 1.0 / gamma
+                                table = np.array(
+                                    [
+                                        (i / 255.0) ** invGamma * 255
+                                        for i in np.arange(256)
+                                    ]
+                                ).astype("uint8")
+                                img = cv2.LUT(img, table)
+                            elif process == "assi5":
+                                # img = cv2.equalizeHist(img)
+                                laplacian = cv2.Laplacian(img, cv2.CV_64F, ksize=3)
+                                laplacian = np.clip(laplacian, 0, 255).astype("uint8")
+                                img = cv2.addWeighted(img, 1, laplacian, 1, 0)
 
                         if index == 1:
                             if process == "assi":
@@ -4810,6 +4914,43 @@ def load_split_corpus_size_image(
                                 # print(
                                 #     f"Final Variance of Laplacian Score: {final_laplacian_var}"
                                 # )
+                            elif process == "assi2":  # denoise
+                                # img = cv2.equalizeHist(img)
+                                # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+                                # sobelx = cv2.convertScaleAbs(sobelx)
+                                # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+                                # sobely = cv2.convertScaleAbs(sobely)
+                                # sobel = cv2.addWeighted(sobelx, 0.5, sobely, 0.5, 0)
+                                # img = cv2.addWeighted(img, 1, sobel, 1, 0)
+                                img = cv2.equalizeHist(img)
+
+                                # img = wiener(img, mysize=(3, 3))
+                                # img = np.clip(img, 0, 255).astype(np.uint8)
+                                img = cv2.fastNlMeansDenoising(img, None, 10, 7, 21)
+                            elif process == "assi3":  # detail enhance
+                                img = cv2.equalizeHist(img)
+                                img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                                img = cv2.detailEnhance(img, sigma_s=10, sigma_r=0.15)
+                                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                            elif process == "assi4":  # clahe and gamma
+                                clahe = cv2.createCLAHE(
+                                    clipLimit=2.0, tileGridSize=(8, 8)
+                                )
+                                img = clahe.apply(img)
+                                gamma = 1.5
+                                invGamma = 1.0 / gamma
+                                table = np.array(
+                                    [
+                                        (i / 255.0) ** invGamma * 255
+                                        for i in np.arange(256)
+                                    ]
+                                ).astype("uint8")
+                                img = cv2.LUT(img, table)
+                            elif process == "assi5":  # edge detection
+                                # img = cv2.equalizeHist(img)
+                                laplacian = cv2.Laplacian(img, cv2.CV_64F, ksize=3)
+                                laplacian = np.clip(laplacian, 0, 255).astype("uint8")
+                                img = cv2.addWeighted(img, 1, laplacian, 1, 0)
 
                         x.append(img)
                         for k, i in enumerate(emotion_map.keys()):
