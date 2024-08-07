@@ -6,7 +6,7 @@ This is the Research Project for 23/24 ELEC0054 Msc IMLS SN23043574. Notice that
 **Module**: ELEC0054 Research Project \
 **Project name:** Automatic Emotion Detection \
 **Scope:** Deep Learning, Machine Learning, Research and simulation \
-**Github:** https://github.com/uceewl4/ELEC0054_Research_Project_23_24-SN23043574.git . The private respository will become public once the deadline is passed. You can download the project through Github or Google Drive link provided in the report: . 
+**Github:** https://github.com/uceewl4/ELEC0054_Research_Project_23_24-SN23043574.git . The private respository will become public once the deadline is passed. You can download the project through Github or Google Drive link provided in the report: https://drive.google.com/drive/folders/11RZvyur99SYVFyZZzpYxdM8bvWo2IR35?usp=sharing. 
 To emphasize, most part of the project is run on UCL GPU server of turin.ee.ucl.ac.uk (you can also find my folder at /scratch/uceewl4/ELEC0054_Research_Project_23_24-SN23043574/), so it will be much slower if you run it on CPU. Some quicker models are recommended in the usage for you to run on CPU with small epochs. Please also see the video demonstration in Google Drive as well. Please follow the guidelines in Requirement and Usage to run the project. Thanks a lot.
 
 ## Description
