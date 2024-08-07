@@ -148,5 +148,6 @@ To emphasize, most part of the project is run on UCL GPU server of turin.ee.ucl.
 
     --process: image processing operation, blur/noise/filter/sobel/equal/assi, default None.
 
- 
-        
+- Step 4: If you want to run the application, you can use the command as follows.
+  <p><code>python application.py</code></p>
+  Select the choice from video and real-time capture. If you choose video, you can provide the absolute path of test video.
